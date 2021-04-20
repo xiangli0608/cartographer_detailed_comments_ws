@@ -1,0 +1,38 @@
+# Copyright 2018 The Cartographer Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+sudo: required
+services: docker
+
+# Cache intermediate Docker layers. For a description of how this works, see:
+# https://giorgos.sealabs.net/docker-cache-on-travis-and-docker-112.html
+cache:
+  directories:
+    - /home/travis/docker/
+
+env:
+  - ROS_RELEASE=kinetic DOCKER_CACHE_FILE=/home/travis/docker/kinetic-cache.tar.gz
+  - ROS_RELEASE=melodic DOCKER_CACHE_FILE=/home/travis/docker/melodic-cache.tar.gz
+  - ROS_RELEASE=noetic DOCKER_CACHE_FILE=/home/travis/docker/noetic-cache.tar.gz
+
+before_install:
+  # $GITHUB_TOKEN must be a valid GitHub access token without access rights (https://github.com/settings/tokens).
+  # Either add your token to the 'env' section above or add it as an unencrypted variable in the Travis settings.
+  - scripts/check_access_token.sh $GITHUB_TOKEN
+  - scripts/load_docker_cache.sh
+
+install: true
+script:
+  - docker build ${TRAVIS_BUILD_DIR} -t cartographer_ros:${ROS_RELEASE} -f Dockerfile.${ROS_RELEASE} --build-arg github_token=${GITHUB_TOKEN}
+  - scripts/save_docker_cache.sh

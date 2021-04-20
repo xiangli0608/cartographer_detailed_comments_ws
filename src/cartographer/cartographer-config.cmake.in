@@ -1,0 +1,49 @@
+# Copyright 2016 The Cartographer Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#  Usage from an external project:
+#    In your CMakeLists.txt, add these lines:
+#
+#    find_package(cartographer REQUIRED)
+#    target_link_libraries(MY_TARGET_NAME PUBLIC cartographer)
+
+@PACKAGE_INIT@
+
+set_and_check(CARTOGRAPHER_CMAKE_DIR "@PACKAGE_CARTOGRAPHER_CMAKE_DIR@")
+
+set(CERES_DIR_HINTS @Ceres_DIR@)
+set(CARTOGRAPHER_HAS_GRPC @CARTOGRAPHER_HAS_GRPC@)
+
+if (cartographer_FIND_QUIETLY)
+   set(QUIET_OR_REQUIRED_OPTION "QUIET")
+elseif (cartographer_FIND_REQUIRED)
+   set(QUIET_OR_REQUIRED_OPTION "REQUIRED")
+else ()
+   set(QUIET_OR_REQUIRED_OPTION "")
+endif()
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CARTOGRAPHER_CMAKE_DIR}/modules)
+
+find_package(Ceres ${QUIET_OR_REQUIRED_OPTION} HINTS ${CERES_DIR_HINTS})
+if (WIN32)
+    find_package(glog REQUIRED)
+endif()
+find_package(absl ${QUIET_OR_REQUIRED_OPTION})
+if(CARTOGRAPHER_HAS_GRPC)
+   find_package(async_grpc ${QUIET_OR_REQUIRED_OPTION})
+endif()
+
+include("${CARTOGRAPHER_CMAKE_DIR}/CartographerTargets.cmake")
+
+unset(QUIET_OR_REQUIRED_OPTION)

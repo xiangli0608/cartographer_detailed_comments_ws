@@ -1,0 +1,85 @@
+// Copyright 2016 The Cartographer Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package cartographer.sensor.proto;
+
+option java_outer_classname = "Sensor";
+
+import "cartographer/transform/proto/transform.proto";
+
+message RangefinderPoint {
+  transform.proto.Vector3f position = 1;
+}
+
+message TimedRangefinderPoint {
+  transform.proto.Vector3f position = 1;
+  float time = 2;
+}
+
+// Compressed collection of a 3D point cloud.
+message CompressedPointCloud {
+  int32 num_points = 1;
+  repeated int32 point_data = 3;
+}
+
+// Proto representation of ::cartographer::sensor::TimedPointCloudData.
+message TimedPointCloudData {
+  int64 timestamp = 1;
+  transform.proto.Vector3f origin = 2;
+  repeated transform.proto.Vector4f point_data_legacy = 3;
+  repeated TimedRangefinderPoint point_data = 4;
+  repeated float intensities = 5;
+}
+
+// Proto representation of ::cartographer::sensor::RangeData.
+message RangeData {
+  transform.proto.Vector3f origin = 1;
+  repeated transform.proto.Vector3f returns_legacy = 2;
+  repeated transform.proto.Vector3f misses_legacy = 3;
+  repeated RangefinderPoint returns = 4;
+  repeated RangefinderPoint misses = 5;
+}
+
+// Proto representation of ::cartographer::sensor::ImuData.
+message ImuData {
+  int64 timestamp = 1;
+  transform.proto.Vector3d linear_acceleration = 2;
+  transform.proto.Vector3d angular_velocity = 3;
+}
+
+// Proto representation of ::cartographer::sensor::OdometryData.
+message OdometryData {
+  int64 timestamp = 1;
+  transform.proto.Rigid3d pose = 2;
+}
+
+// Proto representation of ::cartographer::sensor::FixedFramePoseData.
+message FixedFramePoseData {
+  int64 timestamp = 1;
+  transform.proto.Rigid3d pose = 2;
+}
+
+// Proto representation of ::cartographer::sensor::LandmarkData.
+message LandmarkData {
+  message LandmarkObservation {
+    bytes id = 1;
+    transform.proto.Rigid3d landmark_to_tracking_transform = 2;
+    double translation_weight = 3;
+    double rotation_weight = 4;
+  }
+  int64 timestamp = 1;
+  repeated LandmarkObservation landmark_observations = 2;
+}
