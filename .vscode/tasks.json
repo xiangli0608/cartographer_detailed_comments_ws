@@ -6,7 +6,7 @@
         {
             "label": "catkin_make",
             "type": "shell",
-            "command": "catkin_make", // catkin_make_isolated --install --use-ninja
+            "command": "catkin_make_isolated --install --use-ninja", // catkin_make
             "args": [],
             "group": {
                 "kind": "build",
