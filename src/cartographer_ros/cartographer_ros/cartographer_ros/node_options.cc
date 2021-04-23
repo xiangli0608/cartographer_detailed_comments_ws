@@ -24,13 +24,21 @@
 
 namespace cartographer_ros {
 
+/**
+ * @brief Create a Node Options object
+ * 
+ * @param lua_parameter_dictionary 
+ * @return NodeOptions 
+ */
 NodeOptions CreateNodeOptions(
     ::cartographer::common::LuaParameterDictionary* const
         lua_parameter_dictionary) {
+          
   NodeOptions options;
   options.map_builder_options =
       ::cartographer::mapping::CreateMapBuilderOptions(
           lua_parameter_dictionary->GetDictionary("map_builder").get());
+
   options.map_frame = lua_parameter_dictionary->GetString("map_frame");
   options.lookup_transform_timeout_sec =
       lua_parameter_dictionary->GetDouble("lookup_transform_timeout_sec");
@@ -55,17 +63,26 @@ NodeOptions CreateNodeOptions(
   return options;
 }
 
+/**
+ * @brief LoadOptions在node_Options.cc中实现，
+ * @brief 实际分别调用了node_options和 trajectory_options的create函数，返回一个options
+ * @brief 将 LoadOptions 获取到的参数值分别赋给 node_options 和 trajectory_options
+ * @brief 只能接收元组的赋值
+ */
 std::tuple<NodeOptions, TrajectoryOptions> LoadOptions(
     const std::string& configuration_directory,
     const std::string& configuration_basename) {
   auto file_resolver =
       absl::make_unique<cartographer::common::ConfigurationFileResolver>(
           std::vector<std::string>{configuration_directory});
+          
+  // 读取配置文件内容        
   const std::string code =
       file_resolver->GetFileContentOrDie(configuration_basename);
   cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
       code, std::move(file_resolver));
 
+  // 创建元组tuple,元组定义了一个有固定数目元素的容器，其中的每个元素类型都可以不相同
   return std::make_tuple(CreateNodeOptions(&lua_parameter_dictionary),
                          CreateTrajectoryOptions(&lua_parameter_dictionary));
 }

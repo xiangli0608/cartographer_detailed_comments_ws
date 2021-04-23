@@ -725,6 +725,7 @@ bool Node::HandleReadMetrics(
   return true;
 }
 
+// 结束所有处于活动状态的轨迹
 void Node::FinishAllTrajectories() {
   absl::MutexLock lock(&mutex_);
   for (const auto& entry : map_builder_bridge_.GetTrajectoryStates()) {
@@ -742,6 +743,7 @@ bool Node::FinishTrajectory(const int trajectory_id) {
          cartographer_ros_msgs::StatusCode::OK;
 }
 
+// 当所有的轨迹结束时，执行一次全局优化
 void Node::RunFinalOptimization() {
   {
     for (const auto& entry : map_builder_bridge_.GetTrajectoryStates()) {

@@ -45,11 +45,13 @@ std::string ConfigurationFileResolver::GetFullPathOrDie(
   LOG(FATAL) << "File '" << basename << "' was not found.";
 }
 
+// 读取配置文件内容
 std::string ConfigurationFileResolver::GetFileContentOrDie(
     const std::string& basename) {
   CHECK(!basename.empty()) << "File basename cannot be empty." << basename;
   const std::string filename = GetFullPathOrDie(basename);
   std::ifstream stream(filename.c_str());
+  // 读取配置文件
   return std::string((std::istreambuf_iterator<char>(stream)),
                      std::istreambuf_iterator<char>());
 }
