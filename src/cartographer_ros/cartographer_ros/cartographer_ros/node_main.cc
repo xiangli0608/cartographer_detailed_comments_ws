@@ -65,9 +65,11 @@ void Run() {
 
   // tie()函数可以将变量连接到一个给定的tuple上,生成一个元素类型全是引用的tuple
 
+  //?
   std::tie(node_options, trajectory_options) =
       LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
 
+  //?
   auto map_builder =
       cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
   
@@ -111,7 +113,11 @@ int main(int argc, char** argv) {
   // 使用gflags进行参数的初始化. 其中第三个参数为remove_flag，如果为true，gflags会移除parse过的参数，否则gflags就会保留这些参数，但可能会对参数顺序进行调整。
   google::ParseCommandLineFlags(&argc, &argv, true);
 
-  // glog里提供的功能函数，检查
+  /**
+   * @brief glog里提供的CHECK系列的宏，检测某个表达式是否为真
+   * 检测expression如果不为真，则打印后面的description和栈上的信息
+   * 然后退出程序，出错后的处理过程和FATAL比较像。
+   */
   CHECK(!FLAGS_configuration_directory.empty())
       << "-configuration_directory is missing.";
   CHECK(!FLAGS_configuration_basename.empty())
@@ -124,7 +130,7 @@ int main(int argc, char** argv) {
   // 但是若想在创建任何NodeHandle实例之前启动ROS相关的线程, 网络等, 可以显式调用该函数。
   ::ros::start();
 
-  // 打印日志相关
+  // 使用ROS_INFO进行glog消息的输出
   cartographer_ros::ScopedRosLogSink ros_log_sink;
 
   // 开始运行cartographer_ros
