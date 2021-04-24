@@ -29,6 +29,7 @@
  * 定义参数通过DEFINE_type宏实现, 该宏的三个参数含义分别为命令行参数名，参数默认值，以及参数的帮助信息
  * 当参数被定义后，通过FLAGS_name就可访问到对应的参数
  */
+// collect_metrics ：激活运行时度量的集合。如果激活，可以通过ROS服务访问度量
 DEFINE_bool(collect_metrics, false,
             "Activates the collection of runtime metrics. If activated, the "
             "metrics can be accessed via a ROS service.");
@@ -65,15 +66,16 @@ void Run() {
 
   // tie()函数可以将变量连接到一个给定的tuple上,生成一个元素类型全是引用的tuple
 
-  //?
+  // 根据Lua配置文件中的内容，为node_options, trajectory_options 赋值
   std::tie(node_options, trajectory_options) =
       LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
 
-  //?
+  // MapBuilder类是完整的SLAM算法类
+  // 包含前端(TrajectoryBuilders,scan to submap) 与 后端(用于查找回环的PoseGraph) 
   auto map_builder =
       cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
   
-  // 这里用mapping::MapBuilder作为Node构造函数的参数,定义里是mapping::MapBuilderInterface
+  // Node类的初始化，将ROS的topic传入SLAM, 也就是MapBuilder
   Node node(node_options, std::move(map_builder), &tf_buffer,
             FLAGS_collect_metrics);
 

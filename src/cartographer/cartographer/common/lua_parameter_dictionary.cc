@@ -62,6 +62,7 @@ void QuoteStringOnStack(lua_State* L) {
 
 // Sets the given 'dictionary' as the value of the "this" key in Lua's registry
 // table.
+// 将给定的“dictionary”设置为Lua注册表表中“this”键的值
 void SetDictionaryInRegistry(lua_State* L, LuaParameterDictionary* dictionary) {
   lua_pushstring(L, "this");
   lua_pushlightuserdata(L, dictionary);
@@ -145,6 +146,7 @@ void GetArrayValues(lua_State* L, const std::function<void()>& pop_value) {
 
 }  // namespace
 
+
 std::unique_ptr<LuaParameterDictionary>
 LuaParameterDictionary::NonReferenceCounted(
     const std::string& code, std::unique_ptr<FileResolver> file_resolver) {
@@ -152,11 +154,25 @@ LuaParameterDictionary::NonReferenceCounted(
       code, ReferenceCount::NO, std::move(file_resolver)));
 }
 
+/**
+ * @brief Construct a new Lua Parameter Dictionary:: Lua Parameter Dictionary object
+ * 
+ * @param[in] code 配置文件内容
+ * @param[in] file_resolver FileResolver类
+ */
 LuaParameterDictionary::LuaParameterDictionary(
     const std::string& code, std::unique_ptr<FileResolver> file_resolver)
     : LuaParameterDictionary(code, ReferenceCount::YES,
                              std::move(file_resolver)) {}
 
+/**
+ * @brief Construct a new Lua Parameter Dictionary:: Lua Parameter Dictionary object
+ *        根据给定的字符串，生成一个lua字典
+ * 
+ * @param[in] code 配置文件内容
+ * @param[in] reference_count 
+ * @param[in] file_resolver FileResolver类
+ */
 LuaParameterDictionary::LuaParameterDictionary(
     const std::string& code, ReferenceCount reference_count,
     std::unique_ptr<FileResolver> file_resolver)
@@ -173,6 +189,7 @@ LuaParameterDictionary::LuaParameterDictionary(
   lua_register(L_, "include", LuaInclude);
   lua_register(L_, "read", LuaRead);
 
+  // luaL_loadstring()函数 将一个字符串code加载为 Lua 代码块
   CheckForLuaErrors(L_, luaL_loadstring(L_, code.c_str()));
   CheckForLuaErrors(L_, lua_pcall(L_, 0, 1, 0));
   CheckTableIsAtTopOfStack(L_);

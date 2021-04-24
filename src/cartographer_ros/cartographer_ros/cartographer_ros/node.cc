@@ -90,6 +90,14 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 
 }  // namespace
 
+/**
+ * @brief Construct a new Node:: Node object
+ * 
+ * @param[in] node_options 
+ * @param[in] map_builder 
+ * @param[in] tf_buffer 
+ * @param[in] collect_metrics 是否启用metrics
+ */
 Node::Node(
     const NodeOptions& node_options,
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,

@@ -74,10 +74,17 @@ void MaybeAddPureLocalizationTrimmer(
 
 }  // namespace
 
+/**
+ * @brief SLAM算法的初始化，初始化各个参数，是2d建图还是3d建图
+ * 
+ * @param[in] options proto::MapBuilderOptions格式的 map_builder参数
+ */
 MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) {
   CHECK(options.use_trajectory_builder_2d() ^
         options.use_trajectory_builder_3d());
+
+  // 是2d建图还是3d建图
   if (options.use_trajectory_builder_2d()) {
     pose_graph_ = absl::make_unique<PoseGraph2D>(
         options_.pose_graph_options(),
@@ -92,9 +99,12 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
             options_.pose_graph_options().optimization_problem_options()),
         &thread_pool_);
   }
+
+  // 默认collate_by_trajectory = false
   if (options.collate_by_trajectory()) {
     sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
   } else {
+    // 实际是使用这个
     sensor_collator_ = absl::make_unique<sensor::Collator>();
   }
 }

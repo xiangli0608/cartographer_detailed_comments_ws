@@ -54,6 +54,7 @@
 namespace cartographer_ros {
 
 // Wires up ROS topics to SLAM.
+// 将ROS的话题传入SLAM
 class Node {
  public:
   Node(const NodeOptions& node_options,
