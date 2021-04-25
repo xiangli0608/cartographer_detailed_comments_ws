@@ -20,6 +20,16 @@
 
 namespace cartographer_ros {
 
+// 
+
+/**
+ * @brief 如果只有一个传感器，那订阅的topic就是topic，
+ *        如果是多个传感器，那订阅的topic就是topic_1,topic_2
+ * 
+ * @param[in] topic 订阅话题的名字
+ * @param[in] num_topics 传感器的个数
+ * @return std::vector<std::string> 订阅话题的名字的集合
+ */
 std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic,
                                                    const int num_topics) {
   CHECK_GE(num_topics, 0);

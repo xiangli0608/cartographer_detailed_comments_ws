@@ -74,6 +74,7 @@ template <typename MessageType>
           }));
 }
 
+// 返回轨迹的状态
 std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
   switch (trajectory_state) {
     case TrajectoryState::ACTIVE:
@@ -91,11 +92,12 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state) {
 }  // namespace
 
 /**
- * @brief Construct a new Node:: Node object
- * 
- * @param[in] node_options 
- * @param[in] map_builder 
- * @param[in] tf_buffer 
+ * @brief
+ * 声明ROS的一些topic的发布器，服务的发布器，以及将时间驱动的函数与定时器进行绑定
+ *
+ * @param[in] node_options 配置文件的内容
+ * @param[in] map_builder SLAM算法的具体实现
+ * @param[in] tf_buffer tf
  * @param[in] collect_metrics 是否启用metrics
  */
 Node::Node(
@@ -104,29 +106,41 @@ Node::Node(
     tf2_ros::Buffer* const tf_buffer, const bool collect_metrics)
     : node_options_(node_options),
       map_builder_bridge_(node_options_, std::move(map_builder), tf_buffer) {
+  // 将mutex_上锁，防止在初始化时数据被更改
   absl::MutexLock lock(&mutex_);
+
+  // 默认不启用
   if (collect_metrics) {
     metrics_registry_ = absl::make_unique<metrics::FamilyFactory>();
     carto::metrics::RegisterAllMetrics(metrics_registry_.get());
   }
 
+  // Step 1 声明需要发布的topic
+
+  // 发布submap
   submap_list_publisher_ =
       node_handle_.advertise<::cartographer_ros_msgs::SubmapList>(
           kSubmapListTopic, kLatestOnlyPublisherQueueSize);
+  // 发布轨迹
   trajectory_node_list_publisher_ =
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kTrajectoryNodeListTopic, kLatestOnlyPublisherQueueSize);
+  // 发布landmark_pose
   landmark_poses_list_publisher_ =
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kLandmarkPosesListTopic, kLatestOnlyPublisherQueueSize);
+  // 发布约束
   constraint_list_publisher_ =
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kConstraintListTopic, kLatestOnlyPublisherQueueSize);
+  // 发布tracked_pose
   if (node_options_.publish_tracked_pose) {
     tracked_pose_publisher_ =
         node_handle_.advertise<::geometry_msgs::PoseStamped>(
             kTrackedPoseTopic, kLatestOnlyPublisherQueueSize);
   }
+
+  // Step 2 声明发布对应名字的ROS服务，并将服务的发布器放入到vector容器中
   service_servers_.push_back(node_handle_.advertiseService(
       kSubmapQueryServiceName, &Node::HandleSubmapQuery, this));
   service_servers_.push_back(node_handle_.advertiseService(
@@ -142,33 +156,45 @@ Node::Node(
   service_servers_.push_back(node_handle_.advertiseService(
       kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
+  // Step 3 匹配之后的点云的发布器
   scan_matched_point_cloud_publisher_ =
       node_handle_.advertise<sensor_msgs::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
 
+  // Step 4 对一些需要定时执行的函数进行定时器的绑定
   wall_timers_.push_back(node_handle_.createWallTimer(
-      ::ros::WallDuration(node_options_.submap_publish_period_sec),
+      ::ros::WallDuration(node_options_.submap_publish_period_sec),  // 0.3s
       &Node::PublishSubmapList, this));
   if (node_options_.pose_publish_period_sec > 0) {
     publish_local_trajectory_data_timer_ = node_handle_.createTimer(
-        ::ros::Duration(node_options_.pose_publish_period_sec),
+        ::ros::Duration(node_options_.pose_publish_period_sec),  // 5e-3s
         &Node::PublishLocalTrajectoryData, this);
   }
   wall_timers_.push_back(node_handle_.createWallTimer(
-      ::ros::WallDuration(node_options_.trajectory_publish_period_sec),
+      ::ros::WallDuration(
+          node_options_.trajectory_publish_period_sec),  // 30e-3s
       &Node::PublishTrajectoryNodeList, this));
   wall_timers_.push_back(node_handle_.createWallTimer(
-      ::ros::WallDuration(node_options_.trajectory_publish_period_sec),
+      ::ros::WallDuration(
+          node_options_.trajectory_publish_period_sec),  // 30e-3s
       &Node::PublishLandmarkPosesList, this));
   wall_timers_.push_back(node_handle_.createWallTimer(
-      ::ros::WallDuration(kConstraintPublishPeriodSec),
+      ::ros::WallDuration(kConstraintPublishPeriodSec),  // 0.5s
       &Node::PublishConstraintList, this));
 }
 
+// 在析构是执行一次全局优化
 Node::~Node() { FinishAllTrajectories(); }
 
 ::ros::NodeHandle* Node::node_handle() { return &node_handle_; }
 
+/**
+ * @brief 获取submap query 的服务
+ *
+ * @param[in] request 获取submap的请求
+ * @param[out] response 服务的回应
+ * @return true: ROS的service只能返回true，返回false程序会中断
+ */
 bool Node::HandleSubmapQuery(
     ::cartographer_ros_msgs::SubmapQuery::Request& request,
     ::cartographer_ros_msgs::SubmapQuery::Response& response) {
@@ -177,10 +203,19 @@ bool Node::HandleSubmapQuery(
   return true;
 }
 
+/**
+ * @brief 获取对应id的轨迹
+ *
+ * @param[in] request
+ * @param[out] response
+ * @return true: ROS的service只能返回true，返回false程序会中断
+ */
 bool Node::HandleTrajectoryQuery(
     ::cartographer_ros_msgs::TrajectoryQuery::Request& request,
     ::cartographer_ros_msgs::TrajectoryQuery::Response& response) {
   absl::MutexLock lock(&mutex_);
+
+  // 检查对应id的轨迹是否存在，如果存在判断一下该id轨迹的状态
   response.status = TrajectoryStateToStatus(
       request.trajectory_id,
       {TrajectoryState::ACTIVE, TrajectoryState::FINISHED,
@@ -190,10 +225,17 @@ bool Node::HandleTrajectoryQuery(
                << response.status.message;
     return true;
   }
+  // 获取轨迹
   map_builder_bridge_.HandleTrajectoryQuery(request, response);
   return true;
 }
 
+/**
+ * @brief 每0.3s发布一次submap list,
+ * 这里的submap只有节点的id与当前submap的节点数，并没有地图数据
+ *
+ * @param[in] unused_timer_event
+ */
 void Node::PublishSubmapList(const ::ros::WallTimerEvent& unused_timer_event) {
   absl::MutexLock lock(&mutex_);
   submap_list_publisher_.publish(map_builder_bridge_.GetSubmapList());
@@ -227,6 +269,12 @@ void Node::AddSensorSamplers(const int trajectory_id,
           options.landmarks_sampling_ratio));
 }
 
+/**
+ * @brief 每5e-3s发布一次轨迹数据
+ *
+ * @param[in] timer_event
+ */
+// ? sa
 void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
   absl::MutexLock lock(&mutex_);
   for (const auto& entry : map_builder_bridge_.GetLocalTrajectoryData()) {
@@ -274,7 +322,8 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
     // Due to 2020-07 changes to geometry2, tf buffer will issue warnings for
     // repeated transforms with the same timestamp.
     if (last_published_tf_stamps_.count(entry.first) &&
-        last_published_tf_stamps_[entry.first] == stamped_transform.header.stamp)
+        last_published_tf_stamps_[entry.first] ==
+            stamped_transform.header.stamp)
       continue;
     last_published_tf_stamps_[entry.first] = stamped_transform.header.stamp;
 
@@ -334,8 +383,10 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
   }
 }
 
+// 每30e-3s发布一次轨迹路径点数据
 void Node::PublishTrajectoryNodeList(
     const ::ros::WallTimerEvent& unused_timer_event) {
+  // 只有存在订阅者的时候才发布轨迹
   if (trajectory_node_list_publisher_.getNumSubscribers() > 0) {
     absl::MutexLock lock(&mutex_);
     trajectory_node_list_publisher_.publish(
@@ -343,6 +394,7 @@ void Node::PublishTrajectoryNodeList(
   }
 }
 
+// 每30e-3s发布一次landmark pose 数据
 void Node::PublishLandmarkPosesList(
     const ::ros::WallTimerEvent& unused_timer_event) {
   if (landmark_poses_list_publisher_.getNumSubscribers() > 0) {
@@ -352,6 +404,7 @@ void Node::PublishLandmarkPosesList(
   }
 }
 
+// 每0.5s发布一次约束数据
 void Node::PublishConstraintList(
     const ::ros::WallTimerEvent& unused_timer_event) {
   if (constraint_list_publisher_.getNumSubscribers() > 0) {
@@ -360,12 +413,37 @@ void Node::PublishConstraintList(
   }
 }
 
+/**
+ * @brief 根据配置文件，确定所有需要的topic的名字的集合
+ * 
+ * @param[in] options TrajectoryOptions的配置文件
+ * @return std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> 
+ */
 std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
 Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
+  /*
+    enum class SensorType {
+      RANGE = 0,
+      IMU,
+      ODOMETRY,
+      FIXED_FRAME_POSE,
+      LANDMARK,
+      LOCAL_SLAM_RESULT
+    };
+
+    struct SensorId {
+      SensorType type;  // 传感器的种类
+      std::string id;   // topic的名字
+    };
+
+  */
   using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
   using SensorType = SensorId::SensorType;
   std::set<SensorId> expected_topics;
   // Subscribe to all laser scan, multi echo laser scan, and point cloud topics.
+
+  // 如果只有一个传感器，那订阅的topic就是topic
+  // 如果是多个传感器，那订阅的topic就是topic_1,topic_2，依次类推
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kLaserScanTopic, options.num_laser_scans)) {
     expected_topics.insert(SensorId{SensorType::RANGE, topic});
@@ -380,6 +458,7 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
   }
   // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
   // required.
+  // 3d slam必须有imu，2d可有可无，imu的topic的个数只能有一个
   if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
       (node_options_.map_builder_options.use_trajectory_builder_2d() &&
        options.trajectory_builder_options.trajectory_builder_2d_options()
@@ -387,18 +466,22 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
     expected_topics.insert(SensorId{SensorType::IMU, kImuTopic});
   }
   // Odometry is optional.
+  // 里程计可有可无，topic的个数只能有一个
   if (options.use_odometry) {
     expected_topics.insert(SensorId{SensorType::ODOMETRY, kOdometryTopic});
   }
   // NavSatFix is optional.
+  // gps可有可无，topic的个数只能有一个
   if (options.use_nav_sat) {
     expected_topics.insert(
         SensorId{SensorType::FIXED_FRAME_POSE, kNavSatFixTopic});
   }
   // Landmark is optional.
+  // Landmark可有可无，topic的个数只能有一个
   if (options.use_landmarks) {
     expected_topics.insert(SensorId{SensorType::LANDMARK, kLandmarkTopic});
   }
+  // 返回传感器的topic名字
   return expected_topics;
 }
 
@@ -482,6 +565,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
   }
 }
 
+// 检查TrajectoryOptions是否存在2d或者3d轨迹的配置信息
 bool Node::ValidateTrajectoryOptions(const TrajectoryOptions& options) {
   if (node_options_.map_builder_options.use_trajectory_builder_2d()) {
     return options.trajectory_builder_options
@@ -494,9 +578,11 @@ bool Node::ValidateTrajectoryOptions(const TrajectoryOptions& options) {
   return false;
 }
 
+// 检查topic名字是否被其他轨迹使用
 bool Node::ValidateTopicNames(const TrajectoryOptions& options) {
   for (const auto& sensor_id : ComputeExpectedSensorIds(options)) {
     const std::string& topic = sensor_id.id;
+    // 如果topic能够在subscribed_topics_中找到，证明这个topic名字被之前的轨迹使用了
     if (subscribed_topics_.count(topic) > 0) {
       LOG(ERROR) << "Topic name [" << topic << "] is already used.";
       return false;
@@ -505,12 +591,20 @@ bool Node::ValidateTopicNames(const TrajectoryOptions& options) {
   return true;
 }
 
+/**
+ * @brief 检查对应id的轨迹是否存在，如果存在则判断这个轨迹的状态
+ *
+ * @param[in] trajectory_id 轨迹的id
+ * @param[in] valid_states 状态的列表
+ * @return cartographer_ros_msgs::StatusResponse
+ */
 cartographer_ros_msgs::StatusResponse Node::TrajectoryStateToStatus(
     const int trajectory_id, const std::set<TrajectoryState>& valid_states) {
   const auto trajectory_states = map_builder_bridge_.GetTrajectoryStates();
   cartographer_ros_msgs::StatusResponse status_response;
 
   const auto it = trajectory_states.find(trajectory_id);
+  // 如果没有找到对应id的轨迹，返回NOT_FOUND
   if (it == trajectory_states.end()) {
     status_response.message =
         absl::StrCat("Trajectory ", trajectory_id, " doesn't exist.");
@@ -521,6 +615,7 @@ cartographer_ros_msgs::StatusResponse Node::TrajectoryStateToStatus(
   status_response.message =
       absl::StrCat("Trajectory ", trajectory_id, " is in '",
                    TrajectoryStateToString(it->second), "' state.");
+  // 轨迹的状态如果在列表中，返回OK，否则返回 INVALID_ARGUMENT
   status_response.code =
       valid_states.count(it->second)
           ? cartographer_ros_msgs::StatusCode::OK
@@ -565,13 +660,22 @@ cartographer_ros_msgs::StatusResponse Node::FinishTrajectoryUnderLock(
   return status_response;
 }
 
+/**
+ * @brief 通过服务来开始一条新的轨迹
+ *
+ * @param[in] request 配置文件的目录与名字，是否使用初始位姿，初始位姿以及其是相对于哪条轨迹的id，
+ * @param[out] response 返回轨迹的状态与id
+ * @return true: ROS的service只能返回true，返回false程序会中断
+ */
 bool Node::HandleStartTrajectory(
     ::cartographer_ros_msgs::StartTrajectory::Request& request,
     ::cartographer_ros_msgs::StartTrajectory::Response& response) {
   TrajectoryOptions trajectory_options;
+  // 获取配置文件内容
   std::tie(std::ignore, trajectory_options) = LoadOptions(
       request.configuration_directory, request.configuration_basename);
 
+  // 如果给定了一个初始位姿
   if (request.use_initial_pose) {
     const auto pose = ToRigid3d(request.initial_pose);
     if (!pose.IsValid()) {
@@ -584,6 +688,7 @@ bool Node::HandleStartTrajectory(
     }
 
     // Check if the requested trajectory for the relative initial pose exists.
+    // 检查 initial_pose 对应的轨迹id是否存在
     response.status = TrajectoryStateToStatus(
         request.relative_to_trajectory_id,
         {TrajectoryState::ACTIVE, TrajectoryState::FROZEN,
@@ -602,19 +707,26 @@ bool Node::HandleStartTrajectory(
         cartographer::transform::ToProto(pose);
     initial_trajectory_pose.set_timestamp(cartographer::common::ToUniversal(
         ::cartographer_ros::FromRos(ros::Time(0))));
+    
+    // 将初始位姿信息加入到trajectory_options中
     *trajectory_options.trajectory_builder_options
          .mutable_initial_trajectory_pose() = initial_trajectory_pose;
   }
 
+  // 检查TrajectoryOptions是否存在2d或者3d轨迹的配置信息
   if (!ValidateTrajectoryOptions(trajectory_options)) {
     response.status.message = "Invalid trajectory options.";
     LOG(ERROR) << response.status.message;
     response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
-  } else if (!ValidateTopicNames(trajectory_options)) {
+  } 
+  // 检查topic名字是否被其他轨迹使用
+  else if (!ValidateTopicNames(trajectory_options)) {
     response.status.message = "Topics are already used by another trajectory.";
     LOG(ERROR) << response.status.message;
     response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
-  } else {
+  } 
+  // 检查通过，添加一个新的轨迹
+  else {
     response.status.message = "Success.";
     response.trajectory_id = AddTrajectory(trajectory_options);
     response.status.code = cartographer_ros_msgs::StatusCode::OK;
@@ -660,6 +772,7 @@ int Node::AddOfflineTrajectory(
   return trajectory_id;
 }
 
+// ?
 bool Node::HandleGetTrajectoryStates(
     ::cartographer_ros_msgs::GetTrajectoryStates::Request& request,
     ::cartographer_ros_msgs::GetTrajectoryStates::Response& response) {
@@ -692,6 +805,7 @@ bool Node::HandleGetTrajectoryStates(
   return true;
 }
 
+// ?
 bool Node::HandleFinishTrajectory(
     ::cartographer_ros_msgs::FinishTrajectory::Request& request,
     ::cartographer_ros_msgs::FinishTrajectory::Response& response) {
@@ -700,6 +814,7 @@ bool Node::HandleFinishTrajectory(
   return true;
 }
 
+// ?
 bool Node::HandleWriteState(
     ::cartographer_ros_msgs::WriteState::Request& request,
     ::cartographer_ros_msgs::WriteState::Response& response) {
@@ -717,6 +832,7 @@ bool Node::HandleWriteState(
   return true;
 }
 
+// ?
 bool Node::HandleReadMetrics(
     ::cartographer_ros_msgs::ReadMetrics::Request& request,
     ::cartographer_ros_msgs::ReadMetrics::Response& response) {
