@@ -1,44 +1,94 @@
 {
-    "doxdocgen.generic.paramTemplate": "@param[in] {param} ",
-	"todo-tree.highlights.defaultHighlight": {
-	"icon": "alert",
-	"type": "text",
-	"foreground": "red",
-	"iconColour": "green"
-	},
-	"todo-tree.general.tags": [
-	"?",
-	"!",
-	" Step "
-	],
-	"todo-tree.highlights.customHighlight": {
-	" Step ": {
-	"foreground": "#7CFC00",
-	"icon": "question",
-	"iconColour": "green",
-	"type": "text-and-comment",
-	"hideFromTree": true
-	},
-	"?": {
-	"foreground": "yellow",
-	"icon": "question",
-	"iconColour": "yellow",
-	"type": "text-and-comment"
-	},
-	"!": {
-	"foreground": "red",
-	"icon": "issue-opened",
-	"iconColour": "red",
-	"type": "text-and-comment"
-	}
-	},
-	"todo-tree.general.revealBehaviour": "highlight todo",
-	"todo-tree.tree.showCountsInTree": true,
-	"todo-tree.filtering.excludeGlobs":[
-	"**/*.txt",
-	"**/*.md"
-	],
-	"files.associations": {
+  "doxdocgen.generic.paramTemplate": "@param[in] {param} ",
+
+  // 在注释中搜索以 * // ，# ，; ，开头的标签！ -- 或 / * 
+  "todo-tree.regex.regex": "((\\*|//|#|<!--|;|/\\*|^)\\s*($TAGS):|^\\s*- \\[ \\])",
+  
+  "todo-tree.highlights.defaultHighlight": {
+    "icon": "alert",
+    "type": "text",
+    "foreground": "red",
+    "iconColour": "green"
+  },
+  "todo-tree.general.tags": [
+    "?",
+    "!",
+    "Step",
+    "todo",
+    "tag",
+    "done",
+    "note",
+    "fix",
+  ],
+  "todo-tree.highlights.customHighlight": {
+    "Step": {
+      "foreground": "#7CFC00",
+      "icon": "question",
+      "iconColour": "green",
+      "type": "text-and-comment",
+      "hideFromTree": true
+    },
+    "?": {
+      "foreground": "yellow",
+      "icon": "question",
+      "iconColour": "yellow",
+      "type": "text-and-comment"
+    },
+    "!": {
+      "foreground": "red",
+      "icon": "issue-opened",
+      "iconColour": "red",
+      "type": "text-and-comment"
+    },
+
+    "todo": {
+      "foreground": "#f90",
+      "rulerColour": "#f90",
+      "iconColour": "#f90",
+      "type": "text-and-comment",
+    },
+    "done": {
+      "icon": "issue-closed",
+      "foreground": "#fdff03",
+      "rulerColour": "#fdff03",
+      "iconColour": "#fdff03",
+      "type": "text-and-comment",
+    },
+    "fix": {
+      "icon": "beaker",
+      "foreground": "#fb0200",
+      "rulerColour": "#fb0200",
+      "iconColour": "#fb0200",
+      "rulerLane": "full",
+      "type": "text-and-comment",
+    },
+    "tag": {
+      "icon": "tag",
+      "foreground": "#67cdfe",
+      "rulerColour": "#67cdfe",
+      "iconColour": "#67cdfe",
+      "rulerLane": "full",
+      "type": "text-and-comment",
+    },
+    "note": {
+      "foreground": "#02dc00",
+      "icon": "note",
+      "rulerColour": "#02dc00",
+      "iconColour ": "#02dc00",
+      "type": "text-and-comment",
+    },
+  },
+  "python.autoComplete.extraPaths": [
+    "/opt/ros/kinetic/lib/python2.7/dist-packages"
+  ],
+  "todo-tree.tree.showBadges": false,
+  "todo-tree.general.revealBehaviour": "highlight todo",
+  "todo-tree.tree.showCountsInTree": true,
+  "todo-tree.filtering.excludeGlobs": [
+    "**/*.txt",
+    "**/*.md"
+  ],
+  "files.associations": {
     "*.cc": "cpp",
     "vector": "cpp",
     "mutex": "cpp",
@@ -121,7 +171,7 @@
     "cfenv": "cpp",
     "typeindex": "cpp"
   },
-	"python.autoComplete.extraPaths": [
-		"/opt/ros/kinetic/lib/python2.7/dist-packages"
-	]
+  "python.autoComplete.extraPaths": [
+    "/opt/ros/kinetic/lib/python2.7/dist-packages"
+  ]
 }
