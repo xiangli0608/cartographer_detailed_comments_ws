@@ -23,7 +23,7 @@
 #include "tf2_ros/transform_listener.h"
 
 /**
- * @brief gflags是一套命令行参数解析工具
+ * note: gflags是一套命令行参数解析工具
  * DEFINE_bool在gflags.h中定义
  * gflags主要支持的参数类型包括bool，int32, int64, uint64, double, string等
  * 定义参数通过DEFINE_type宏实现, 该宏的三个参数含义分别为命令行参数名，参数默认值，以及参数的帮助信息
@@ -64,7 +64,7 @@ void Run() {
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;
 
-  // tie()函数可以将变量连接到一个给定的tuple上,生成一个元素类型全是引用的tuple
+  // note: tie()函数可以将变量连接到一个给定的tuple上,生成一个元素类型全是引用的tuple
 
   // 根据Lua配置文件中的内容，为node_options, trajectory_options 赋值
   std::tie(node_options, trajectory_options) =

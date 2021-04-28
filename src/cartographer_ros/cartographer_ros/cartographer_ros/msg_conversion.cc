@@ -85,6 +85,14 @@ using ::cartographer::transform::Rigid3d;
 using ::cartographer_ros_msgs::LandmarkEntry;
 using ::cartographer_ros_msgs::LandmarkList;
 
+/**
+ * @brief 点云格式的设置与数组的初始化
+ * 
+ * @param[in] timestamp 时间戳
+ * @param[in] frame_id 坐标系
+ * @param[in] num_points 点云的个数
+ * @return sensor_msgs::PointCloud2 
+ */
 sensor_msgs::PointCloud2 PreparePointCloud2Message(const int64_t timestamp,
                                                    const std::string& frame_id,
                                                    const int num_points) {
@@ -186,16 +194,28 @@ bool PointCloud2HasField(const sensor_msgs::PointCloud2& pc2,
 
 }  // namespace
 
+/**
+ * @brief 将cartographer格式的点云数据 转换成 ROS格式的点云数据
+ *
+ * @param[in] timestamp 时间戳
+ * @param[in] frame_id 坐标系
+ * @param[in] point_cloud cartographer格式的点云数据
+ * @return sensor_msgs::PointCloud2 ROS格式的点云数据
+ */
 sensor_msgs::PointCloud2 ToPointCloud2Message(
     const int64_t timestamp, const std::string& frame_id,
     const ::cartographer::sensor::TimedPointCloud& point_cloud) {
+  // 点云格式的设置与数组的初始化
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
+
+  // note: 通过ros::serialization将msg放进内存中
   ::ros::serialization::OStream stream(msg.data.data(), msg.data.size());
   for (const cartographer::sensor::TimedRangefinderPoint& point : point_cloud) {
+    // 通过使用next()函数,将点的坐标序列化到stream输出流, 将point存入msg
     stream.next(point.position.x());
     stream.next(point.position.y());
     stream.next(point.position.z());
-    stream.next(kPointCloudComponentFourMagic);
+    stream.next(kPointCloudComponentFourMagic); // kPointCloudComponentFourMagic = 1
   }
   return msg;
 }
