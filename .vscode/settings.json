@@ -49,9 +49,9 @@
     },
     "done": {
       "icon": "issue-closed",
-      "foreground": "violet",
-      "rulerColour": "violet",
-      "iconColour": "violet",
+      "foreground": "#67cdfe",
+      "rulerColour": "#67cdfe",
+      "iconColour": "#67cdfe",
       "type": "text-and-comment",
     },
     "fix": {
@@ -71,10 +71,10 @@
       "type": "text-and-comment",
     },
     "note": {
-      "foreground": "#67cdfe",
+      "foreground": "violet",
       "icon": "note",
-      "rulerColour": "#67cdfe",
-      "iconColour ": "#67cdfe",
+      "rulerColour": "violet",
+      "iconColour ": "violet",
       "type": "text-and-comment",
     },
   },
