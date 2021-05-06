@@ -28,12 +28,14 @@ namespace cartographer {
 namespace sensor {
 
 // Stores 3D position of a point observed by a rangefinder sensor.
+// 单个数据点的坐标，x y z 三维向量
 struct RangefinderPoint {
   Eigen::Vector3f position;
 };
 
 // Stores 3D position of a point with its relative measurement time.
 // See point_cloud.h for more details.
+// 带时间戳的单个数据点的坐标
 struct TimedRangefinderPoint {
   Eigen::Vector3f position;
   float time;

@@ -99,6 +99,7 @@ Eigen::Quaternion<T> AngleAxisVectorToRotationQuaternion(
 }
 
 // Projects 'transform' onto the XY plane.
+// 将“变换”投影到XY平面上。
 template <typename T>
 Rigid2<T> Project2D(const Rigid3<T>& transform) {
   return Rigid2<T>(transform.translation().template head<2>(),
@@ -106,6 +107,7 @@ Rigid2<T> Project2D(const Rigid3<T>& transform) {
 }
 
 // Embeds 'transform' into 3D space in the XY plane.
+// 将“变换”嵌入到XY平面的3D空间中，z坐标为0
 template <typename T>
 Rigid3<T> Embed3D(const Rigid2<T>& transform) {
   return Rigid3<T>(

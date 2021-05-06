@@ -63,6 +63,13 @@ PointCloud TransformPointCloud(const PointCloud& point_cloud,
   return PointCloud(points, point_cloud.intensities());
 }
 
+/**
+ * @brief 返回地图坐标系下的点云
+ * 
+ * @param[in] point_cloud 点云数据
+ * @param[in] transform 当前点云在地图坐标系的坐标变换
+ * @return TimedPointCloud 地图坐标系下的点云
+ */
 TimedPointCloud TransformTimedPointCloud(const TimedPointCloud& point_cloud,
                                          const transform::Rigid3f& transform) {
   TimedPointCloud result;
@@ -73,8 +80,17 @@ TimedPointCloud TransformTimedPointCloud(const TimedPointCloud& point_cloud,
   return result;
 }
 
+/**
+ * @brief 对输入的点云进行滤波，保留数据点的z坐标处于min_z与max_z之间的点
+ * 
+ * @param[in] point_cloud 输入的点云
+ * @param[in] min_z 最小的z
+ * @param[in] max_z 最大的z
+ * @return PointCloud 滤波后的点云
+ */
 PointCloud CropPointCloud(const PointCloud& point_cloud, const float min_z,
                           const float max_z) {
+  // 将lamda表达式传入copy_if，当lamda表达式返回true时才进行复制，
   return point_cloud.copy_if([min_z, max_z](const RangefinderPoint& point) {
     return min_z <= point.position.z() && point.position.z() <= max_z;
   });

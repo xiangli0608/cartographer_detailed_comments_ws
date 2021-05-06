@@ -199,7 +199,7 @@ bool PointCloud2HasField(const sensor_msgs::PointCloud2& pc2,
  *
  * @param[in] timestamp 时间戳
  * @param[in] frame_id 坐标系
- * @param[in] point_cloud cartographer格式的点云数据
+ * @param[in] point_cloud 地图坐标系下的点云数据
  * @return sensor_msgs::PointCloud2 ROS格式的点云数据
  */
 sensor_msgs::PointCloud2 ToPointCloud2Message(
@@ -211,7 +211,7 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
   // note: 通过ros::serialization将msg放进内存中
   ::ros::serialization::OStream stream(msg.data.data(), msg.data.size());
   for (const cartographer::sensor::TimedRangefinderPoint& point : point_cloud) {
-    // 通过使用next()函数,将点的坐标序列化到stream输出流, 将point存入msg
+    // 通过使用next()函数,将点的坐标 序列化 到stream输出流, 将point存入msg
     stream.next(point.position.x());
     stream.next(point.position.y());
     stream.next(point.position.z());

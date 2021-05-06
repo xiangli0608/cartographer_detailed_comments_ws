@@ -277,8 +277,12 @@ void Node::AddSensorSamplers(const int trajectory_id,
 void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
   absl::MutexLock lock(&mutex_);
   for (const auto& entry : map_builder_bridge_.GetLocalTrajectoryData()) {
+    // entry的数据类型为std::unordered_map<int,MapBuilderBridge::LocalTrajectoryData>
+    // entry.first 就是轨迹的id, entry.second 就是 LocalTrajectoryData
+
     // 获取对应轨迹id的trajectory_data
     const auto& trajectory_data = entry.second;
+
     // 获取对应轨迹id的extrapolator
     auto& extrapolator = extrapolators_.at(entry.first);
 
@@ -294,30 +298,36 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
         carto::sensor::TimedPointCloud point_cloud;
         point_cloud.reserve(trajectory_data.local_slam_data->range_data_in_local
                                 .returns.size());
-        // 获取点云数据                        
+
+        // 获取local_slam_data的点云数据，填入到point_cloud中
         for (const cartographer::sensor::RangefinderPoint point :
              trajectory_data.local_slam_data->range_data_in_local.returns) {
+          // note: 这里的虽然使用的是带时间戳的点云结构，但是数据点的时间全是0.f
           point_cloud.push_back(cartographer::sensor::ToTimedRangefinderPoint(
               point, 0.f /* time */));
         }
+
         // 先将点云转换成ROS的格式,再发布scan_matched_point_cloud点云
         scan_matched_point_cloud_publisher_.publish(ToPointCloud2Message(
             carto::common::ToUniversal(trajectory_data.local_slam_data->time),
             node_options_.map_frame,
+            // 将雷达坐标系下的点云转换成地图坐标系下的点云
             carto::sensor::TransformTimedPointCloud(
                 point_cloud, trajectory_data.local_to_map.cast<float>())));
-      }
+      }  // end 发布scan_matched_point_cloud
+
       // 将当前的pose加入到extrapolator中, 更新extrapolator的时间与状态
       extrapolator.AddPose(trajectory_data.local_slam_data->time,
                            trajectory_data.local_slam_data->local_pose);
-    }
+    }  // end if
 
     geometry_msgs::TransformStamped stamped_transform;
     // If we do not publish a new point cloud, we still allow time of the
     // published poses to advance. If we already know a newer pose, we use its
     // time instead. Since tf knows how to interpolate, providing newer
     // information is better.
-    // todo:
+
+    // 使用较新的时间戳
     const ::cartographer::common::Time now = std::max(
         FromRos(ros::Time::now()), extrapolator.GetLastExtrapolatedTime());
     stamped_transform.header.stamp =
@@ -332,13 +342,18 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
         last_published_tf_stamps_[entry.first] ==
             stamped_transform.header.stamp)
       continue;
+
+    // 保存当前的时间戳，以防止对同一时间戳进行重复更新
     last_published_tf_stamps_[entry.first] = stamped_transform.header.stamp;
 
     const Rigid3d tracking_to_local_3d =
         node_options_.use_pose_extrapolator
             ? extrapolator.ExtrapolatePose(now)
             : trajectory_data.local_slam_data->local_pose;
+    
+    // 获取当前位姿在local坐标系下的坐标
     const Rigid3d tracking_to_local = [&] {
+      // 是否将变换投影到平面上
       if (trajectory_data.trajectory_options.publish_frame_projected_to_2d) {
         return carto::transform::Embed3D(
             carto::transform::Project2D(tracking_to_local_3d));
@@ -346,9 +361,11 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
       return tracking_to_local_3d;
     }();
 
+    // 求得当前位姿在map下的坐标
     const Rigid3d tracking_to_map =
         trajectory_data.local_to_map * tracking_to_local;
 
+    // todo: 0506-23-30
     if (trajectory_data.published_to_tracking != nullptr) {
       if (node_options_.publish_to_tf) {
         if (trajectory_data.trajectory_options.provide_odom_frame) {

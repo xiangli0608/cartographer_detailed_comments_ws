@@ -41,6 +41,7 @@ class ImuTracker {
       const Eigen::Vector3d& imu_angular_velocity);
 
   // Query the current time.
+  // 获取当前时间
   common::Time time() const { return time_; }
 
   // Query the current orientation estimate.

@@ -44,6 +44,7 @@ double ToSeconds(const std::chrono::steady_clock::duration duration) {
 
 Time FromUniversal(const int64 ticks) { return Time(Duration(ticks)); }
 
+// 转换时间戳的单位
 int64 ToUniversal(const Time time) { return time.time_since_epoch().count(); }
 
 std::ostream& operator<<(std::ostream& os, const Time time) {

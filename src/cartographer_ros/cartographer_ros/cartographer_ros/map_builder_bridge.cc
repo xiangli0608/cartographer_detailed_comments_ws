@@ -229,6 +229,7 @@ cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList() {
   return submap_list;
 }
 
+// todo:
 std::unordered_map<int, MapBuilderBridge::LocalTrajectoryData>
 MapBuilderBridge::GetLocalTrajectoryData() {
   std::unordered_map<int, LocalTrajectoryData> local_trajectory_data;

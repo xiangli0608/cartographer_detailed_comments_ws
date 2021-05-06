@@ -30,6 +30,10 @@ namespace sensor {
 
 // Stores 3D positions of points together with some additional data, e.g.
 // intensities.
+/**
+ * @brief 点云结构，包含雷达一帧数据的所有数据点 与 数据点对应的强度值
+ * 
+ */
 class PointCloud {
  public:
   using PointType = RangefinderPoint;
@@ -56,6 +60,7 @@ class PointCloud {
 
   // Creates a PointCloud consisting of all the points for which `predicate`
   // returns true, together with the corresponding intensities.
+  // 将point输入到UnaryPredicate这个类中，如果返回true了才进行操作
   template <class UnaryPredicate>
   PointCloud copy_if(UnaryPredicate predicate) const {
     std::vector<PointType> points;
@@ -96,6 +101,9 @@ class PointCloud {
 // the last point was acquired. So, the fourth entry for the last point is 0.f.
 // If timing is not available, all fourth entries are 0.f. For 2D points, the
 // third entry is 0.f (and the fourth entry is time).
+// 将点的3D位置及其相对测量时间存储在第四项中。
+// 时间以秒为单位，相对于获取最后一点的时间增加。 因此，最后一点的第四个条目是0.f。
+// 如果计时不可用，则所有第四项均为0.f。 对于2D点，z坐标是0.f（第四项是时间）。
 using TimedPointCloud = std::vector<TimedRangefinderPoint>;
 
 // TODO(wohe): Retained for cartographer_ros. To be removed once it is no
