@@ -133,7 +133,7 @@ Node::Node(
   constraint_list_publisher_ =
       node_handle_.advertise<::visualization_msgs::MarkerArray>(
           kConstraintListTopic, kLatestOnlyPublisherQueueSize);
-  // 发布tracked_pose
+  // 发布tracked_pose, 默认不发布
   if (node_options_.publish_tracked_pose) {
     tracked_pose_publisher_ =
         node_handle_.advertise<::geometry_msgs::PoseStamped>(
@@ -270,7 +270,7 @@ void Node::AddSensorSamplers(const int trajectory_id,
 }
 
 /**
- * @brief 每5e-3s发布一次轨迹数据
+ * @brief 每5e-3s发布一次轨迹数据以及tf
  *
  * @param[in] timer_event
  */
@@ -365,37 +365,50 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
     const Rigid3d tracking_to_map =
         trajectory_data.local_to_map * tracking_to_local;
 
-    // todo: 0506-23-30
+    // 根据lua配置文件发布tf
     if (trajectory_data.published_to_tracking != nullptr) {
       if (node_options_.publish_to_tf) {
+        // 如果需要cartographer提供odom坐标系
+        // 则发布 map_frame -> odom -> published_frame 的tf
         if (trajectory_data.trajectory_options.provide_odom_frame) {
           std::vector<geometry_msgs::TransformStamped> stamped_transforms;
-
+          
+          // map_frame -> odom
           stamped_transform.header.frame_id = node_options_.map_frame;
           stamped_transform.child_frame_id =
               trajectory_data.trajectory_options.odom_frame;
+          // 将local坐标系作为odom坐标系
           stamped_transform.transform =
               ToGeometryMsgTransform(trajectory_data.local_to_map);
           stamped_transforms.push_back(stamped_transform);
 
+          // odom -> published_frame
           stamped_transform.header.frame_id =
               trajectory_data.trajectory_options.odom_frame;
           stamped_transform.child_frame_id =
               trajectory_data.trajectory_options.published_frame;
+          // published_to_tracking 是局部坐标系下的位姿
           stamped_transform.transform = ToGeometryMsgTransform(
               tracking_to_local * (*trajectory_data.published_to_tracking));
           stamped_transforms.push_back(stamped_transform);
-
+          
+          // 发布 map_frame -> odom -> published_frame 的tf
           tf_broadcaster_.sendTransform(stamped_transforms);
-        } else {
+        } 
+        // cartographer不需要提供odom坐标系,则发布 map_frame -> published_frame 的tf
+        else {
           stamped_transform.header.frame_id = node_options_.map_frame;
           stamped_transform.child_frame_id =
               trajectory_data.trajectory_options.published_frame;
           stamped_transform.transform = ToGeometryMsgTransform(
               tracking_to_map * (*trajectory_data.published_to_tracking));
+          // 发布 map_frame -> published_frame 的tf
           tf_broadcaster_.sendTransform(stamped_transform);
         }
       }
+      
+      // publish_tracked_pose 默认为false, 默认不发布
+      // 如果设置为true, 就发布一个在tracking_frame处的pose
       if (node_options_.publish_tracked_pose) {
         ::geometry_msgs::PoseStamped pose_msg;
         pose_msg.header.frame_id = node_options_.map_frame;
@@ -515,6 +528,7 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
  * @param[in] options
  * @return int 轨迹的id
  */
+// todo: AddTrajectory
 int Node::AddTrajectory(const TrajectoryOptions& options) {
   const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
       expected_sensor_ids = ComputeExpectedSensorIds(options);

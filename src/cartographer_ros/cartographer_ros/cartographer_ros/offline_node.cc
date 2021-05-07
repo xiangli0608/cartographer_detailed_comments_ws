@@ -87,6 +87,7 @@ constexpr int kSingleThreaded = 1;
 // always interpolate.
 const ::ros::Duration kDelay = ::ros::Duration(1.0);
 
+// todo: offline node implement
 void RunOfflineNode(const MapBuilderFactory& map_builder_factory) {
   CHECK(!FLAGS_configuration_directory.empty())
       << "-configuration_directory is missing.";

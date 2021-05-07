@@ -340,6 +340,12 @@ geometry_msgs::Transform ToGeometryMsgTransform(const Rigid3d& rigid3d) {
   return transform;
 }
 
+/**
+ * @brief 将cartographer的Rigid3d位姿格式,转换成ROS的 geometry_msgs::Pose 格式
+ * 
+ * @param[in] rigid3d Rigid3d格式的位姿
+ * @return geometry_msgs::Pose ROS格式的位姿
+ */
 geometry_msgs::Pose ToGeometryMsgPose(const Rigid3d& rigid3d) {
   geometry_msgs::Pose pose;
   pose.position = ToGeometryMsgPoint(rigid3d.translation());
