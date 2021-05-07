@@ -58,7 +58,7 @@ common::Time PoseExtrapolator::GetLastPoseTime() const {
   return timed_pose_queue_.back().time;
 }
 
-// todo:
+// todo: GetLastExtrapolatedTime
 common::Time PoseExtrapolator::GetLastExtrapolatedTime() const {
   if (!extrapolation_imu_tracker_) {
     return common::Time::min();
@@ -66,7 +66,7 @@ common::Time PoseExtrapolator::GetLastExtrapolatedTime() const {
   return extrapolation_imu_tracker_->time();
 }
 
-// todo:
+// todo: AddPose
 void PoseExtrapolator::AddPose(const common::Time time,
                                const transform::Rigid3d& pose) {
   if (imu_tracker_ == nullptr) {
@@ -133,7 +133,7 @@ void PoseExtrapolator::AddOdometryData(
       linear_velocity_in_tracking_frame_at_newest_odometry_time;
 }
 
-// todo: 
+// todo: ExtrapolatePose
 transform::Rigid3d PoseExtrapolator::ExtrapolatePose(const common::Time time) {
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   CHECK_GE(time, newest_timed_pose.time);

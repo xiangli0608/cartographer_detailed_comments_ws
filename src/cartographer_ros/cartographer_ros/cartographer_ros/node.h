@@ -194,6 +194,7 @@ class Node {
   std::vector<::ros::ServiceServer> service_servers_;
   ::ros::Publisher scan_matched_point_cloud_publisher_;
 
+  // 控制各个传感器数据的采样频率
   struct TrajectorySensorSamplers {
     TrajectorySensorSamplers(const double rangefinder_sampling_ratio,
                              const double odometry_sampling_ratio,

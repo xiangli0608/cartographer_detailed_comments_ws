@@ -59,6 +59,7 @@ using TrajectoryState =
 namespace {
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
 // calls 'handler' on the 'node' to handle messages. Returns the subscriber.
+// ?: 不清楚 Node::*handler 从哪里来
 template <typename MessageType>
 ::ros::Subscriber SubscribeWithHandler(
     void (Node::*handler)(int, const std::string&,
@@ -66,7 +67,8 @@ template <typename MessageType>
     const int trajectory_id, const std::string& topic,
     ::ros::NodeHandle* const node_handle, Node* const node) {
   return node_handle->subscribe<MessageType>(
-      topic, kInfiniteSubscriberQueueSize,
+      topic, kInfiniteSubscriberQueueSize, // kInfiniteSubscriberQueueSize = 0
+      // todo: lamda?
       boost::function<void(const typename MessageType::ConstPtr&)>(
           [node, handler, trajectory_id,
            topic](const typename MessageType::ConstPtr& msg) {
@@ -241,16 +243,31 @@ void Node::PublishSubmapList(const ::ros::WallTimerEvent& unused_timer_event) {
   submap_list_publisher_.publish(map_builder_bridge_.GetSubmapList());
 }
 
+/**
+ * @brief 新增一个位姿估计器
+ * 
+ * @param[in] trajectory_id 轨迹id
+ * @param[in] options 参数配置
+ */
 void Node::AddExtrapolator(const int trajectory_id,
                            const TrajectoryOptions& options) {
   constexpr double kExtrapolationEstimationTimeSec = 0.001;  // 1 ms
+
+  // 新生成的轨迹应该 不在extrapolators_中
   CHECK(extrapolators_.count(trajectory_id) == 0);
+
+  // imu_gravity_time_constant在2d，3d中都是10
   const double gravity_time_constant =
       node_options_.map_builder_options.use_trajectory_builder_3d()
           ? options.trajectory_builder_options.trajectory_builder_3d_options()
                 .imu_gravity_time_constant()
           : options.trajectory_builder_options.trajectory_builder_2d_options()
                 .imu_gravity_time_constant();
+
+  // note: std::forward_as_tuple(): 用于接收右值引用数据生成tuple
+  // note: std::piecewise_construct: 分段构造常量, 将此常量值作为构造对象的第一个参数传递,以选择构造函数形式，该形式通过将两个元组对象的元素转发到其各自的构造函数来就地构造其成员。
+
+  // 以1ms，以及重力常数10，作为参数构造PoseExtrapolator
   extrapolators_.emplace(
       std::piecewise_construct, std::forward_as_tuple(trajectory_id),
       std::forward_as_tuple(
@@ -258,6 +275,12 @@ void Node::AddExtrapolator(const int trajectory_id,
           gravity_time_constant));
 }
 
+/**
+ * @brief 新生成一个传感器数据采样器
+ * 
+ * @param[in] trajectory_id 轨迹id
+ * @param[in] options 参数配置
+ */
 void Node::AddSensorSamplers(const int trajectory_id,
                              const TrajectoryOptions& options) {
   CHECK(sensor_samplers_.count(trajectory_id) == 0);
@@ -523,31 +546,48 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
 }
 
 /**
- * @brief
+ * @brief 添加一个新的轨迹
  *
- * @param[in] options
- * @return int 轨迹的id
+ * @param[in] options 轨迹的参数配置
+ * @return int 新生成的轨迹的id
  */
-// todo: AddTrajectory
 int Node::AddTrajectory(const TrajectoryOptions& options) {
+
   const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
       expected_sensor_ids = ComputeExpectedSensorIds(options);
+
+  // 调用map_builder_bridge的AddTrajectory，添加一个轨迹
   const int trajectory_id =
       map_builder_bridge_.AddTrajectory(expected_sensor_ids, options);
+
+  // 新增一个位姿估计器
   AddExtrapolator(trajectory_id, options);
+
+  // 新生成一个传感器数据采样器
   AddSensorSamplers(trajectory_id, options);
+
   LaunchSubscribers(options, trajectory_id);
+
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(kTopicMismatchCheckDelaySec),
       &Node::MaybeWarnAboutTopicMismatch, this, /*oneshot=*/true));
+
   for (const auto& sensor_id : expected_sensor_ids) {
     subscribed_topics_.insert(sensor_id.id);
   }
+
   return trajectory_id;
 }
 
+/**
+ * @brief 订阅话题与注册回调函数
+ * 
+ * @param[in] options 配置参数
+ * @param[in] trajectory_id 轨迹id  
+ */
 void Node::LaunchSubscribers(const TrajectoryOptions& options,
                              const int trajectory_id) {
+  // laser_scan 的订阅与注册回调函数，多个laser_scan 的topic 共用同一个回调函数
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kLaserScanTopic, options.num_laser_scans)) {
     subscribers_[trajectory_id].push_back(
@@ -556,6 +596,8 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
              this),
          topic});
   }
+
+  // multi_echo_laser_scans的订阅与注册回调函数
   for (const std::string& topic : ComputeRepeatedTopicNames(
            kMultiEchoLaserScanTopic, options.num_multi_echo_laser_scans)) {
     subscribers_[trajectory_id].push_back(
@@ -564,6 +606,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
              &node_handle_, this),
          topic});
   }
+  // point_clouds 的订阅与注册回调函数
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kPointCloud2Topic, options.num_point_clouds)) {
     subscribers_[trajectory_id].push_back(
@@ -575,6 +618,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
 
   // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
   // required.
+  // imu 的订阅与注册回调函数,只有一个imu的topic
   if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
       (node_options_.map_builder_options.use_trajectory_builder_2d() &&
        options.trajectory_builder_options.trajectory_builder_2d_options()
@@ -586,6 +630,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
          kImuTopic});
   }
 
+  // odometry 的订阅与注册回调函数,只有一个odometry的topic
   if (options.use_odometry) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<nav_msgs::Odometry>(&Node::HandleOdometryMessage,
@@ -593,6 +638,8 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
                                                   &node_handle_, this),
          kOdometryTopic});
   }
+
+  // gps 的订阅与注册回调函数,只有一个gps的topic
   if (options.use_nav_sat) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<sensor_msgs::NavSatFix>(
@@ -600,6 +647,8 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
              &node_handle_, this),
          kNavSatFixTopic});
   }
+
+  // landmarks 的订阅与注册回调函数,只有一个landmarks的topic
   if (options.use_landmarks) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<cartographer_ros_msgs::LandmarkList>(
