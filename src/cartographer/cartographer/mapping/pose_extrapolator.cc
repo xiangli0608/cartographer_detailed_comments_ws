@@ -25,6 +25,7 @@
 namespace cartographer {
 namespace mapping {
 
+// 构造函数,进行3个数据的初始化
 PoseExtrapolator::PoseExtrapolator(const common::Duration pose_queue_duration,
                                    double imu_gravity_time_constant)
     : pose_queue_duration_(pose_queue_duration),
@@ -32,6 +33,7 @@ PoseExtrapolator::PoseExtrapolator(const common::Duration pose_queue_duration,
       cached_extrapolated_pose_{common::Time::min(),
                                 transform::Rigid3d::Identity()} {}
 
+// 使用imu数据进行PoseExtrapolator的初始化,这个函数并没有被用到
 std::unique_ptr<PoseExtrapolator> PoseExtrapolator::InitializeWithImu(
     const common::Duration pose_queue_duration,
     const double imu_gravity_time_constant, const sensor::ImuData& imu_data) {
@@ -51,6 +53,7 @@ std::unique_ptr<PoseExtrapolator> PoseExtrapolator::InitializeWithImu(
   return extrapolator;
 }
 
+// 返回最新添加位姿的时间,如果尚未添加任何姿势，则返回Time::min()
 common::Time PoseExtrapolator::GetLastPoseTime() const {
   if (timed_pose_queue_.empty()) {
     return common::Time::min();
@@ -58,7 +61,7 @@ common::Time PoseExtrapolator::GetLastPoseTime() const {
   return timed_pose_queue_.back().time;
 }
 
-// todo: GetLastExtrapolatedTime
+// ?: 返回最新位姿推算器时间
 common::Time PoseExtrapolator::GetLastExtrapolatedTime() const {
   if (!extrapolation_imu_tracker_) {
     return common::Time::min();

@@ -57,18 +57,47 @@ using TrajectoryState =
     ::cartographer::mapping::PoseGraphInterface::TrajectoryState;
 
 namespace {
+
+// note: Lambda表达式 
+/*
+[外部变量访问方式说明符 = & ] (参数表) -> 返回值类型
+{
+  语句块
+}
+
+eg1
+[node, handler, trajectory_id, topic](const typename MessageType::ConstPtr& msg)
+{
+  (node->*handler)(trajectory_id, topic, msg);
+}  
+
+eg2
+const Rigid3d tracking_to_local = [&] {
+  // 是否将变换投影到平面上
+  if (trajectory_data.trajectory_options.publish_frame_projected_to_2d) {
+    return carto::transform::Embed3D(
+        carto::transform::Project2D(tracking_to_local_3d));
+  }
+  return tracking_to_local_3d;
+}();
+
+*/
+
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
 // calls 'handler' on the 'node' to handle messages. Returns the subscriber.
+
 // ?: 不清楚 Node::*handler 从哪里来
+// 目的就是在node_handle中订阅topic,并注册回调函数
 template <typename MessageType>
 ::ros::Subscriber SubscribeWithHandler(
     void (Node::*handler)(int, const std::string&,
                           const typename MessageType::ConstPtr&),
     const int trajectory_id, const std::string& topic,
     ::ros::NodeHandle* const node_handle, Node* const node) {
+
   return node_handle->subscribe<MessageType>(
-      topic, kInfiniteSubscriberQueueSize, // kInfiniteSubscriberQueueSize = 0
-      // todo: lamda?
+      topic, kInfiniteSubscriberQueueSize,  // kInfiniteSubscriberQueueSize = 0
+      // 使用boost::function构造回调函数,被subscribe注册
       boost::function<void(const typename MessageType::ConstPtr&)>(
           [node, handler, trajectory_id,
            topic](const typename MessageType::ConstPtr& msg) {
@@ -342,7 +371,7 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
       // 将当前的pose加入到extrapolator中, 更新extrapolator的时间与状态
       extrapolator.AddPose(trajectory_data.local_slam_data->time,
                            trajectory_data.local_slam_data->local_pose);
-    }  // end if
+    } // end if
 
     geometry_msgs::TransformStamped stamped_transform;
     // If we do not publish a new point cloud, we still allow time of the
@@ -566,12 +595,16 @@ int Node::AddTrajectory(const TrajectoryOptions& options) {
   // 新生成一个传感器数据采样器
   AddSensorSamplers(trajectory_id, options);
 
+  // 订阅话题与注册回调函数
   LaunchSubscribers(options, trajectory_id);
 
+  // 创建了一个3s执行一次的定时器,由于oneshot=true, 所以只执行一次
+  // 检查设置的topic名字是否在ros中存在, 不存在则报错
   wall_timers_.push_back(node_handle_.createWallTimer(
-      ::ros::WallDuration(kTopicMismatchCheckDelaySec),
+      ::ros::WallDuration(kTopicMismatchCheckDelaySec), // kTopicMismatchCheckDelaySec = 3s
       &Node::MaybeWarnAboutTopicMismatch, this, /*oneshot=*/true));
 
+  // 将topic名字保存下来,用于之后的新建轨迹时检查topic名字是否重复
   for (const auto& sensor_id : expected_sensor_ids) {
     subscribed_topics_.insert(sensor_id.id);
   }
@@ -1032,6 +1065,7 @@ void Node::RunFinalOptimization() {
   map_builder_bridge_.RunFinalOptimization();
 }
 
+// 调用sensor_bridge_ptr的传感器处理函数进行数据处理
 void Node::HandleOdometryMessage(const int trajectory_id,
                                  const std::string& sensor_id,
                                  const nav_msgs::Odometry::ConstPtr& msg) {
@@ -1041,12 +1075,14 @@ void Node::HandleOdometryMessage(const int trajectory_id,
   }
   auto sensor_bridge_ptr = map_builder_bridge_.sensor_bridge(trajectory_id);
   auto odometry_data_ptr = sensor_bridge_ptr->ToOdometryData(msg);
+  // extrapolators_使用里程计数据进行位姿预测
   if (odometry_data_ptr != nullptr) {
     extrapolators_.at(trajectory_id).AddOdometryData(*odometry_data_ptr);
   }
   sensor_bridge_ptr->HandleOdometryMessage(sensor_id, msg);
 }
 
+// 调用map_builder_bridge_的传感器处理函数进行数据处理
 void Node::HandleNavSatFixMessage(const int trajectory_id,
                                   const std::string& sensor_id,
                                   const sensor_msgs::NavSatFix::ConstPtr& msg) {
@@ -1058,6 +1094,7 @@ void Node::HandleNavSatFixMessage(const int trajectory_id,
       ->HandleNavSatFixMessage(sensor_id, msg);
 }
 
+// 调用map_builder_bridge_的传感器处理函数进行数据处理
 void Node::HandleLandmarkMessage(
     const int trajectory_id, const std::string& sensor_id,
     const cartographer_ros_msgs::LandmarkList::ConstPtr& msg) {
@@ -1069,6 +1106,7 @@ void Node::HandleLandmarkMessage(
       ->HandleLandmarkMessage(sensor_id, msg);
 }
 
+// 调用sensor_bridge_ptr的传感器处理函数进行数据处理
 void Node::HandleImuMessage(const int trajectory_id,
                             const std::string& sensor_id,
                             const sensor_msgs::Imu::ConstPtr& msg) {
@@ -1078,16 +1116,19 @@ void Node::HandleImuMessage(const int trajectory_id,
   }
   auto sensor_bridge_ptr = map_builder_bridge_.sensor_bridge(trajectory_id);
   auto imu_data_ptr = sensor_bridge_ptr->ToImuData(msg);
+  // extrapolators_使用里程计数据进行位姿预测
   if (imu_data_ptr != nullptr) {
     extrapolators_.at(trajectory_id).AddImuData(*imu_data_ptr);
   }
   sensor_bridge_ptr->HandleImuMessage(sensor_id, msg);
 }
 
+// 调用map_builder_bridge_的传感器处理函数进行数据处理
 void Node::HandleLaserScanMessage(const int trajectory_id,
                                   const std::string& sensor_id,
                                   const sensor_msgs::LaserScan::ConstPtr& msg) {
   absl::MutexLock lock(&mutex_);
+  // 根据配置,是否将传感器数据跳过
   if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse()) {
     return;
   }
@@ -1095,6 +1136,7 @@ void Node::HandleLaserScanMessage(const int trajectory_id,
       ->HandleLaserScanMessage(sensor_id, msg);
 }
 
+// 调用map_builder_bridge_的传感器处理函数进行数据处理
 void Node::HandleMultiEchoLaserScanMessage(
     const int trajectory_id, const std::string& sensor_id,
     const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg) {
@@ -1106,6 +1148,7 @@ void Node::HandleMultiEchoLaserScanMessage(
       ->HandleMultiEchoLaserScanMessage(sensor_id, msg);
 }
 
+// 调用map_builder_bridge_的传感器处理函数进行数据处理
 void Node::HandlePointCloud2Message(
     const int trajectory_id, const std::string& sensor_id,
     const sensor_msgs::PointCloud2::ConstPtr& msg) {
@@ -1132,22 +1175,33 @@ void Node::LoadState(const std::string& state_filename,
   map_builder_bridge_.LoadState(state_filename, load_frozen_state);
 }
 
+// 检查设置的topic名字是否在ros中存在, 不存在则报错
 void Node::MaybeWarnAboutTopicMismatch(
     const ::ros::WallTimerEvent& unused_timer_event) {
+
+  // note: 使用ros的master的api进行topic名字的获取
   ::ros::master::V_TopicInfo ros_topics;
   ::ros::master::getTopics(ros_topics);
+
   std::set<std::string> published_topics;
   std::stringstream published_topics_string;
+
+  // 获取ros中的实际topic的全局名称,resolveName()是获取全局名称
   for (const auto& it : ros_topics) {
     std::string resolved_topic = node_handle_.resolveName(it.name, false);
     published_topics.insert(resolved_topic);
     published_topics_string << resolved_topic << ",";
   }
+
   bool print_topics = false;
   for (const auto& entry : subscribers_) {
     int trajectory_id = entry.first;
     for (const auto& subscriber : entry.second) {
+
+      // 获取设置的topic名字
       std::string resolved_topic = node_handle_.resolveName(subscriber.topic);
+
+      // 如果设置的topic名字,在ros中不存在,则报错
       if (published_topics.count(resolved_topic) == 0) {
         LOG(WARNING) << "Expected topic \"" << subscriber.topic
                      << "\" (trajectory " << trajectory_id << ")"
@@ -1157,6 +1211,7 @@ void Node::MaybeWarnAboutTopicMismatch(
       }
     }
   }
+  // 告诉使用者哪些topic可用
   if (print_topics) {
     LOG(WARNING) << "Currently available topics are: "
                  << published_topics_string.str();

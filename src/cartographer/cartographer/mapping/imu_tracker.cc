@@ -27,6 +27,12 @@
 namespace cartographer {
 namespace mapping {
 
+/**
+ * @brief Construct a new Imu Tracker:: Imu Tracker object
+ * 
+ * @param[in] imu_gravity_time_constant 
+ * @param[in] time 
+ */
 ImuTracker::ImuTracker(const double imu_gravity_time_constant,
                        const common::Time time)
     : imu_gravity_time_constant_(imu_gravity_time_constant),
