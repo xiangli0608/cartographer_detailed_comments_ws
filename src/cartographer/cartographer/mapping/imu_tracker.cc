@@ -30,7 +30,7 @@ namespace mapping {
 /**
  * @brief Construct a new Imu Tracker:: Imu Tracker object
  * 
- * @param[in] imu_gravity_time_constant 
+ * @param[in] imu_gravity_time_constant 这个值在2d与3d情况下都为10
  * @param[in] time 
  */
 ImuTracker::ImuTracker(const double imu_gravity_time_constant,
@@ -38,8 +38,8 @@ ImuTracker::ImuTracker(const double imu_gravity_time_constant,
     : imu_gravity_time_constant_(imu_gravity_time_constant),
       time_(time),
       last_linear_acceleration_time_(common::Time::min()),
-      orientation_(Eigen::Quaterniond::Identity()),
-      gravity_vector_(Eigen::Vector3d::UnitZ()),
+      orientation_(Eigen::Quaterniond::Identity()), // 初始方向角
+      gravity_vector_(Eigen::Vector3d::UnitZ()),    // 重力方向初始化为[0,0,1]
       imu_angular_velocity_(Eigen::Vector3d::Zero()) {}
 
 void ImuTracker::Advance(const common::Time time) {
@@ -57,14 +57,23 @@ void ImuTracker::AddImuLinearAccelerationObservation(
     const Eigen::Vector3d& imu_linear_acceleration) {
   // Update the 'gravity_vector_' with an exponential moving average using the
   // 'imu_gravity_time_constant'.
+  // Step: 1 求delta_t, delta_t初始时刻为infinity, 之后为time_-last_linear_acceleration_time_
   const double delta_t =
       last_linear_acceleration_time_ > common::Time::min()
           ? common::ToSeconds(time_ - last_linear_acceleration_time_)
           : std::numeric_limits<double>::infinity();
   last_linear_acceleration_time_ = time_;
+
+  // Step: 2 求alpha, alpha=1-e^(-delta_t/g)
+  // delta_t越大，alpha越大
   const double alpha = 1. - std::exp(-delta_t / imu_gravity_time_constant_);
+
+  // Step: 3 gravity_vector_=(1-alpha)*gravity_vector_+alpha*imu_linear_acceleration
+
+  // delta_t越大，alpha越大，求解新的重力方向时就越相信最新的加速度
   gravity_vector_ =
       (1. - alpha) * gravity_vector_ + alpha * imu_linear_acceleration;
+      
   // Change the 'orientation_' so that it agrees with the current
   // 'gravity_vector_'.
   const Eigen::Quaterniond rotation = FromTwoVectors(
@@ -74,6 +83,7 @@ void ImuTracker::AddImuLinearAccelerationObservation(
   CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
 }
 
+// 更新角速度
 void ImuTracker::AddImuAngularVelocityObservation(
     const Eigen::Vector3d& imu_angular_velocity) {
   imu_angular_velocity_ = imu_angular_velocity;

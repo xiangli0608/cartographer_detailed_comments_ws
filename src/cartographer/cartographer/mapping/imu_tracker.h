@@ -27,7 +27,11 @@ namespace mapping {
 // accelerations from an IMU. Because averaged linear acceleration (assuming
 // slow movement) is a direct measurement of gravity, roll/pitch does not drift,
 // though yaw does.
-// todo: ImuTracker
+/**
+ * @brief ImuTracker 的主要作用就是根据 IMU 的读数维护传感器当前的姿态、线加速度(经过重力校正的)、
+ * 当前姿态、重力方向、角速度等量。这些量都是以 ImuTracker 刚建立时的那一时刻 IMU 本身的坐标系为
+ * 基准坐标系。
+ */
 class ImuTracker {
  public:
   ImuTracker(double imu_gravity_time_constant, common::Time time);
@@ -36,6 +40,7 @@ class ImuTracker {
   void Advance(common::Time time);
 
   // Updates from an IMU reading (in the IMU frame).
+  // 根据传感器读数更新传感器的最新状态，得到经过重力校正的线加速度、角速度等。
   void AddImuLinearAccelerationObservation(
       const Eigen::Vector3d& imu_linear_acceleration);
   void AddImuAngularVelocityObservation(
@@ -46,6 +51,7 @@ class ImuTracker {
   common::Time time() const { return time_; }
 
   // Query the current orientation estimate.
+  // 查询当前估计出的姿态
   Eigen::Quaterniond orientation() const { return orientation_; }
 
  private:
