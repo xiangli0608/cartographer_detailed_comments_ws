@@ -82,6 +82,7 @@ Eigen::Matrix<T, 3, 1> RotationQuaternionToAngleAxisVector(
 
 // Returns a quaternion representing the same rotation as the given 'angle_axis'
 // vector.
+// 由旋转向量转换成四元数
 template <typename T>
 Eigen::Quaternion<T> AngleAxisVectorToRotationQuaternion(
     const Eigen::Matrix<T, 3, 1>& angle_axis) {

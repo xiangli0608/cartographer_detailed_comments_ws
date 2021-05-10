@@ -73,6 +73,7 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
                                          ImuTracker* imu_tracker) const;
   Eigen::Vector3d ExtrapolateTranslation(common::Time time);
 
+  // 保存一定时间内的pose
   const common::Duration pose_queue_duration_;
   struct TimedPose {
     common::Time time;

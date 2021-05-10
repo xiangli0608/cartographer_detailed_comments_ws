@@ -27,10 +27,11 @@ namespace mapping {
 // accelerations from an IMU. Because averaged linear acceleration (assuming
 // slow movement) is a direct measurement of gravity, roll/pitch does not drift,
 // though yaw does.
+// 使用来自IMU的角速度和线性加速度跟踪方向
+// 由于平均线性加速度（假设缓慢移动）是重力的直接量度，因此，横摆/俯仰不会漂移，尽管偏航会漂移。
 /**
- * @brief ImuTracker 的主要作用就是根据 IMU 的读数维护传感器当前的姿态、线加速度(经过重力校正的)、
- * 当前姿态、重力方向、角速度等量。这些量都是以 ImuTracker 刚建立时的那一时刻 IMU 本身的坐标系为
- * 基准坐标系。
+ * @brief ImuTracker 的主要作用是根据 MU的角速度来预测姿态,
+ * 根据IMU的线加速度来确定重力的方向，并使用重力的方向来对姿态进行校准
  */
 class ImuTracker {
  public:
@@ -40,14 +41,13 @@ class ImuTracker {
   void Advance(common::Time time);
 
   // Updates from an IMU reading (in the IMU frame).
-  // 根据传感器读数更新传感器的最新状态，得到经过重力校正的线加速度、角速度等。
   void AddImuLinearAccelerationObservation(
       const Eigen::Vector3d& imu_linear_acceleration);
   void AddImuAngularVelocityObservation(
       const Eigen::Vector3d& imu_angular_velocity);
 
   // Query the current time.
-  // 获取当前位姿的时间戳
+  // 获取上一次预测位姿的时间戳
   common::Time time() const { return time_; }
 
   // Query the current orientation estimate.

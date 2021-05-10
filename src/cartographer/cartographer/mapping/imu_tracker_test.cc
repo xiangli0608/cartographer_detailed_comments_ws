@@ -29,6 +29,7 @@ constexpr double kGravityTimeConstant = 0.1 * kDuration;
 constexpr double kPrecision = 1e-8;
 constexpr int kSteps = 10;
 
+// todo: 调试一下
 class ImuTrackerTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -62,6 +63,8 @@ TEST_F(ImuTrackerTest, IntegrateYawRotation) {
   AdvanceImu();
   Eigen::Quaterniond expected_orientation(Eigen::AngleAxisd(
       kDuration * angular_velocity_.norm(), angular_velocity_.normalized()));
+
+  // 差值小于kPrecision
   EXPECT_NEAR(0.,
               imu_tracker_->orientation().angularDistance(expected_orientation),
               kPrecision);

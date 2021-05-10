@@ -42,17 +42,31 @@ ImuTracker::ImuTracker(const double imu_gravity_time_constant,
       gravity_vector_(Eigen::Vector3d::UnitZ()),    // 重力方向初始化为[0,0,1]
       imu_angular_velocity_(Eigen::Vector3d::Zero()) {}
 
+/**
+ * @brief 预测出当前时刻的姿态与重力方向
+ * 
+ * @param[in] time 当前的时间
+ */
 void ImuTracker::Advance(const common::Time time) {
   CHECK_LE(time_, time);
   const double delta_t = common::ToSeconds(time - time_);
+  // 上一时刻的角速度乘以时间,得到当前时刻相对于上一时刻的预测的姿态变化量,再转换成四元数
   const Eigen::Quaterniond rotation =
       transform::AngleAxisVectorToRotationQuaternion(
           Eigen::Vector3d(imu_angular_velocity_ * delta_t));
+  // 使用上一时刻的姿态 orientation_ 乘以姿态变化量,得到当前时刻的预测出的姿态
   orientation_ = (orientation_ * rotation).normalized();
+  // ?: 根据预测的姿态变化量,预测当前时刻的各个重力分量
   gravity_vector_ = rotation.conjugate() * gravity_vector_;
+  // 更新时间
   time_ = time;
 }
 
+/**
+ * @brief 更新重力的方向,并根据重力的方向对上一时刻的姿态进行校准
+ * 
+ * @param[in] imu_linear_acceleration imu的线加速度的大小
+ */
 void ImuTracker::AddImuLinearAccelerationObservation(
     const Eigen::Vector3d& imu_linear_acceleration) {
   // Update the 'gravity_vector_' with an exponential moving average using the
@@ -64,21 +78,25 @@ void ImuTracker::AddImuLinearAccelerationObservation(
           : std::numeric_limits<double>::infinity();
   last_linear_acceleration_time_ = time_;
 
-  // Step: 2 求alpha, alpha=1-e^(-delta_t/g)
+  // Step: 2 求alpha, alpha=1-e^(-delta_t/10)
   // delta_t越大，alpha越大
   const double alpha = 1. - std::exp(-delta_t / imu_gravity_time_constant_);
 
-  // Step: 3 gravity_vector_=(1-alpha)*gravity_vector_+alpha*imu_linear_acceleration
+  // Step: 3 加速度测量的各个重力方向与预测的进行融合, 这里采用滑动平均
 
-  // delta_t越大，alpha越大，求解新的重力方向时就越相信最新的加速度
+  // 指数来确定权重，因为有噪声的存在，时间差越大，当前的权重越大
   gravity_vector_ =
       (1. - alpha) * gravity_vector_ + alpha * imu_linear_acceleration;
       
   // Change the 'orientation_' so that it agrees with the current
   // 'gravity_vector_'.
+  // Step: 4 求得 当前重力方向 与 上一时刻姿态 间的旋转量
   const Eigen::Quaterniond rotation = FromTwoVectors(
       gravity_vector_, orientation_.conjugate() * Eigen::Vector3d::UnitZ());
+
+  // Step: 5 使用这个旋转量来校准当前的姿态
   orientation_ = (orientation_ * rotation).normalized();
+
   CHECK_GT((orientation_ * gravity_vector_).z(), 0.);
   CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
 }
