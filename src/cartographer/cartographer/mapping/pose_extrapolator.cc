@@ -33,7 +33,7 @@ PoseExtrapolator::PoseExtrapolator(const common::Duration pose_queue_duration,
       cached_extrapolated_pose_{common::Time::min(),
                                 transform::Rigid3d::Identity()} {}
 
-// 使用imu数据进行PoseExtrapolator的初始化,这个函数并没有被用到
+// 使用imu数据进行PoseExtrapolator的初始化
 std::unique_ptr<PoseExtrapolator> PoseExtrapolator::InitializeWithImu(
     const common::Duration pose_queue_duration,
     const double imu_gravity_time_constant, const sensor::ImuData& imu_data) {
@@ -61,7 +61,7 @@ common::Time PoseExtrapolator::GetLastPoseTime() const {
   return timed_pose_queue_.back().time;
 }
 
-// ?: 返回最新位姿推算器时间
+// 获取上一次预测位姿的时间戳
 common::Time PoseExtrapolator::GetLastExtrapolatedTime() const {
   if (!extrapolation_imu_tracker_) {
     return common::Time::min();
@@ -72,6 +72,7 @@ common::Time PoseExtrapolator::GetLastExtrapolatedTime() const {
 // todo: AddPose
 void PoseExtrapolator::AddPose(const common::Time time,
                                const transform::Rigid3d& pose) {
+  // imu_tracker_的初始化
   if (imu_tracker_ == nullptr) {
     common::Time tracker_start = time;
     if (!imu_data_.empty()) {
@@ -80,11 +81,16 @@ void PoseExtrapolator::AddPose(const common::Time time,
     imu_tracker_ =
         absl::make_unique<ImuTracker>(gravity_time_constant_, tracker_start);
   }
+
+  // 在timed_pose_queue_中保存pose
   timed_pose_queue_.push_back(TimedPose{time, pose});
+
+  // 保持pose队列中pose的时间处于一定的时间范围内
   while (timed_pose_queue_.size() > 2 &&
          timed_pose_queue_[1].time <= time - pose_queue_duration_) {
     timed_pose_queue_.pop_front();
   }
+
   UpdateVelocitiesFromPoses();
   AdvanceImuTracker(time, imu_tracker_.get());
   TrimImuData();
@@ -93,6 +99,7 @@ void PoseExtrapolator::AddPose(const common::Time time,
   extrapolation_imu_tracker_ = absl::make_unique<ImuTracker>(*imu_tracker_);
 }
 
+// 向imu数据队列中添加imu数据,并进行队列的长度修剪
 void PoseExtrapolator::AddImuData(const sensor::ImuData& imu_data) {
   CHECK(timed_pose_queue_.empty() ||
         imu_data.time >= timed_pose_queue_.back().time);
@@ -100,6 +107,7 @@ void PoseExtrapolator::AddImuData(const sensor::ImuData& imu_data) {
   TrimImuData();
 }
 
+// 向odom数据队列中添加odom数据,并进行队列的长度修剪
 void PoseExtrapolator::AddOdometryData(
     const sensor::OdometryData& odometry_data) {
   CHECK(timed_pose_queue_.empty() ||
@@ -109,14 +117,19 @@ void PoseExtrapolator::AddOdometryData(
   if (odometry_data_.size() < 2) {
     return;
   }
+
   // TODO(whess): Improve by using more than just the last two odometry poses.
   // Compute extrapolation in the tracking frame.
+  // 使用至少2个odom数据进行位姿的预测
   const sensor::OdometryData& odometry_data_oldest = odometry_data_.front();
   const sensor::OdometryData& odometry_data_newest = odometry_data_.back();
+  // 最新与最老odom数据间的时间差
   const double odometry_time_delta =
       common::ToSeconds(odometry_data_oldest.time - odometry_data_newest.time);
+  // 计算两个位姿间的坐标变换
   const transform::Rigid3d odometry_pose_delta =
       odometry_data_newest.pose.inverse() * odometry_data_oldest.pose;
+  // 旋转量除以时间得到角速度
   angular_velocity_from_odometry_ =
       transform::RotationQuaternionToAngleAxisVector(
           odometry_pose_delta.rotation()) /
@@ -124,6 +137,7 @@ void PoseExtrapolator::AddOdometryData(
   if (timed_pose_queue_.empty()) {
     return;
   }
+  // 平移量除以时间得到线速度
   const Eigen::Vector3d
       linear_velocity_in_tracking_frame_at_newest_odometry_time =
           odometry_pose_delta.translation() / odometry_time_delta;
@@ -185,6 +199,7 @@ void PoseExtrapolator::UpdateVelocitiesFromPoses() {
       queue_delta;
 }
 
+// 修剪imu的数据队列,除去时间在 timed_pose_queue_队列最后一个pose的时间 之前的imu数据
 void PoseExtrapolator::TrimImuData() {
   while (imu_data_.size() > 1 && !timed_pose_queue_.empty() &&
          imu_data_[1].time <= timed_pose_queue_.back().time) {
@@ -192,6 +207,7 @@ void PoseExtrapolator::TrimImuData() {
   }
 }
 
+// 修剪odom的数据队列,除去时间在 timed_pose_queue_队列最后一个pose的时间 之前的odom数据
 void PoseExtrapolator::TrimOdometryData() {
   while (odometry_data_.size() > 2 && !timed_pose_queue_.empty() &&
          odometry_data_[1].time <= timed_pose_queue_.back().time) {
