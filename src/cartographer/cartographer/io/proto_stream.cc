@@ -67,6 +67,7 @@ bool ProtoStreamWriter::Close() {
   return !out_.fail();
 }
 
+// 加载文件内容
 ProtoStreamReader::ProtoStreamReader(const std::string& filename)
     : in_(filename, std::ios::in | std::ios::binary) {
   uint64 magic;

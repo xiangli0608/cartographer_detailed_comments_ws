@@ -220,7 +220,7 @@ Node::~Node() { FinishAllTrajectories(); }
 ::ros::NodeHandle* Node::node_handle() { return &node_handle_; }
 
 /**
- * @brief 获取submap query 的服务
+ * @brief 获取对应id轨迹的 索引为submap_index 的submap
  *
  * @param[in] request 获取submap的请求
  * @param[out] response 服务的回应

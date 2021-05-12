@@ -96,6 +96,13 @@ void PushAndResetLineMarker(visualization_msgs::Marker* marker,
 
 }  // namespace
 
+/**
+ * @brief 根据传入的node_options，MapBuilder，以及tf_buffer 完成三个本地变量的初始化
+ * 
+ * @param[in] node_options 参数配置
+ * @param[in] map_builder 在node_main.cc中传入的MapBuilder
+ * @param[in] tf_buffer tf_buffer
+ */
 MapBuilderBridge::MapBuilderBridge(
     const NodeOptions& node_options,
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
@@ -104,17 +111,21 @@ MapBuilderBridge::MapBuilderBridge(
       map_builder_(std::move(map_builder)),
       tf_buffer_(tf_buffer) {}
 
+// 加载pbstream文件
 void MapBuilderBridge::LoadState(const std::string& state_filename,
                                  bool load_frozen_state) {
   // Check if suffix of the state file is ".pbstream".
   const std::string suffix = ".pbstream";
+  // 检查后缀是否是.pbstream
   CHECK_EQ(state_filename.substr(
                std::max<int>(state_filename.size() - suffix.size(), 0)),
            suffix)
       << "The file containing the state to be loaded must be a "
          ".pbstream file.";
   LOG(INFO) << "Loading saved state '" << state_filename << "'...";
+  // 加载文件内容
   cartographer::io::ProtoStreamReader stream(state_filename);
+  // 解析数据
   map_builder_->LoadState(&stream, load_frozen_state);
 }
 
@@ -167,6 +178,12 @@ bool MapBuilderBridge::SerializeState(const std::string& filename,
                                             filename);
 }
 
+/**
+ * @brief 获取对应id轨迹的 索引为submap_index 的submap
+ * 
+ * @param[in] request 轨迹id与submap的index
+ * @param[in] response 是否成功
+ */
 void MapBuilderBridge::HandleSubmapQuery(
     cartographer_ros_msgs::SubmapQuery::Request& request,
     cartographer_ros_msgs::SubmapQuery::Response& response) {
@@ -211,6 +228,7 @@ MapBuilderBridge::GetTrajectoryStates() {
   return trajectory_states;
 }
 
+// 获取所有submap的信息，包括 trajectory_id,submap_index,submap_version,pose
 cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList() {
   cartographer_ros_msgs::SubmapList submap_list;
   submap_list.header.stamp = ::ros::Time::now();
@@ -259,6 +277,7 @@ MapBuilderBridge::GetLocalTrajectoryData() {
   return local_trajectory_data;
 }
 
+// 获取对应id轨迹的所有位姿的集合
 void MapBuilderBridge::HandleTrajectoryQuery(
     cartographer_ros_msgs::TrajectoryQuery::Request& request,
     cartographer_ros_msgs::TrajectoryQuery::Response& response) {
@@ -274,6 +293,7 @@ void MapBuilderBridge::HandleTrajectoryQuery(
     pose_stamped.header.frame_id = node_options_.map_frame;
     pose_stamped.header.stamp =
         ToRos(node_id_data.data.constant_pose_data.value().time);
+    // map坐标系下的坐标
     pose_stamped.pose = ToGeometryMsgPose(node_id_data.data.global_pose);
     response.trajectory.push_back(pose_stamped);
   }
