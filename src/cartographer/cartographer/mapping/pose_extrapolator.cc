@@ -141,10 +141,13 @@ void PoseExtrapolator::AddOdometryData(
   const Eigen::Vector3d
       linear_velocity_in_tracking_frame_at_newest_odometry_time =
           odometry_pose_delta.translation() / odometry_time_delta;
+
+  // ?: 计算里程计坐标系与基准坐标系的变化姿态
   const Eigen::Quaterniond orientation_at_newest_odometry_time =
       timed_pose_queue_.back().pose.rotation() *
       ExtrapolateRotation(odometry_data_newest.time,
                           odometry_imu_tracker_.get());
+  // ?: 换算成基准坐标系下的线速度
   linear_velocity_from_odometry_ =
       orientation_at_newest_odometry_time *
       linear_velocity_in_tracking_frame_at_newest_odometry_time;
@@ -246,11 +249,15 @@ void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
   imu_tracker->Advance(time);
 }
 
+// todo: 
 Eigen::Quaterniond PoseExtrapolator::ExtrapolateRotation(
     const common::Time time, ImuTracker* const imu_tracker) const {
   CHECK_GE(time, imu_tracker->time());
+  // ?: 更新ImuTracker到指定的time
   AdvanceImuTracker(time, imu_tracker);
+  // 估计出的姿态
   const Eigen::Quaterniond last_orientation = imu_tracker_->orientation();
+  // ?:求取姿态变化量：最新时刻姿态的逆乘以当前的姿态
   return last_orientation.inverse() * imu_tracker->orientation();
 }
 
