@@ -71,9 +71,9 @@
     },
     "tag": {
       "icon": "tag",
-      "foreground": "orange",
-      "rulerColour": "orange",
-      "iconColour": "orange",
+      "foreground": "#7CFC00",
+      "rulerColour": "#7CFC00",
+      "iconColour": "#7CFC00",
       "rulerLane": "full",
       "type": "text-and-comment",
     },
