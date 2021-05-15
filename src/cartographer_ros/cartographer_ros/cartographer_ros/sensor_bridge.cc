@@ -28,6 +28,7 @@ using carto::transform::Rigid3d;
 
 namespace {
 
+// 检查frame_id是否带有'/',如果带则报错
 const std::string& CheckNoLeadingSlash(const std::string& frame_id) {
   if (frame_id.size() > 0) {
     CHECK_NE(frame_id[0], '/') << "The frame_id " << frame_id
@@ -39,6 +40,7 @@ const std::string& CheckNoLeadingSlash(const std::string& frame_id) {
 
 }  // namespace
 
+// todo: SensorBridge
 SensorBridge::SensorBridge(
     const int num_subdivisions_per_laser_scan,
     const std::string& tracking_frame,

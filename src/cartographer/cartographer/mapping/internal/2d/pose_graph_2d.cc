@@ -959,6 +959,7 @@ MapById<NodeId, TrajectoryNodePose> PoseGraph2D::GetTrajectoryNodePoses()
   return node_poses;
 }
 
+// 返回图结构中的所有的轨迹状态
 std::map<int, PoseGraphInterface::TrajectoryState>
 PoseGraph2D::GetTrajectoryStates() const {
   std::map<int, PoseGraphInterface::TrajectoryState> trajectories_state;
@@ -1068,6 +1069,7 @@ transform::Rigid3d PoseGraph2D::GetInterpolatedGlobalTrajectoryPose(
       .transform;
 }
 
+// local frame 到 global frame间的坐标变换
 transform::Rigid3d PoseGraph2D::GetLocalToGlobalTransform(
     const int trajectory_id) const {
   absl::MutexLock locker(&mutex_);
@@ -1106,6 +1108,7 @@ PoseGraph2D::GetAllSubmapPoses() const {
   return submap_poses;
 }
 
+// local frame 到 global frame间的坐标变换
 transform::Rigid3d PoseGraph2D::ComputeLocalToGlobalTransform(
     const MapById<SubmapId, optimization::SubmapSpec2D>& global_submap_poses,
     const int trajectory_id) const {

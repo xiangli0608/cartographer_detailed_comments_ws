@@ -62,7 +62,7 @@ class Node {
        tf2_ros::Buffer* tf_buffer, bool collect_metrics);
   ~Node();
 
-  // note: =delete: 禁止使用编译器默认生成的函数; =default: 要求编译器生成一个默认函数
+  // c++11: =delete: 禁止使用编译器默认生成的函数; =default: 要求编译器生成一个默认函数
 
   // 禁止使用 默认拷贝构造函数(复制构造函数)
   Node(const Node&) = delete;
@@ -187,7 +187,7 @@ class Node {
   absl::Mutex mutex_;
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
 
-  // note: GUARDED_BY 是在Clang Thread Safety Analysis（线程安全分析）中定义的属性
+  // c++11: GUARDED_BY 是在Clang Thread Safety Analysis（线程安全分析）中定义的属性
   // GUARDED_BY是数据成员的属性，该属性声明数据成员受给定功能保护。
   // 对数据的读操作需要共享访问，而写操作则需要互斥访问。
   // 官方介绍文档: https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
