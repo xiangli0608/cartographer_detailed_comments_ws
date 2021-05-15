@@ -15,10 +15,11 @@
     "!",
     "Step",
     "todo",
-    "tag",
-    "done",
+    "c++11",
     "note",
-    "fix",
+
+    "done",
+    "tag",
   ],
   "todo-tree.highlights.customHighlight": {
     "Step": {
@@ -29,8 +30,8 @@
       "hideFromTree": true
     },
     "?": {
-      "foreground": "yellow",
       "icon": "question",
+      "foreground": "yellow",
       "iconColour": "yellow",
       "type": "text-and-comment"
     },
@@ -40,43 +41,43 @@
       "iconColour": "red",
       "type": "text-and-comment"
     },
-
     "todo": {
       "foreground": "#f90",
       "rulerColour": "#f90",
       "iconColour": "#f90",
       "type": "text-and-comment",
     },
-    "done": {
-      "icon": "issue-closed",
-      "foreground": "#67cdfe",
-      "rulerColour": "#67cdfe",
-      "iconColour": "#67cdfe",
+    "c++11": {
+      "icon": "tag",
+      "foreground": "violet",
+      "rulerColour": "violet",
+      "iconColour": "violet",
       "type": "text-and-comment",
     },
-    "fix": {
-      "icon": "beaker",
-      "foreground": "#fb0200",
-      "rulerColour": "#fb0200",
-      "iconColour": "#fb0200",
-      "rulerLane": "full",
+    "note": {
+      "icon": "note",
+      "foreground": "orange",
+      "rulerColour": "orange",
+      "iconColour": "orange",
+      "type": "text-and-comment",
+    },
+    
+    "done": {
+      "icon": "issue-closed",
+      "foreground": "#FF00FF",
+      "rulerColour": "#FF00FF",
+      "iconColour": "#FF00FF",
       "type": "text-and-comment",
     },
     "tag": {
       "icon": "tag",
-      "foreground": "#02dc00",
-      "rulerColour": "#02dc00",
-      "iconColour": "#02dc00",
+      "foreground": "orange",
+      "rulerColour": "orange",
+      "iconColour": "orange",
       "rulerLane": "full",
       "type": "text-and-comment",
     },
-    "note": {
-      "foreground": "violet",
-      "icon": "note",
-      "rulerColour": "violet",
-      "iconColour ": "violet",
-      "type": "text-and-comment",
-    },
+
   },
   "python.autoComplete.extraPaths": [
     "/opt/ros/kinetic/lib/python2.7/dist-packages"
