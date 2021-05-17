@@ -58,6 +58,7 @@ visualization_msgs::Marker CreateTrajectoryMarker(const int trajectory_id,
   return marker;
 }
 
+// 获取landmark的index,如果在unordered_map找到就返回index，如果找不到就以map的个数新建个index
 int GetLandmarkIndex(
     const std::string& landmark_id,
     std::unordered_map<std::string, int>* landmark_id_to_index) {
@@ -129,35 +130,42 @@ void MapBuilderBridge::LoadState(const std::string& state_filename,
   map_builder_->LoadState(&stream, load_frozen_state);
 }
 
+// 开始一条新轨迹
 int MapBuilderBridge::AddTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>&
         expected_sensor_ids,
     const TrajectoryOptions& trajectory_options) {
+  // 开始一条新的轨迹, 返回新轨迹的id,需要传入一个函数
   const int trajectory_id = map_builder_->AddTrajectoryBuilder(
       expected_sensor_ids, trajectory_options.trajectory_builder_options,
+      // lambda表达式
       [this](const int trajectory_id, const ::cartographer::common::Time time,
              const Rigid3d local_pose,
              ::cartographer::sensor::RangeData range_data_in_local,
              const std::unique_ptr<
                  const ::cartographer::mapping::TrajectoryBuilderInterface::
                      InsertionResult>) {
+        // 保存local slam 的结果数据
         OnLocalSlamResult(trajectory_id, time, local_pose, range_data_in_local);
       });
   LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
   // Make sure there is no trajectory with 'trajectory_id' yet.
   CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
+  // 为这个新轨迹 添加一个SensorBridge
   sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(
       trajectory_options.num_subdivisions_per_laser_scan,
       trajectory_options.tracking_frame,
       node_options_.lookup_transform_timeout_sec, tf_buffer_,
       map_builder_->GetTrajectoryBuilder(trajectory_id));
+  
   auto emplace_result =
       trajectory_options_.emplace(trajectory_id, trajectory_options);
   CHECK(emplace_result.second == true);
   return trajectory_id;
 }
 
+// 结束指定id的轨迹
 void MapBuilderBridge::FinishTrajectory(const int trajectory_id) {
   LOG(INFO) << "Finishing trajectory with ID '" << trajectory_id << "'...";
 
@@ -167,11 +175,13 @@ void MapBuilderBridge::FinishTrajectory(const int trajectory_id) {
   sensor_bridges_.erase(trajectory_id);
 }
 
+// 当所有的轨迹结束时，执行一次全局优化
 void MapBuilderBridge::RunFinalOptimization() {
   LOG(INFO) << "Running final trajectory optimization...";
   map_builder_->pose_graph()->RunFinalOptimization();
 }
 
+// 将地图，轨迹，以及各个传感器数据进行序列化保存
 bool MapBuilderBridge::SerializeState(const std::string& filename,
                                       const bool include_unfinished_submaps) {
   return map_builder_->SerializeStateToFile(include_unfinished_submaps,
@@ -215,11 +225,13 @@ void MapBuilderBridge::HandleSubmapQuery(
   response.status.code = cartographer_ros_msgs::StatusCode::OK;
 }
 
+// 向pose graph中添加新的active状态的轨迹，并返回所有的轨迹状态
 std::map<int, ::cartographer::mapping::PoseGraphInterface::TrajectoryState>
 MapBuilderBridge::GetTrajectoryStates() {
   auto trajectory_states = map_builder_->pose_graph()->GetTrajectoryStates();
   // Add active trajectories that are not yet in the pose graph, but are e.g.
   // waiting for input sensor data and thus already have a sensor bridge.
+  // 向pose graph中添加新的active状态的轨迹，如果这个轨迹id已经存在则会被忽略不会被添加进去
   for (const auto& sensor_bridge : sensor_bridges_) {
     trajectory_states.insert(std::make_pair(
         sensor_bridge.first,
@@ -247,7 +259,7 @@ cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList() {
   return submap_list;
 }
 
-// todo:
+// 获取local坐标系下的TrajectoryData
 std::unordered_map<int, MapBuilderBridge::LocalTrajectoryData>
 MapBuilderBridge::GetLocalTrajectoryData() {
   std::unordered_map<int, LocalTrajectoryData> local_trajectory_data;
@@ -255,6 +267,7 @@ MapBuilderBridge::GetLocalTrajectoryData() {
     const int trajectory_id = entry.first;
     const SensorBridge& sensor_bridge = *entry.second;
 
+    // 获取local slam 数据
     std::shared_ptr<const LocalTrajectoryData::LocalSlamData> local_slam_data;
     {
       absl::MutexLock lock(&mutex_);
@@ -266,12 +279,19 @@ MapBuilderBridge::GetLocalTrajectoryData() {
 
     // Make sure there is a trajectory with 'trajectory_id'.
     CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
+
+    // 填充LocalTrajectoryData
     local_trajectory_data[trajectory_id] = {
         local_slam_data,
+
+        // local frame 到 global frame间的坐标变换
         map_builder_->pose_graph()->GetLocalToGlobalTransform(trajectory_id),
+
+        // published_frame 到 tracking_frame 间的坐标变换
         sensor_bridge.tf_bridge().LookupToTracking(
             local_slam_data->time,
             trajectory_options_[trajectory_id].published_frame),
+
         trajectory_options_[trajectory_id]};
   }
   return local_trajectory_data;
@@ -303,23 +323,30 @@ void MapBuilderBridge::HandleTrajectoryQuery(
       " trajectory nodes from trajectory ", request.trajectory_id, ".");
 }
 
+// ?: 获取所有的轨迹节点与约束的rviz可视化MarkerArray
 visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
   visualization_msgs::MarkerArray trajectory_node_list;
   const auto node_poses = map_builder_->pose_graph()->GetTrajectoryNodePoses();
   // Find the last node indices for each trajectory that have either
   // inter-submap or inter-trajectory constraints.
+  // 轨迹的最后一个子图间约束的节点
   std::map<int, int /* node_index */>
       trajectory_to_last_inter_submap_constrained_node;
+  // 轨迹的最后一个轨迹间约束的节点
   std::map<int, int /* node_index */>
       trajectory_to_last_inter_trajectory_constrained_node;
   for (const int trajectory_id : node_poses.trajectory_ids()) {
     trajectory_to_last_inter_submap_constrained_node[trajectory_id] = 0;
     trajectory_to_last_inter_trajectory_constrained_node[trajectory_id] = 0;
   }
+
   const auto constraints = map_builder_->pose_graph()->constraints();
+  // 找到所有轨迹的最后一个inter_submap的node_index
   for (const auto& constraint : constraints) {
+    // 是外部子图关系才往下走
     if (constraint.tag ==
         cartographer::mapping::PoseGraphInterface::Constraint::INTER_SUBMAP) {
+      // 如果二者是同一轨迹的
       if (constraint.node_id.trajectory_id ==
           constraint.submap_id.trajectory_id) {
         trajectory_to_last_inter_submap_constrained_node[constraint.node_id
@@ -328,6 +355,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
                          constraint.node_id.trajectory_id),
                      constraint.node_id.node_index);
       } else {
+        // 不同轨迹下的最后一个inter_submap的node_index
         trajectory_to_last_inter_trajectory_constrained_node
             [constraint.node_id.trajectory_id] =
                 std::max(trajectory_to_last_inter_submap_constrained_node.at(
@@ -340,12 +368,14 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
   for (const int trajectory_id : node_poses.trajectory_ids()) {
     visualization_msgs::Marker marker =
         CreateTrajectoryMarker(trajectory_id, node_options_.map_frame);
+
     int last_inter_submap_constrained_node = std::max(
         node_poses.trajectory(trajectory_id).begin()->id.node_index,
         trajectory_to_last_inter_submap_constrained_node.at(trajectory_id));
     int last_inter_trajectory_constrained_node = std::max(
         node_poses.trajectory(trajectory_id).begin()->id.node_index,
         trajectory_to_last_inter_trajectory_constrained_node.at(trajectory_id));
+    // 找到节点最大值
     last_inter_submap_constrained_node =
         std::max(last_inter_submap_constrained_node,
                  last_inter_trajectory_constrained_node);
@@ -363,6 +393,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
         continue;
       }
+      // 获取节点在global map 下的坐标
       const ::geometry_msgs::Point node_point =
           ToGeometryMsgPoint(node_id_data.data.global_pose.translation());
       marker.points.push_back(node_point);
@@ -380,14 +411,17 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
       }
       // Work around the 16384 point limit in RViz by splitting the
       // trajectory into multiple markers.
+      // 通过将轨迹分成多个标记来解决RViz中16384点的限制。
       if (marker.points.size() == 16384) {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
         // Push back the last point, so the two markers appear connected.
         marker.points.push_back(node_point);
       }
     }
+    
     PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
     size_t current_last_marker_id = static_cast<size_t>(marker.id - 1);
+    // 如果该轨迹id不在trajectory_to_highest_marker_id_中，将current_last_marker_id保存
     if (trajectory_to_highest_marker_id_.count(trajectory_id) == 0) {
       trajectory_to_highest_marker_id_[trajectory_id] = current_last_marker_id;
     } else {
@@ -397,14 +431,17 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
         trajectory_node_list.markers.push_back(marker);
         ++marker.id;
       }
+      // 更新last_marker_id
       trajectory_to_highest_marker_id_[trajectory_id] = current_last_marker_id;
     }
   }
   return trajectory_node_list;
 }
 
+// landmark 的rviz可视化设置
 visualization_msgs::MarkerArray MapBuilderBridge::GetLandmarkPosesList() {
   visualization_msgs::MarkerArray landmark_poses_list;
+  // 获取landmark poses
   const std::map<std::string, Rigid3d> landmark_poses =
       map_builder_->pose_graph()->GetLandmarkPoses();
   for (const auto& id_to_pose : landmark_poses) {
@@ -415,9 +452,14 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetLandmarkPosesList() {
   return landmark_poses_list;
 }
 
+// todo: MapBuilderBridge::GetConstraintList
 visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   visualization_msgs::MarkerArray constraint_list;
   int marker_id = 0;
+
+  // 6种marker
+
+  // 1 内部子图约束，非全局约束
   visualization_msgs::Marker constraint_intra_marker;
   constraint_intra_marker.id = marker_id++;
   constraint_intra_marker.ns = "Intra constraints";
@@ -427,14 +469,18 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   constraint_intra_marker.scale.x = kConstraintMarkerScale;
   constraint_intra_marker.pose.orientation.w = 1.0;
 
+  // 2 Intra residuals
   visualization_msgs::Marker residual_intra_marker = constraint_intra_marker;
   residual_intra_marker.id = marker_id++;
   residual_intra_marker.ns = "Intra residuals";
   // This and other markers which are less numerous are set to be slightly
   // above the intra constraints marker in order to ensure that they are
   // visible.
+  // 将该标记和其他数量较少的标记设置z为略高于帧内约束标记，以确保它们可见。
   residual_intra_marker.pose.position.z = 0.1;
 
+  // 外部子图约束，回环约束，全局约束
+  // 3 Inter constraints, same trajectory
   visualization_msgs::Marker constraint_inter_same_trajectory_marker =
       constraint_intra_marker;
   constraint_inter_same_trajectory_marker.id = marker_id++;
@@ -442,12 +488,14 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
       "Inter constraints, same trajectory";
   constraint_inter_same_trajectory_marker.pose.position.z = 0.1;
 
+  // 4 Inter residuals, same trajectory
   visualization_msgs::Marker residual_inter_same_trajectory_marker =
       constraint_intra_marker;
   residual_inter_same_trajectory_marker.id = marker_id++;
   residual_inter_same_trajectory_marker.ns = "Inter residuals, same trajectory";
   residual_inter_same_trajectory_marker.pose.position.z = 0.1;
 
+  // 5 Inter constraints, different trajectories
   visualization_msgs::Marker constraint_inter_diff_trajectory_marker =
       constraint_intra_marker;
   constraint_inter_diff_trajectory_marker.id = marker_id++;
@@ -455,6 +503,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
       "Inter constraints, different trajectories";
   constraint_inter_diff_trajectory_marker.pose.position.z = 0.1;
 
+  // 6 Inter residuals, different trajectories
   visualization_msgs::Marker residual_inter_diff_trajectory_marker =
       constraint_intra_marker;
   residual_inter_diff_trajectory_marker.id = marker_id++;
@@ -540,10 +589,12 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   return constraint_list;
 }
 
+// 获取对应轨迹id的SensorBridge的指针
 SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id) {
   return sensor_bridges_.at(trajectory_id).get();
 }
 
+// 保存local slam 的结果，包含当前轨迹id，当前时间，当前位姿，以及所有的雷达数据
 void MapBuilderBridge::OnLocalSlamResult(
     const int trajectory_id, const ::cartographer::common::Time time,
     const Rigid3d local_pose,
@@ -552,6 +603,7 @@ void MapBuilderBridge::OnLocalSlamResult(
       std::make_shared<LocalTrajectoryData::LocalSlamData>(
           LocalTrajectoryData::LocalSlamData{time, local_pose,
                                              std::move(range_data_in_local)});
+  // 保存结果数据
   absl::MutexLock lock(&mutex_);
   local_slam_data_[trajectory_id] = std::move(local_slam_data);
 }

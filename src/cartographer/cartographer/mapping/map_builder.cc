@@ -109,6 +109,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
   }
 }
 
+// todo: MapBuilder::AddTrajectoryBuilder
 int MapBuilder::AddTrajectoryBuilder(
     const std::set<SensorId>& expected_sensor_ids,
     const proto::TrajectoryBuilderOptions& trajectory_options,

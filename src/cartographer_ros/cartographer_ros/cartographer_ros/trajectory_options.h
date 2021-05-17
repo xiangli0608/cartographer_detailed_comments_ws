@@ -25,6 +25,7 @@
 
 namespace cartographer_ros {
 
+// 一条轨迹的基础参数配置
 struct TrajectoryOptions {
   ::cartographer::mapping::proto::TrajectoryBuilderOptions
       trajectory_builder_options;

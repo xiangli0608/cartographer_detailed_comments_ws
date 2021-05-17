@@ -680,6 +680,7 @@ void PoseGraph2D::FreezeTrajectory(const int trajectory_id) {
   });
 }
 
+// 返回轨迹是否是 FROZEN 状态
 bool PoseGraph2D::IsTrajectoryFrozen(const int trajectory_id) const {
   return data_.trajectories_state.count(trajectory_id) != 0 &&
          data_.trajectories_state.at(trajectory_id).state ==
@@ -941,10 +942,12 @@ MapById<NodeId, TrajectoryNode> PoseGraph2D::GetTrajectoryNodes() const {
   return data_.trajectory_nodes;
 }
 
+// 获取所有的轨迹节点的id与位姿
 MapById<NodeId, TrajectoryNodePose> PoseGraph2D::GetTrajectoryNodePoses()
     const {
   MapById<NodeId, TrajectoryNodePose> node_poses;
   absl::MutexLock locker(&mutex_);
+  // trajectory_nodes是 nodeid + TrajectoryNode
   for (const auto& node_id_data : data_.trajectory_nodes) {
     absl::optional<TrajectoryNodePose::ConstantPoseData> constant_pose_data;
     if (node_id_data.data.constant_data != nullptr) {
@@ -959,6 +962,7 @@ MapById<NodeId, TrajectoryNodePose> PoseGraph2D::GetTrajectoryNodePoses()
   return node_poses;
 }
 
+// 返回图结构中的所有的轨迹状态
 std::map<int, PoseGraphInterface::TrajectoryState>
 PoseGraph2D::GetTrajectoryStates() const {
   std::map<int, PoseGraphInterface::TrajectoryState> trajectories_state;
@@ -1021,6 +1025,7 @@ PoseGraph2D::GetFixedFramePoseData() const {
   return optimization_problem_->fixed_frame_pose_data();
 }
 
+// 
 std::vector<PoseGraphInterface::Constraint> PoseGraph2D::constraints() const {
   std::vector<PoseGraphInterface::Constraint> result;
   absl::MutexLock locker(&mutex_);
@@ -1068,6 +1073,7 @@ transform::Rigid3d PoseGraph2D::GetInterpolatedGlobalTrajectoryPose(
       .transform;
 }
 
+// local frame 到 global frame间的坐标变换
 transform::Rigid3d PoseGraph2D::GetLocalToGlobalTransform(
     const int trajectory_id) const {
   absl::MutexLock locker(&mutex_);
@@ -1106,6 +1112,7 @@ PoseGraph2D::GetAllSubmapPoses() const {
   return submap_poses;
 }
 
+// local frame 到 global frame间的坐标变换
 transform::Rigid3d PoseGraph2D::ComputeLocalToGlobalTransform(
     const MapById<SubmapId, optimization::SubmapSpec2D>& global_submap_poses,
     const int trajectory_id) const {

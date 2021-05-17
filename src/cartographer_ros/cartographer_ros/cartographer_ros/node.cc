@@ -58,7 +58,7 @@ using TrajectoryState =
 
 namespace {
 
-// note: Lambda表达式 
+// c++11: lambda表达式 
 /*
 [外部变量访问方式说明符 = & ] (参数表) -> 返回值类型
 {
@@ -69,7 +69,7 @@ eg1
 [node, handler, trajectory_id, topic](const typename MessageType::ConstPtr& msg)
 {
   (node->*handler)(trajectory_id, topic, msg);
-}  
+}
 
 eg2
 const Rigid3d tracking_to_local = [&] {
@@ -293,8 +293,9 @@ void Node::AddExtrapolator(const int trajectory_id,
           : options.trajectory_builder_options.trajectory_builder_2d_options()
                 .imu_gravity_time_constant();
 
-  // note: std::forward_as_tuple(): 用于接收右值引用数据生成tuple
-  // note: std::piecewise_construct: 分段构造常量, 将此常量值作为构造对象的第一个参数传递,以选择构造函数形式，该形式通过将两个元组对象的元素转发到其各自的构造函数来就地构造其成员。
+  // c++11: std::forward_as_tuple(): 用于接收右值引用数据生成tuple
+  // c++11: std::piecewise_construct: 分段构造常量, 将此常量值作为构造对象的第一个参数传递
+  // 以选择构造函数形式，该形式通过将两个元组对象的元素转发到其各自的构造函数来就地构造其成员。
 
   // 以1ms，以及重力常数10，作为参数构造PoseExtrapolator
   extrapolators_.emplace(
@@ -354,7 +355,7 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event) {
         // 获取local_slam_data的点云数据，填入到point_cloud中
         for (const cartographer::sensor::RangefinderPoint point :
              trajectory_data.local_slam_data->range_data_in_local.returns) {
-          // note: 这里的虽然使用的是带时间戳的点云结构，但是数据点的时间全是0.f
+          // 这里的虽然使用的是带时间戳的点云结构，但是数据点的时间全是0.f
           point_cloud.push_back(cartographer::sensor::ToTimedRangefinderPoint(
               point, 0.f /* time */));
         }

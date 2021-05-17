@@ -114,6 +114,7 @@ inline std::ostream& operator<<(std::ostream& os, const SubmapId& v) {
   return os << "(" << v.trajectory_id << ", " << v.submap_index << ")";
 }
 
+// 保存所有轨迹中的第一个id号与最后一个id号
 template <typename IteratorType>
 class Range {
  public:
@@ -241,6 +242,7 @@ class MapById {
         typename std::map<int, MapByIndex>::const_iterator current_trajectory)
         : current_trajectory_(current_trajectory) {}
 
+    // 仿函数，返回轨迹的id
     int operator*() const { return current_trajectory_->first; }
 
     ConstTrajectoryIterator& operator++() {
@@ -353,6 +355,7 @@ class MapById {
   }
 
   // Returns Range object for range-based loops over the trajectory IDs.
+  // 返回所有轨迹中的第一个id号与最后一个id号
   Range<ConstTrajectoryIterator> trajectory_ids() const {
     return Range<ConstTrajectoryIterator>(
         ConstTrajectoryIterator(trajectories_.begin()),

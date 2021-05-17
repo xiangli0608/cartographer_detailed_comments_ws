@@ -64,7 +64,7 @@ void Run() {
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;
 
-  // note: tie()函数可以将变量连接到一个给定的tuple上,生成一个元素类型全是引用的tuple
+  // c++11: tie()函数可以将变量连接到一个给定的tuple上,生成一个元素类型全是引用的tuple
 
   // 根据Lua配置文件中的内容，为node_options, trajectory_options 赋值
   std::tie(node_options, trajectory_options) =
@@ -75,7 +75,7 @@ void Run() {
   auto map_builder =
       cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
   
-  // note: std::move 是将对象的状态或者所有权从一个对象转移到另一个对象，只是转移，没有内存的搬迁或者内存拷贝所以可以提高利用效率,改善性能.。
+  // c++11: std::move 是将对象的状态或者所有权从一个对象转移到另一个对象，只是转移，没有内存的搬迁或者内存拷贝所以可以提高利用效率,改善性能.。
   // 右值引用是用来支持转移语义的。转移语义可以将资源 ( 堆，系统对象等 ) 从一个对象转移到另一个对象，
   // 这样能够减少不必要的临时对象的创建、拷贝以及销毁，能够大幅度提高 C++ 应用程序的性能。
   // 临时对象的维护 ( 创建和销毁 ) 对性能有严重影响。
@@ -114,7 +114,7 @@ void Run() {
 
 int main(int argc, char** argv) {
 
-  // 初始化glog库
+  // note: 初始化glog库
   google::InitGoogleLogging(argv[0]);
   
   // 使用gflags进行参数的初始化. 其中第三个参数为remove_flag，如果为true，gflags会移除parse过的参数，否则gflags就会保留这些参数，但可能会对参数顺序进行调整。

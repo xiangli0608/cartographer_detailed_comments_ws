@@ -49,17 +49,36 @@ namespace cartographer_ros {
 
 class MapBuilderBridge {
  public:
+
+/**
+ * tag: local map frame与global map frame
+ * carographer中存在两个地图坐标系，分别为global map frame与local map frame
+ * 
+ * local map frame
+ * 是表达local slam结果的坐标系，是固定的坐标系，不会被回环检测与位姿图优化所更改，
+ * 其每一帧位姿间的坐标变换不会改变
+ * 
+ * global map frame
+ * 是表达被回环检测与位姿图优化所更改后的坐标系，当有新的优化结果可用时，此坐标系与任何其他坐标系之间的转换都会跳变。
+ * 它的z轴指向上方，即重力加速度矢量指向-z方向，即由加速度计测得的重力分量沿+z方向。
+ */
+
+
   struct LocalTrajectoryData {
     // Contains the trajectory data received from local SLAM, after
     // it had processed accumulated 'range_data_in_local' and estimated
     // current 'local_pose' at 'time'.
+    
+    // LocalSlamData中包含了local slam的一些数据，包含当前时间，当前估计的位姿，以及累计的所有雷达数据
     struct LocalSlamData {
       ::cartographer::common::Time time;
       ::cartographer::transform::Rigid3d local_pose;
       ::cartographer::sensor::RangeData range_data_in_local;
     };
     std::shared_ptr<const LocalSlamData> local_slam_data;
-    cartographer::transform::Rigid3d local_to_map;
+    cartographer::transform::Rigid3d local_to_map;  // local frame 到 global frame间的坐标变换
+
+    // published_frame 到 tracking_frame 间的坐标变换
     std::unique_ptr<cartographer::transform::Rigid3d> published_to_tracking;
     TrajectoryOptions trajectory_options;
   };

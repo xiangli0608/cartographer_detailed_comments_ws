@@ -30,6 +30,7 @@
 namespace cartographer {
 namespace mapping {
 
+// 包含节点的在global map下的坐标，在local map 下的坐标与时间
 struct TrajectoryNodePose {
   struct ConstantPoseData {
     common::Time time;
