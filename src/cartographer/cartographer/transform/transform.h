@@ -56,6 +56,7 @@ T GetYaw(const Rigid3<T>& transform) {
 // Returns an angle-axis vector (a vector with the length of the rotation angle
 // pointing to the direction of the rotation axis) representing the same
 // rotation as the given 'quaternion'.
+// 四元数转旋转向量(轴角)
 template <typename T>
 Eigen::Matrix<T, 3, 1> RotationQuaternionToAngleAxisVector(
     const Eigen::Quaternion<T>& quaternion) {

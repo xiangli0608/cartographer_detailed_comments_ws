@@ -92,6 +92,7 @@ void PoseExtrapolator::AddPose(const common::Time time,
   }
 
   UpdateVelocitiesFromPoses();
+  // 使得imu_tracker_预测到time时刻
   AdvanceImuTracker(time, imu_tracker_.get());
   TrimImuData();
   TrimOdometryData();
@@ -154,13 +155,16 @@ void PoseExtrapolator::AddOdometryData(
       linear_velocity_in_tracking_frame_at_newest_odometry_time;
 }
 
-// todo: ExtrapolatePose
+// 进行time时刻的位姿预测
 transform::Rigid3d PoseExtrapolator::ExtrapolatePose(const common::Time time) {
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   CHECK_GE(time, newest_timed_pose.time);
+  // 如果本次预测时间与上次计算时间相同 就不再重复计算
   if (cached_extrapolated_pose_.time != time) {
+    // 预测平移
     const Eigen::Vector3d translation =
         ExtrapolateTranslation(time) + newest_timed_pose.pose.translation();
+    // 预测旋转
     const Eigen::Quaterniond rotation =
         newest_timed_pose.pose.rotation() *
         ExtrapolateRotation(time, extrapolation_imu_tracker_.get());
@@ -177,17 +181,22 @@ Eigen::Quaterniond PoseExtrapolator::EstimateGravityOrientation(
   return imu_tracker.orientation();
 }
 
+// 使用2个pose估计线速度与角速度
 void PoseExtrapolator::UpdateVelocitiesFromPoses() {
   if (timed_pose_queue_.size() < 2) {
     // We need two poses to estimate velocities.
     return;
   }
   CHECK(!timed_pose_queue_.empty());
+  // 取出队列最末尾的一个 Pose,也就是最新时间点的 Pose,并记录相应的时间
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   const auto newest_time = newest_timed_pose.time;
+  // 取出队列最开头的一个 Pose，也就是最旧时间点的 Pose,并记录相应的时间
   const TimedPose& oldest_timed_pose = timed_pose_queue_.front();
   const auto oldest_time = oldest_timed_pose.time;
+  // 计算两者的时间差
   const double queue_delta = common::ToSeconds(newest_time - oldest_time);
+  // 如果时间差小于pose_queue_duration_(1ms)，不进行计算
   if (queue_delta < common::ToSeconds(pose_queue_duration_)) {
     LOG(WARNING) << "Queue too short for velocity estimation. Queue duration: "
                  << queue_delta << " s";
@@ -195,10 +204,10 @@ void PoseExtrapolator::UpdateVelocitiesFromPoses() {
   }
   const transform::Rigid3d& newest_pose = newest_timed_pose.pose;
   const transform::Rigid3d& oldest_pose = oldest_timed_pose.pose;
-  // 使用位姿预测出的线速度
+  // 使用位姿预测出的线速度,平移量除以时间得到线速度
   linear_velocity_from_poses_ =
       (newest_pose.translation() - oldest_pose.translation()) / queue_delta;
-  // 使用位姿预测出的角速度
+  // 使用位姿预测出的角速度,角度变化量除以时间得到角速度
   angular_velocity_from_poses_ =
       transform::RotationQuaternionToAngleAxisVector(
           oldest_pose.rotation().inverse() * newest_pose.rotation()) /
@@ -222,75 +231,104 @@ void PoseExtrapolator::TrimOdometryData() {
 }
 
 /**
- * @brief 
+ * @brief 对imu_data_进行处理，先进行时间同步，在依次进行预测和校准，最后预测出time时刻的状态
  * 
- * @param[in] time 
- * @param[in] imu_tracker 
+ * @param[in] time 要预测的时刻
+ * @param[in] imu_tracker 给定的先验状态
  */
 void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
                                          ImuTracker* const imu_tracker) const {
   // 检查指定时间是否大于等于 ImuTracker 的时间
   CHECK_GE(time, imu_tracker->time());
+
+  // 预测时间之前没有imu数据 的情况
   if (imu_data_.empty() || time < imu_data_.front().time) {
     // There is no IMU data until 'time', so we advance the ImuTracker and use
     // the angular velocities from poses and fake gravity to help 2D stability.
-    // 在“时间”之前没有IMU数据，因此我们推进ImuTracker，并使用姿势和假重力产生的角速度来帮助2D稳定
+    // 在time之前没有IMU数据，因此我们推进ImuTracker，并使用姿势和假重力产生的角速度来帮助2D稳定
+    
+    // 预测当前时刻的姿态与重力方向
     imu_tracker->Advance(time);
+    // 假重力数据
     imu_tracker->AddImuLinearAccelerationObservation(Eigen::Vector3d::UnitZ());
-    // 有odom数据就用里程计估计处理的角速度
+    // 只能依靠其他方式得到的角速度进行预测
     imu_tracker->AddImuAngularVelocityObservation(
         odometry_data_.size() < 2 ? angular_velocity_from_poses_
                                   : angular_velocity_from_odometry_);
     return;
   }
+
+  // imu_tracker的时间比imu数据队列中第一个数据的时间早，就先预测到imu数据队列中第一个数据的时间
   if (imu_tracker->time() < imu_data_.front().time) {
     // Advance to the beginning of 'imu_data_'.
     imu_tracker->Advance(imu_data_.front().time);
   }
+
+  // c++11: std::lower_bound() 是在区间内找到第一个大于等于 value 的值的位置并返回，如果没找到就返回 end() 位置
+  // 在第四个参数位置可以自定义比较规则
+
+  // todo: 实验std::lower_bound
+
+  // ?: 在imu数据队列中找到第一个 时间上 小于 imu_tracker->time() 的数据的索引
   auto it = std::lower_bound(
       imu_data_.begin(), imu_data_.end(), imu_tracker->time(),
       [](const sensor::ImuData& imu_data, const common::Time& time) {
         return imu_data.time < time;
       });
+
+  // 然后依次对imu数据进行预测，以及添加观测，直到imu_data_的时间大于time截止
   while (it != imu_data_.end() && it->time < time) {
     imu_tracker->Advance(it->time);
     imu_tracker->AddImuLinearAccelerationObservation(it->linear_acceleration);
     imu_tracker->AddImuAngularVelocityObservation(it->angular_velocity);
     ++it;
   }
+  // 最后预测一下time时刻的状态
   imu_tracker->Advance(time);
 }
 
-// todo: ExtrapolateRotation
+// 返回从上一时刻到当前时刻预测出的姿态的变化量
 Eigen::Quaterniond PoseExtrapolator::ExtrapolateRotation(
     const common::Time time, ImuTracker* const imu_tracker) const {
   CHECK_GE(time, imu_tracker->time());
-  // ?: 更新ImuTracker到指定的time
+
+  // 更新imu_tracker的状态，使得imu_tracker预测到time时刻
   AdvanceImuTracker(time, imu_tracker);
-  // 获取当前估计出的姿态
+
+  // 获取上一帧的姿态
   const Eigen::Quaterniond last_orientation = imu_tracker_->orientation();
-  // ?:求取姿态变化量：最新时刻姿态的逆乘以当前的姿态
+  // 求取上一帧到当前时刻预测出的姿态变化量：上一帧姿态四元数的逆 乘以 当前时刻预测出来的姿态四元数
   return last_orientation.inverse() * imu_tracker->orientation();
 }
 
+// 返回从上一时刻到当前时刻的平移的变化量，使用线速度乘以时间进行平移量的预测
 Eigen::Vector3d PoseExtrapolator::ExtrapolateTranslation(common::Time time) {
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   const double extrapolation_delta =
       common::ToSeconds(time - newest_timed_pose.time);
+  // 里程计数据可用就用里程计的线速度，不可用就用通过pose计算出的线速度
   if (odometry_data_.size() < 2) {
     return extrapolation_delta * linear_velocity_from_poses_;
   }
   return extrapolation_delta * linear_velocity_from_odometry_;
 }
 
+// 获取一段时间内的预测位姿的结果
 PoseExtrapolator::ExtrapolationResult
 PoseExtrapolator::ExtrapolatePosesWithGravity(
     const std::vector<common::Time>& times) {
   std::vector<transform::Rigid3f> poses;
+
+  // c++11: std::prev 获取一个距离指定迭代器 n 个元素的迭代器,而不改变输入迭代器的值
+  // 默认 n 为1,当 n 为正数时，其返回的迭代器将位于 it 左侧；
+  // 反之，当 n 为负数时，其返回的迭代器位于 it 右侧
+
+  // 获取 [0, n-1] 范围的预测位姿
   for (auto it = times.begin(); it != std::prev(times.end()); ++it) {
     poses.push_back(ExtrapolatePose(*it).cast<float>());
   }
 
+  // 进行当前线速度的预测
   const Eigen::Vector3d current_velocity = odometry_data_.size() < 2
                                                ? linear_velocity_from_poses_
                                                : linear_velocity_from_odometry_;
