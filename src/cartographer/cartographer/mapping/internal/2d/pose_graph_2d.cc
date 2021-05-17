@@ -1025,7 +1025,7 @@ PoseGraph2D::GetFixedFramePoseData() const {
   return optimization_problem_->fixed_frame_pose_data();
 }
 
-// 
+// 返回位姿图结构中的所有的约束
 std::vector<PoseGraphInterface::Constraint> PoseGraph2D::constraints() const {
   std::vector<PoseGraphInterface::Constraint> result;
   absl::MutexLock locker(&mutex_);

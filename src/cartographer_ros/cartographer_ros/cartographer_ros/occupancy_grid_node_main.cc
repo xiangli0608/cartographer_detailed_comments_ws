@@ -83,6 +83,7 @@ Node::Node(const double resolution, const double publish_period_sec)
     : resolution_(resolution),
       client_(node_handle_.serviceClient<::cartographer_ros_msgs::SubmapQuery>(
           kSubmapQueryServiceName)),
+      // 订阅 submap_list topic,注册回调函数
       submap_list_subscriber_(node_handle_.subscribe(
           kSubmapListTopic, kLatestOnlyPublisherQueueSize,
           boost::function<void(
@@ -90,10 +91,12 @@ Node::Node(const double resolution, const double publish_period_sec)
               [this](const cartographer_ros_msgs::SubmapList::ConstPtr& msg) {
                 HandleSubmapList(msg);
               }))),
+      // map 发布器
       occupancy_grid_publisher_(
           node_handle_.advertise<::nav_msgs::OccupancyGrid>(
               FLAGS_occupancy_grid_topic, kLatestOnlyPublisherQueueSize,
               true /* latched */)),
+      // 定时发布map
       occupancy_grid_publisher_timer_(
           node_handle_.createWallTimer(::ros::WallDuration(publish_period_sec),
                                        &Node::DrawAndPublish, this)) {}
@@ -166,8 +169,11 @@ void Node::DrawAndPublish(const ::ros::WallTimerEvent& unused_timer_event) {
     return;
   }
   auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
+  
+  // 由cartographer格式的地图生成ros格式的地图
   std::unique_ptr<nav_msgs::OccupancyGrid> msg_ptr = CreateOccupancyGridMsg(
       painted_slices, resolution_, last_frame_id_, last_timestamp_);
+  // 发布map topic
   occupancy_grid_publisher_.publish(*msg_ptr);
 }
 
@@ -185,6 +191,7 @@ int main(int argc, char** argv) {
   ::ros::start();
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
+  // 这个Node类指的是上边的类,与node.cc无关
   ::cartographer_ros::Node node(FLAGS_resolution, FLAGS_publish_period_sec);
 
   ::ros::spin();

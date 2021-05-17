@@ -396,6 +396,15 @@ cartographer::transform::Rigid3d ComputeLocalFrameFromLatLong(
   return cartographer::transform::Rigid3d(rotation * -translation, rotation);
 }
 
+/**
+ * @brief 由cartographer格式的地图生成ros格式的地图
+ * 
+ * @param[in] painted_slices 
+ * @param[in] resolution 栅格地图的分辨率
+ * @param[in] frame_id 栅格地图的坐标系
+ * @param[in] time 地图对应的时间
+ * @return std::unique_ptr<nav_msgs::OccupancyGrid> ros格式的栅格地图
+ */
 std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
     const cartographer::io::PaintSubmapSlicesResult& painted_slices,
     const double resolution, const std::string& frame_id,
@@ -430,10 +439,33 @@ std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
       const uint32_t packed = pixel_data[y * width + x];
       const unsigned char color = packed >> 16;
       const unsigned char observed = packed >> 8;
+
+      // source code
+      // 根据像素值确定栅格占用值
       const int value =
           observed == 0
               ? -1
               : ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
+
+      /* tag: CreateOccupancyGridMsg
+      * 像素值65-100的设置占用值为100,表示占用,代表障碍物
+      * 像素值0-19.6的设置占用值为0,表示空闲,代表可通过区域
+      * 像素值在中间的值保持不变,灰色
+      */
+      /*
+      int value_temp = ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
+      if (value_temp > 100 * 0.65)
+          value_temp = 100;
+      else if (value_temp < 100 * 0.196)
+          value_temp =  0;
+      else
+          value_temp += 0;  
+      const int value =
+          observed == 0
+              ? -1
+              : value_temp;
+      */
+
       CHECK_LE(-1, value);
       CHECK_GE(100, value);
       occupancy_grid->data.push_back(value);
