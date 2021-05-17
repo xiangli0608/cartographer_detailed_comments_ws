@@ -323,7 +323,12 @@ void MapBuilderBridge::HandleTrajectoryQuery(
       " trajectory nodes from trajectory ", request.trajectory_id, ".");
 }
 
-// ?: 获取所有的轨迹节点与约束的rviz可视化MarkerArray
+/**
+ * @brief 
+ * ?: 获取所有的轨迹节点与约束的rviz可视化MarkerArray
+ * 
+ * @return visualization_msgs::MarkerArray 返回marker的集合
+ */
 visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
   visualization_msgs::MarkerArray trajectory_node_list;
   const auto node_poses = map_builder_->pose_graph()->GetTrajectoryNodePoses();
@@ -452,14 +457,18 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetLandmarkPosesList() {
   return landmark_poses_list;
 }
 
-// todo: MapBuilderBridge::GetConstraintList
+/**
+ * @brief 获取位姿图中所有的约束,分成6种类型,放入不同类型的marker中
+ * 
+ * @return visualization_msgs::MarkerArray 返回6种marker的集合
+ */
 visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   visualization_msgs::MarkerArray constraint_list;
   int marker_id = 0;
 
   // 6种marker
 
-  // 1 内部子图约束，非全局约束
+  // 1 内部子图约束，非全局约束, rviz中显示的最多的约束
   visualization_msgs::Marker constraint_intra_marker;
   constraint_intra_marker.id = marker_id++;
   constraint_intra_marker.ns = "Intra constraints";
@@ -480,7 +489,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   residual_intra_marker.pose.position.z = 0.1;
 
   // 外部子图约束，回环约束，全局约束
-  // 3 Inter constraints, same trajectory
+  // 3 Inter constraints, same trajectory, rviz中显示的第二多的约束
   visualization_msgs::Marker constraint_inter_same_trajectory_marker =
       constraint_intra_marker;
   constraint_inter_same_trajectory_marker.id = marker_id++;
@@ -519,19 +528,24 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   for (const auto& constraint : constraints) {
     visualization_msgs::Marker *constraint_marker, *residual_marker;
     std_msgs::ColorRGBA color_constraint, color_residual;
+
+    // 根据不同情况,将constraint_marker与residual_marker 指到到不同的maker类型上
     if (constraint.tag ==
         cartographer::mapping::PoseGraphInterface::Constraint::INTRA_SUBMAP) {
+      // 子图内部的constraint,对应第一种与第二种marker
       constraint_marker = &constraint_intra_marker;
       residual_marker = &residual_intra_marker;
       // Color mapping for submaps of various trajectories - add trajectory id
       // to ensure different starting colors. Also add a fixed offset of 25
       // to avoid having identical colors as trajectories.
+      // 各种轨迹的子图的颜色映射-添加轨迹ID以确保不同的起始颜色 还要添加25的固定偏移量，以避免与轨迹具有相同的颜色。 
       color_constraint = ToMessage(
           cartographer::io::GetColor(constraint.submap_id.submap_index +
                                      constraint.submap_id.trajectory_id + 25));
       color_residual.a = 1.0;
       color_residual.r = 1.0;
     } else {
+      // 相同轨迹内的constraint,对应第三种与第四种marker
       if (constraint.node_id.trajectory_id ==
           constraint.submap_id.trajectory_id) {
         constraint_marker = &constraint_inter_same_trajectory_marker;
@@ -540,6 +554,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
         color_constraint.a = 1.0;
         color_constraint.r = color_constraint.g = 1.0;
       } else {
+        // 不同轨迹间的constraint,对应第五种与第六种marker
         constraint_marker = &constraint_inter_diff_trajectory_marker;
         residual_marker = &residual_inter_diff_trajectory_marker;
         // Bright orange
@@ -569,6 +584,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
     const auto& trajectory_node_pose = node_it->data.global_pose;
     const Rigid3d constraint_pose = submap_pose * constraint.pose.zbar_ij;
 
+    // 在这将约束放进不同类型的marker中
     constraint_marker->points.push_back(
         ToGeometryMsgPoint(submap_pose.translation()));
     constraint_marker->points.push_back(
@@ -578,7 +594,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
         ToGeometryMsgPoint(constraint_pose.translation()));
     residual_marker->points.push_back(
         ToGeometryMsgPoint(trajectory_node_pose.translation()));
-  }
+  } // for
 
   constraint_list.markers.push_back(constraint_intra_marker);
   constraint_list.markers.push_back(residual_intra_marker);
