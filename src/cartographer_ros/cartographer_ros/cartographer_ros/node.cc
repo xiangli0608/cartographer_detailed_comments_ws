@@ -282,7 +282,7 @@ void Node::AddExtrapolator(const int trajectory_id,
                            const TrajectoryOptions& options) {
   constexpr double kExtrapolationEstimationTimeSec = 0.001;  // 1 ms
 
-  // 新生成的轨迹应该 不在extrapolators_中
+  // 新生成的轨迹的id 不应该在extrapolators_中
   CHECK(extrapolators_.count(trajectory_id) == 0);
 
   // imu_gravity_time_constant在2d，3d中都是10
@@ -1066,7 +1066,15 @@ void Node::RunFinalOptimization() {
   map_builder_bridge_.RunFinalOptimization();
 }
 
-// 调用sensor_bridge_ptr的传感器处理函数进行数据处理
+/**
+ * @brief 处理里程计数据,里程计的数据走向有2个
+ * 第1个是传入PoseExtrapolator,用于位姿预测
+ * 第2个是传入SensorBridge,使用其传感器处理函数进行里程计数据处理
+ * 
+ * @param[in] trajectory_id 轨迹id
+ * @param[in] sensor_id 里程计的topic名字
+ * @param[in] msg 里程计的ros格式的数据
+ */
 void Node::HandleOdometryMessage(const int trajectory_id,
                                  const std::string& sensor_id,
                                  const nav_msgs::Odometry::ConstPtr& msg) {
@@ -1083,7 +1091,7 @@ void Node::HandleOdometryMessage(const int trajectory_id,
   sensor_bridge_ptr->HandleOdometryMessage(sensor_id, msg);
 }
 
-// 调用map_builder_bridge_的传感器处理函数进行数据处理
+// 调用SensorBridge的传感器处理函数进行数据处理
 void Node::HandleNavSatFixMessage(const int trajectory_id,
                                   const std::string& sensor_id,
                                   const sensor_msgs::NavSatFix::ConstPtr& msg) {
@@ -1095,7 +1103,7 @@ void Node::HandleNavSatFixMessage(const int trajectory_id,
       ->HandleNavSatFixMessage(sensor_id, msg);
 }
 
-// 调用map_builder_bridge_的传感器处理函数进行数据处理
+// 调用SensorBridge的传感器处理函数进行数据处理
 void Node::HandleLandmarkMessage(
     const int trajectory_id, const std::string& sensor_id,
     const cartographer_ros_msgs::LandmarkList::ConstPtr& msg) {
@@ -1107,7 +1115,15 @@ void Node::HandleLandmarkMessage(
       ->HandleLandmarkMessage(sensor_id, msg);
 }
 
-// 调用sensor_bridge_ptr的传感器处理函数进行数据处理
+/**
+ * @brief 处理imu数据,imu的数据走向有2个
+ * 第1个是传入PoseExtrapolator,用于位姿预测与重力方向的确定
+ * 第2个是传入SensorBridge,使用其传感器处理函数进行imu数据处理
+ * 
+ * @param[in] trajectory_id 轨迹id
+ * @param[in] sensor_id imu的topic名字
+ * @param[in] msg imu的ros格式的数据
+ */
 void Node::HandleImuMessage(const int trajectory_id,
                             const std::string& sensor_id,
                             const sensor_msgs::Imu::ConstPtr& msg) {
@@ -1124,7 +1140,7 @@ void Node::HandleImuMessage(const int trajectory_id,
   sensor_bridge_ptr->HandleImuMessage(sensor_id, msg);
 }
 
-// 调用map_builder_bridge_的传感器处理函数进行数据处理
+// 调用SensorBridge的传感器处理函数进行数据处理
 void Node::HandleLaserScanMessage(const int trajectory_id,
                                   const std::string& sensor_id,
                                   const sensor_msgs::LaserScan::ConstPtr& msg) {
@@ -1137,7 +1153,7 @@ void Node::HandleLaserScanMessage(const int trajectory_id,
       ->HandleLaserScanMessage(sensor_id, msg);
 }
 
-// 调用map_builder_bridge_的传感器处理函数进行数据处理
+// 调用SensorBridge的传感器处理函数进行数据处理
 void Node::HandleMultiEchoLaserScanMessage(
     const int trajectory_id, const std::string& sensor_id,
     const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg) {
@@ -1149,7 +1165,7 @@ void Node::HandleMultiEchoLaserScanMessage(
       ->HandleMultiEchoLaserScanMessage(sensor_id, msg);
 }
 
-// 调用map_builder_bridge_的传感器处理函数进行数据处理
+// 调用SensorBridge的传感器处理函数进行数据处理
 void Node::HandlePointCloud2Message(
     const int trajectory_id, const std::string& sensor_id,
     const sensor_msgs::PointCloud2::ConstPtr& msg) {

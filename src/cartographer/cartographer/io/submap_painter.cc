@@ -69,7 +69,7 @@ bool Has3DGrids(const mapping::proto::Submap& submap) {
 
 }  // namespace
 
-// todo:
+// todo: PaintSubmapSlices
 PaintSubmapSlicesResult PaintSubmapSlices(
     const std::map<::cartographer::mapping::SubmapId, SubmapSlice>& submaps,
     const double resolution) {

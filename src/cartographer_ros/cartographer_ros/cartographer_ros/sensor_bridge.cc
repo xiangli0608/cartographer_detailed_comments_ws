@@ -155,6 +155,7 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id,
   }
 }
 
+// todo: HandleLaserScanMessage
 void SensorBridge::HandleLaserScanMessage(
     const std::string& sensor_id, const sensor_msgs::LaserScan::ConstPtr& msg) {
   carto::sensor::PointCloudWithIntensities point_cloud;

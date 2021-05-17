@@ -114,13 +114,14 @@ void PoseExtrapolator::AddOdometryData(
         odometry_data.time >= timed_pose_queue_.back().time);
   odometry_data_.push_back(odometry_data);
   TrimOdometryData();
+  // 数据队列中至少有2个数据
   if (odometry_data_.size() < 2) {
     return;
   }
 
   // TODO(whess): Improve by using more than just the last two odometry poses.
   // Compute extrapolation in the tracking frame.
-  // 使用至少2个odom数据进行位姿的预测
+  // 取最新与最老的两个里程计数据
   const sensor::OdometryData& odometry_data_oldest = odometry_data_.front();
   const sensor::OdometryData& odometry_data_newest = odometry_data_.back();
   // 最新与最老odom数据间的时间差
@@ -129,7 +130,7 @@ void PoseExtrapolator::AddOdometryData(
   // 计算两个位姿间的坐标变换
   const transform::Rigid3d odometry_pose_delta =
       odometry_data_newest.pose.inverse() * odometry_data_oldest.pose;
-  // 旋转量除以时间得到角速度
+  // 两个位姿间的旋转量除以时间得到**角速度**
   angular_velocity_from_odometry_ =
       transform::RotationQuaternionToAngleAxisVector(
           odometry_pose_delta.rotation()) /
@@ -137,7 +138,7 @@ void PoseExtrapolator::AddOdometryData(
   if (timed_pose_queue_.empty()) {
     return;
   }
-  // 平移量除以时间得到线速度
+  // 平移量除以时间得到**线速度**
   const Eigen::Vector3d
       linear_velocity_in_tracking_frame_at_newest_odometry_time =
           odometry_pose_delta.translation() / odometry_time_delta;
@@ -194,8 +195,10 @@ void PoseExtrapolator::UpdateVelocitiesFromPoses() {
   }
   const transform::Rigid3d& newest_pose = newest_timed_pose.pose;
   const transform::Rigid3d& oldest_pose = oldest_timed_pose.pose;
+  // 使用位姿预测出的线速度
   linear_velocity_from_poses_ =
       (newest_pose.translation() - oldest_pose.translation()) / queue_delta;
+  // 使用位姿预测出的角速度
   angular_velocity_from_poses_ =
       transform::RotationQuaternionToAngleAxisVector(
           oldest_pose.rotation().inverse() * newest_pose.rotation()) /
@@ -218,14 +221,23 @@ void PoseExtrapolator::TrimOdometryData() {
   }
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] time 
+ * @param[in] imu_tracker 
+ */
 void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
                                          ImuTracker* const imu_tracker) const {
+  // 检查指定时间是否大于等于 ImuTracker 的时间
   CHECK_GE(time, imu_tracker->time());
   if (imu_data_.empty() || time < imu_data_.front().time) {
     // There is no IMU data until 'time', so we advance the ImuTracker and use
     // the angular velocities from poses and fake gravity to help 2D stability.
+    // 在“时间”之前没有IMU数据，因此我们推进ImuTracker，并使用姿势和假重力产生的角速度来帮助2D稳定
     imu_tracker->Advance(time);
     imu_tracker->AddImuLinearAccelerationObservation(Eigen::Vector3d::UnitZ());
+    // 有odom数据就用里程计估计处理的角速度
     imu_tracker->AddImuAngularVelocityObservation(
         odometry_data_.size() < 2 ? angular_velocity_from_poses_
                                   : angular_velocity_from_odometry_);
@@ -249,13 +261,13 @@ void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
   imu_tracker->Advance(time);
 }
 
-// todo: 
+// todo: ExtrapolateRotation
 Eigen::Quaterniond PoseExtrapolator::ExtrapolateRotation(
     const common::Time time, ImuTracker* const imu_tracker) const {
   CHECK_GE(time, imu_tracker->time());
   // ?: 更新ImuTracker到指定的time
   AdvanceImuTracker(time, imu_tracker);
-  // 估计出的姿态
+  // 获取当前估计出的姿态
   const Eigen::Quaterniond last_orientation = imu_tracker_->orientation();
   // ?:求取姿态变化量：最新时刻姿态的逆乘以当前的姿态
   return last_orientation.inverse() * imu_tracker->orientation();
