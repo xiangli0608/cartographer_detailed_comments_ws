@@ -71,6 +71,8 @@ void ImuTracker::AddImuLinearAccelerationObservation(
     const Eigen::Vector3d& imu_linear_acceleration) {
   // Update the 'gravity_vector_' with an exponential moving average using the
   // 'imu_gravity_time_constant'.
+  // 指数滑动平均法 exponential moving average
+ 
   // Step: 1 求delta_t, delta_t初始时刻为infinity, 之后为time_-last_linear_acceleration_time_
   const double delta_t =
       last_linear_acceleration_time_ > common::Time::min()

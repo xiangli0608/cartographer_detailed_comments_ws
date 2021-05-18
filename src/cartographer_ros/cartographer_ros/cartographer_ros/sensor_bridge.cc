@@ -41,6 +41,8 @@ const std::string& CheckNoLeadingSlash(const std::string& frame_id) {
 }  // namespace
 
 // todo: SensorBridge
+
+// 构造函数，并且初始化TfBridge
 SensorBridge::SensorBridge(
     const int num_subdivisions_per_laser_scan,
     const std::string& tracking_frame,
@@ -50,21 +52,26 @@ SensorBridge::SensorBridge(
       tf_bridge_(tracking_frame, lookup_transform_timeout_sec, tf_buffer),
       trajectory_builder_(trajectory_builder) {}
 
+// 将ros格式的里程计数据 转成tracking frame的pose, 再转成carto的里程计数据类型
 std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(
     const nav_msgs::Odometry::ConstPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
+  // 找到里程计的child_frame_id到tracking坐标系的坐标变换
   const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
       time, CheckNoLeadingSlash(msg->child_frame_id));
   if (sensor_to_tracking == nullptr) {
     return nullptr;
   }
+  // ?: 将里程计的pose转成tracking frame的pose, 再转成carto的里程计数据类型
   return absl::make_unique<carto::sensor::OdometryData>(
       carto::sensor::OdometryData{
           time, ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse()});
 }
 
+// 调用trajectory_builder_的AddSensorData进行数据的处理
 void SensorBridge::HandleOdometryMessage(
     const std::string& sensor_id, const nav_msgs::Odometry::ConstPtr& msg) {
+  // 数据类型与数据坐标系的转换
   std::unique_ptr<carto::sensor::OdometryData> odometry_data =
       ToOdometryData(msg);
   if (odometry_data != nullptr) {
@@ -116,8 +123,10 @@ void SensorBridge::HandleLandmarkMessage(
   trajectory_builder_->AddSensorData(sensor_id, landmark_data);
 }
 
+// 进行数据类型转换与坐标系的转换
 std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(
     const sensor_msgs::Imu::ConstPtr& msg) {
+  // 检查是否存在线性加速度与角速度
   CHECK_NE(msg->linear_acceleration_covariance[0], -1)
       << "Your IMU data claims to not contain linear acceleration measurements "
          "by setting linear_acceleration_covariance[0] to -1. Cartographer "
@@ -135,15 +144,18 @@ std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(
   if (sensor_to_tracking == nullptr) {
     return nullptr;
   }
+  // 推荐将imu的坐标系当做tracking frame
   CHECK(sensor_to_tracking->translation().norm() < 1e-5)
       << "The IMU frame must be colocated with the tracking frame. "
          "Transforming linear acceleration into the tracking frame will "
          "otherwise be imprecise.";
+  // 进行坐标系的转换
   return absl::make_unique<carto::sensor::ImuData>(carto::sensor::ImuData{
       time, sensor_to_tracking->rotation() * ToEigen(msg->linear_acceleration),
       sensor_to_tracking->rotation() * ToEigen(msg->angular_velocity)});
 }
 
+// 调用trajectory_builder_的AddSensorData进行数据的处理
 void SensorBridge::HandleImuMessage(const std::string& sensor_id,
                                     const sensor_msgs::Imu::ConstPtr& msg) {
   std::unique_ptr<carto::sensor::ImuData> imu_data = ToImuData(msg);
