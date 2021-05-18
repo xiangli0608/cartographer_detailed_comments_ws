@@ -324,9 +324,7 @@ void MapBuilderBridge::HandleTrajectoryQuery(
 }
 
 /**
- * @brief 
- * ?: 获取所有的轨迹节点与约束的rviz可视化MarkerArray
- * 
+ * @brief 获取所有的轨迹节点与约束的rviz可视化MarkerArray
  * @return visualization_msgs::MarkerArray 返回marker的集合
  */
 visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {

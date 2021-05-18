@@ -38,8 +38,7 @@ class PoseExtrapolatorInterface {
   /**
    * @brief 
    * 包含 请求时间内索引为0到N-1的位姿, 请求时间内索引N处的位姿
-   * 当前线速度与 
-   * ?: 当前重力方向
+   * 当前线速度与当前重力方向
    */
   struct ExtrapolationResult {
     // The poses for the requested times at index 0 to N-1.

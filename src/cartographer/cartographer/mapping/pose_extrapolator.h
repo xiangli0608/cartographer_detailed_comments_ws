@@ -47,6 +47,10 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
       common::Duration pose_queue_duration, double imu_gravity_time_constant,
       const sensor::ImuData& imu_data);
 
+  // c++11: override 关键字告诉编译器, 该函数应覆盖基类中的函数。
+  // 如果该函数实际上没有覆盖任何函数, 则会导致编译器错误
+  // 如果没加这个关键字 也没什么严重的error 只是少了编译器检查的安全性
+
   // Returns the time of the last added pose or Time::min() if no pose was added
   // yet.
   common::Time GetLastPoseTime() const override;
@@ -85,6 +89,12 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
 
   const double gravity_time_constant_;
   std::deque<sensor::ImuData> imu_data_;
+
+  // c++11: std::unique_ptr 是独享被管理对象指针所有权的智能指针
+  // 它无法复制到其他 unique_ptr，也无法通过值传递到函数,也无法用于需要副本的任何标准模板库 (STL) 算法
+  // 只能通过 std::move() 来移动unique_ptr
+  // std::make_unique 是 C++14 才有的特性
+
   std::unique_ptr<ImuTracker> imu_tracker_;
   std::unique_ptr<ImuTracker> odometry_imu_tracker_;
   std::unique_ptr<ImuTracker> extrapolation_imu_tracker_;
