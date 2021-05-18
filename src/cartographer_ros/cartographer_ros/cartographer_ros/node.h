@@ -223,6 +223,10 @@ class Node {
     ::cartographer::common::FixedRatioSampler landmark_sampler;
   };
 
+  // c++11: std::unordered_map 是采用哈希数据结构实现的，内部数据保存是无序的
+  // 相对于std::map, unordered_map的查找和插入的效率高，时间复杂度为常数级别O(1),而额外空间复杂度则要高出许多
+  // 对于需要高效率查询的情况，使用unordered_map容器，但是unordered_map对于迭代器遍历效率并不高
+
   // These are keyed with 'trajectory_id'.
   std::map<int, ::cartographer::mapping::PoseExtrapolator> extrapolators_;
   std::map<int, ::ros::Time> last_published_tf_stamps_;

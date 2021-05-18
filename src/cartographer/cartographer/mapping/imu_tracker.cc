@@ -54,7 +54,7 @@ void ImuTracker::Advance(const common::Time time) {
   const Eigen::Quaterniond rotation =
       transform::AngleAxisVectorToRotationQuaternion(
           Eigen::Vector3d(imu_angular_velocity_ * delta_t));
-  // 使用上一时刻的姿态 orientation_ 乘以姿态变化量,得到当前时刻的预测出的姿态
+  // 使用上一时刻的姿态 orientation_ 乘以姿态变化量, 得到当前时刻的预测出的姿态
   orientation_ = (orientation_ * rotation).normalized();
   // ?: 根据预测的姿态变化量,预测当前时刻的各个重力分量
   gravity_vector_ = rotation.conjugate() * gravity_vector_;
@@ -84,7 +84,7 @@ void ImuTracker::AddImuLinearAccelerationObservation(
 
   // Step: 3 加速度测量的各个重力方向与预测的进行融合, 这里采用滑动平均
 
-  // 指数来确定权重，因为有噪声的存在，时间差越大，当前的权重越大
+  // 指数来确定权重，因为有噪声的存在，时间差越大，当前的线性加速度的权重越大
   gravity_vector_ =
       (1. - alpha) * gravity_vector_ + alpha * imu_linear_acceleration;
       
