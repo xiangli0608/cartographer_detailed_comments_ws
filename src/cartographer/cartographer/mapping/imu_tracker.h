@@ -29,9 +29,11 @@ namespace mapping {
 // though yaw does.
 // 使用来自IMU的角速度和线性加速度跟踪方向
 // 由于平均线性加速度（假设缓慢移动）是重力的直接量度，因此，横摆/俯仰不会漂移，尽管偏航会漂移。
+
 /**
- * @brief ImuTracker 的主要作用是根据 MU的角速度来预测姿态,
- * 根据IMU的线加速度来确定重力的方向，并使用重力的方向来对姿态进行校准
+ * @brief 
+ * ImuTracker 的主要作用是根据 IMU的角速度来预测姿态,
+ * 并根据IMU的线加速度来确定重力的方向，并使用重力的方向来对姿态进行校准
  */
 class ImuTracker {
  public:

@@ -43,9 +43,9 @@ ImuTracker::ImuTracker(const double imu_gravity_time_constant,
       imu_angular_velocity_(Eigen::Vector3d::Zero()) {}
 
 /**
- * @brief 预测出当前时刻的姿态与重力方向
+ * @brief 预测出time时刻的姿态与重力方向
  * 
- * @param[in] time 当前的时间
+ * @param[in] time 要预测的时刻
  */
 void ImuTracker::Advance(const common::Time time) {
   CHECK_LE(time_, time);
@@ -56,14 +56,35 @@ void ImuTracker::Advance(const common::Time time) {
           Eigen::Vector3d(imu_angular_velocity_ * delta_t));
   // 使用上一时刻的姿态 orientation_ 乘以姿态变化量, 得到当前时刻的预测出的姿态
   orientation_ = (orientation_ * rotation).normalized();
-  // ?: 根据预测的姿态变化量,预测当前时刻的各个重力分量
+
+  /** note: 由于imu测量的加速度的正方向是向上为正,与旋转相反,所以这里的旋转四元数要取共轭
+  代码举例说明
+    Eigen::Vector3d imu_angular_velocity_(0, 0.349, 0);
+    Eigen::Quaterniond rotation =
+      AngleAxisVectorToRotationQuaternion(
+          Eigen::Vector3d(imu_angular_velocity_ * 1));
+    Eigen::Vector3d tmp_vector1 = orientation_ * Eigen::Vector3d::UnitZ();
+    cout << "\ntmp_vector1 roll pitch yaw = " << tmp_vector1.transpose() << endl;
+    Eigen::Vector3d tmp_vector2 = orientation_.conjugate() * Eigen::Vector3d::UnitZ();
+    cout << "tmp_vector2 roll pitch yaw = " << tmp_vector2.transpose() << endl;
+  输出结果为
+    tmp_vector1 roll pitch yaw = 0.341958        0 0.939715
+    tmp_vector2 roll pitch yaw = -0.341958         0  0.939715
+  解读
+    代码里的 0, 0.349, 0 是绕着y轴正向旋转20度的意思,旋转后机器人的x轴应该指向下边
+    imu测得的加速度的方向是x向上为正,向下为负.
+    可见 tmp_vector2 是正确的
+  */
+
+  // 根据预测出的姿态变化量,预测旋转后的线性加速度的值, 也就是重力的各个分量
+  // 这里的gravity_vector_改成线性加速度更清晰一些
   gravity_vector_ = rotation.conjugate() * gravity_vector_;
   // 更新时间
   time_ = time;
 }
 
 /**
- * @brief 更新重力的方向,并根据重力的方向对上一时刻的姿态进行校准
+ * @brief 更新线性加速度的值,并根据重力的方向对上一时刻的姿态进行校准
  * 
  * @param[in] imu_linear_acceleration imu的线加速度的大小
  */
@@ -84,7 +105,7 @@ void ImuTracker::AddImuLinearAccelerationObservation(
   // delta_t越大，alpha越大
   const double alpha = 1. - std::exp(-delta_t / imu_gravity_time_constant_);
 
-  // Step: 3 加速度测量的各个重力方向与预测的进行融合, 这里采用滑动平均
+  // Step: 3 加速度测量的各个重力方向与预测的进行融合, 这里采用指数滑动平均法
 
   // 指数来确定权重，因为有噪声的存在，时间差越大，当前的线性加速度的权重越大
   gravity_vector_ =
@@ -92,13 +113,16 @@ void ImuTracker::AddImuLinearAccelerationObservation(
       
   // Change the 'orientation_' so that it agrees with the current
   // 'gravity_vector_'.
-  // Step: 4 求得 当前重力方向 与 上一时刻姿态 间的旋转量
+  // Step: 4 求得 线性加速度的值 与 由上一时刻姿态求出的线性加速度 间的旋转量
   const Eigen::Quaterniond rotation = FromTwoVectors(
       gravity_vector_, orientation_.conjugate() * Eigen::Vector3d::UnitZ());
 
   // Step: 5 使用这个旋转量来校准当前的姿态
   orientation_ = (orientation_ * rotation).normalized();
 
+  // note: glog CHECK_GT: 第一个参数要大于第二个参数
+
+  // 如果线性加速度与姿态均计算完全正确,那这二者的乘积应该是 0 0 1
   CHECK_GT((orientation_ * gravity_vector_).z(), 0.);
   CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
 }

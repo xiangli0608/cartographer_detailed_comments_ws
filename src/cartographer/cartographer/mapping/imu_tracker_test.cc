@@ -29,7 +29,6 @@ constexpr double kGravityTimeConstant = 0.1 * kDuration;
 constexpr double kPrecision = 1e-8;
 constexpr int kSteps = 10;
 
-// todo: 调试一下ImuTracker
 class ImuTrackerTest : public ::testing::Test {
  protected:
   void SetUp() override {
