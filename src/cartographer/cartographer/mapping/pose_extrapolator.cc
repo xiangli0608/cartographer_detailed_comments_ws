@@ -69,9 +69,10 @@ common::Time PoseExtrapolator::GetLastExtrapolatedTime() const {
   return extrapolation_imu_tracker_->time();
 }
 
-// 将匹配后的pose加入到pose队列中,计算线速度与角速度,并将其他的状态更新到time时刻
+// 将匹配后的pose加入到pose队列中,计算线速度与角速度,并将imu_tracker_的状态更新到time时刻
 void PoseExtrapolator::AddPose(const common::Time time,
                                const transform::Rigid3d& pose) {
+  // 如果imu_tracker_没有初始化就先进行初始化
   if (imu_tracker_ == nullptr) {
     common::Time tracker_start = time;
     if (!imu_data_.empty()) {
@@ -102,13 +103,13 @@ void PoseExtrapolator::AddPose(const common::Time time,
   TrimImuData();
   TrimOdometryData();
 
-  // 保存当前imu_tracker_的状态到odometry_imu_tracker_中
+  // 保存当前imu_tracker_的状态到odometry_imu_tracker_中,用来估计线速度
   odometry_imu_tracker_ = absl::make_unique<ImuTracker>(*imu_tracker_);
-  // 保存当前imu_tracker_的状态到extrapolation_imu_tracker_中
+  // 保存当前imu_tracker_的状态到extrapolation_imu_tracker_中,用来估计旋转
   extrapolation_imu_tracker_ = absl::make_unique<ImuTracker>(*imu_tracker_);
 }
 
-// 向imu数据队列中添加imu数据,并进行队列的长度修剪
+// 向imu数据队列中添加imu数据,并进行数据队列的修剪
 void PoseExtrapolator::AddImuData(const sensor::ImuData& imu_data) {
   CHECK(timed_pose_queue_.empty() ||
         imu_data.time >= timed_pose_queue_.back().time);
@@ -116,7 +117,7 @@ void PoseExtrapolator::AddImuData(const sensor::ImuData& imu_data) {
   TrimImuData();
 }
 
-// 向odom数据队列中添加odom数据,并进行队列的长度修剪,并计算角速度与线速度
+// 向odom数据队列中添加odom数据,并进行数据队列的修剪,并计算角速度与线速度
 void PoseExtrapolator::AddOdometryData(
     const sensor::OdometryData& odometry_data) {
   CHECK(timed_pose_queue_.empty() ||
@@ -156,7 +157,7 @@ void PoseExtrapolator::AddOdometryData(
           odometry_pose_delta.translation() / odometry_time_delta;
 
   // 通过 最新一个里程计坐标系下的姿态,乘以预测出来的姿态变化量
-  // 得到最新里程计数据时刻的里程计坐标系下的预测的姿态
+  // 得到 预测出的 最新里程计数据时刻的 里程计坐标系下的姿态
   const Eigen::Quaterniond orientation_at_newest_odometry_time =
       timed_pose_queue_.back().pose.rotation() *
       ExtrapolateRotation(odometry_data_newest.time,
@@ -173,10 +174,10 @@ transform::Rigid3d PoseExtrapolator::ExtrapolatePose(const common::Time time) {
   CHECK_GE(time, newest_timed_pose.time);
   // 如果本次预测时间与上次计算时间相同 就不再重复计算
   if (cached_extrapolated_pose_.time != time) {
-    // 得到里程计坐标系下 预测的新的位置
+    // 预测的 里程计坐标系下的 新的位置
     const Eigen::Vector3d translation =
         ExtrapolateTranslation(time) + newest_timed_pose.pose.translation();
-    // 得到里程计坐标系下 预测的新的姿态
+    // 预测的 里程计坐标系下的 的新的姿态
     const Eigen::Quaterniond rotation =
         newest_timed_pose.pose.rotation() *
         ExtrapolateRotation(time, extrapolation_imu_tracker_.get());
@@ -227,7 +228,7 @@ void PoseExtrapolator::UpdateVelocitiesFromPoses() {
       queue_delta;
 }
 
-// 修剪imu的数据队列,除去时间在 timed_pose_queue_队列最后一个pose的时间 之前的imu数据
+// 修剪imu的数据队列,丢掉过时的imu数据
 void PoseExtrapolator::TrimImuData() {
   while (imu_data_.size() > 1 && !timed_pose_queue_.empty() &&
          imu_data_[1].time <= timed_pose_queue_.back().time) {
@@ -235,7 +236,7 @@ void PoseExtrapolator::TrimImuData() {
   }
 }
 
-// 修剪odom的数据队列,除去时间在 timed_pose_queue_队列最后一个pose的时间 之前的odom数据
+// 修剪odom的数据队列,丢掉过时的odom数据
 void PoseExtrapolator::TrimOdometryData() {
   while (odometry_data_.size() > 2 && !timed_pose_queue_.empty() &&
          odometry_data_[1].time <= timed_pose_queue_.back().time) {
@@ -252,6 +253,7 @@ void PoseExtrapolator::TrimOdometryData() {
 void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
                                          ImuTracker* const imu_tracker) const {
   // 检查指定时间是否大于等于 ImuTracker 的时间
+  // todo: 将这几个check的含义放入ppt中
   CHECK_GE(time, imu_tracker->time());
 
   // 预测时间之前没有imu数据 的情况

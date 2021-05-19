@@ -84,6 +84,7 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
     transform::Rigid3d pose;
   };
   std::deque<TimedPose> timed_pose_queue_;
+  // 线速度有2种计算途径
   Eigen::Vector3d linear_velocity_from_poses_ = Eigen::Vector3d::Zero();
   Eigen::Vector3d angular_velocity_from_poses_ = Eigen::Vector3d::Zero();
 
@@ -95,6 +96,7 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
   // 只能通过 std::move() 来移动unique_ptr
   // std::make_unique 是 C++14 才有的特性
 
+  // 通过ImuTracker来进行姿态的更新与计算
   std::unique_ptr<ImuTracker> imu_tracker_;
   std::unique_ptr<ImuTracker> odometry_imu_tracker_;
   std::unique_ptr<ImuTracker> extrapolation_imu_tracker_;
