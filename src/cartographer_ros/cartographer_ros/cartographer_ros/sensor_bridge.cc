@@ -167,7 +167,7 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id,
   }
 }
 
-// todo: HandleLaserScanMessage
+// 处理LaserScan数据
 void SensorBridge::HandleLaserScanMessage(
     const std::string& sensor_id, const sensor_msgs::LaserScan::ConstPtr& msg) {
   carto::sensor::PointCloudWithIntensities point_cloud;
@@ -176,6 +176,7 @@ void SensorBridge::HandleLaserScanMessage(
   HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
+// 处理MultiEchoLaserScan数据
 void SensorBridge::HandleMultiEchoLaserScanMessage(
     const std::string& sensor_id,
     const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg) {
@@ -185,6 +186,7 @@ void SensorBridge::HandleMultiEchoLaserScanMessage(
   HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
+// 处理ros格式的PointCloud2
 void SensorBridge::HandlePointCloud2Message(
     const std::string& sensor_id,
     const sensor_msgs::PointCloud2::ConstPtr& msg) {
@@ -196,6 +198,7 @@ void SensorBridge::HandlePointCloud2Message(
 
 const TfBridge& SensorBridge::tf_bridge() const { return tf_bridge_; }
 
+// todo: 
 void SensorBridge::HandleLaserScan(
     const std::string& sensor_id, const carto::common::Time time,
     const std::string& frame_id,
@@ -238,6 +241,8 @@ void SensorBridge::HandleLaserScan(
   }
 }
 
+// 雷达相关的数据最终的处理函数
+// 调用trajectory_builder_的AddSensorData进行数据的处理
 void SensorBridge::HandleRangefinder(
     const std::string& sensor_id, const carto::common::Time time,
     const std::string& frame_id, const carto::sensor::TimedPointCloud& ranges) {
