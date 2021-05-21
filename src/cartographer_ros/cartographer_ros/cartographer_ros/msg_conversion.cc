@@ -364,9 +364,15 @@ geometry_msgs::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d) {
   return point;
 }
 
+// 将经纬度数据转换成ecef坐标系下的坐标
 Eigen::Vector3d LatLongAltToEcef(const double latitude, const double longitude,
                                  const double altitude) {
+  // note: 地固坐标系(Earth-Fixed Coordinate System)也称地球坐标系，
+  // 是固定在地球上与地球一起旋转的坐标系。
+  // 如果忽略地球潮汐和板块运动，地面上点的坐标值在地固坐标系中是固定不变的。
+
   // https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_geodetic_to_ECEF_coordinates
+  
   constexpr double a = 6378137.;  // semi-major axis, equator to center.
   constexpr double f = 1. / 298.257223563;
   constexpr double b = a * (1. - f);  // semi-minor axis, pole to center.
@@ -385,6 +391,16 @@ Eigen::Vector3d LatLongAltToEcef(const double latitude, const double longitude,
   return Eigen::Vector3d(x, y, z);
 }
 
+/**
+ * @brief 将经纬度转成ecef坐标,然后以rotation * -translation为坐标变换,固定一个局部坐标系
+ * 这个坐标变换是从 rotation * -translation坐标 指向 ecef坐标系原点的,
+ * 用这个坐标变换 乘以 之后的gps数据,就相当于减去了rotation * translation,
+ * 从而得到了gps数据间的相对坐标变换
+ * 
+ * @param[in] latitude 维度数据
+ * @param[in] longitude 经度数据
+ * @return cartographer::transform::Rigid3d 
+ */
 cartographer::transform::Rigid3d ComputeLocalFrameFromLatLong(
     const double latitude, const double longitude) {
   const Eigen::Vector3d translation = LatLongAltToEcef(latitude, longitude, 0.);
