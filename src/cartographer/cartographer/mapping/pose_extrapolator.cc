@@ -244,6 +244,16 @@ void PoseExtrapolator::TrimOdometryData() {
   }
 }
 
+/*
+ * todo: 将这几个check的含义放入ppt中
+  #define CHECK_EQ(val1, val2) CHECK_OP(_EQ, ==, val1, val2)
+  #define CHECK_NE(val1, val2) CHECK_OP(_NE, !=, val1, val2)
+  #define CHECK_LE(val1, val2) CHECK_OP(_LE, <=, val1, val2)
+  #define CHECK_LT(val1, val2) CHECK_OP(_LT, < , val1, val2)
+  #define CHECK_GE(val1, val2) CHECK_OP(_GE, >=, val1, val2)
+  #define CHECK_GT(val1, val2) CHECK_OP(_GT, > , val1, val2)
+ */
+
 /**
  * @brief 对imu_data_进行处理，先进行时间同步，在依次进行预测和校准，最后预测出time时刻的状态
  * 
@@ -253,7 +263,6 @@ void PoseExtrapolator::TrimOdometryData() {
 void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
                                          ImuTracker* const imu_tracker) const {
   // 检查指定时间是否大于等于 ImuTracker 的时间
-  // todo: 将这几个check的含义放入ppt中
   CHECK_GE(time, imu_tracker->time());
 
   // 预测时间之前没有imu数据 的情况

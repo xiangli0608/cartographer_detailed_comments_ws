@@ -41,6 +41,8 @@ proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
 
 class LocalSlamResultData;
 
+// todo: TrajectoryBuilderInterface
+
 // This interface is used for both 2D and 3D SLAM. Implementations wire up a
 // global SLAM stack, i.e. local SLAM for initial pose estimates, scan matching
 // to detect loop closure, and a sparse pose graph optimization to compute

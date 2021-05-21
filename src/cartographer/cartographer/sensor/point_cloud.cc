@@ -64,11 +64,11 @@ PointCloud TransformPointCloud(const PointCloud& point_cloud,
 }
 
 /**
- * @brief 返回地图坐标系下的点云
+ * @brief 返回坐标变换后的点云
  * 
  * @param[in] point_cloud 点云数据
- * @param[in] transform 当前点云在地图坐标系的坐标变换
- * @return TimedPointCloud 地图坐标系下的点云
+ * @param[in] transform 旋转变换矩阵
+ * @return TimedPointCloud 返回坐标变换后的点云
  */
 TimedPointCloud TransformTimedPointCloud(const TimedPointCloud& point_cloud,
                                          const transform::Rigid3f& transform) {

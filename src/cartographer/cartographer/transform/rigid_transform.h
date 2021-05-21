@@ -156,6 +156,7 @@ class Rigid3 {
   const Vector& translation() const { return translation_; }
   const Quaternion& rotation() const { return rotation_; }
 
+  // todo: Rigid3 inverse()
   Rigid3 inverse() const {
     const Quaternion rotation = rotation_.conjugate();
     const Vector translation = -(rotation * translation_);
@@ -180,6 +181,7 @@ class Rigid3 {
   Quaternion rotation_;
 };
 
+// todo: 这里的乘法考虑了姿态
 template <typename FloatType>
 Rigid3<FloatType> operator*(const Rigid3<FloatType>& lhs,
                             const Rigid3<FloatType>& rhs) {

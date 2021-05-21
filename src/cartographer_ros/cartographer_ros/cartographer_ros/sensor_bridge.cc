@@ -40,8 +40,6 @@ const std::string& CheckNoLeadingSlash(const std::string& frame_id) {
 
 }  // namespace
 
-// todo: SensorBridge
-
 // 构造函数，并且初始化TfBridge
 SensorBridge::SensorBridge(
     const int num_subdivisions_per_laser_scan,
@@ -62,7 +60,10 @@ std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(
   if (sensor_to_tracking == nullptr) {
     return nullptr;
   }
-  // ?: 将里程计的pose转成tracking frame的pose, 再转成carto的里程计数据类型
+
+  // ?: Rigid3d的乘法考虑了姿态
+
+  // 将里程计的pose转成tracking_frame坐标系下的pose, 再转成carto的里程计数据类型
   return absl::make_unique<carto::sensor::OdometryData>(
       carto::sensor::OdometryData{
           time, ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse()});
@@ -85,7 +86,7 @@ void SensorBridge::HandleOdometryMessage(
 void SensorBridge::HandleNavSatFixMessage(
     const std::string& sensor_id, const sensor_msgs::NavSatFix::ConstPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
-  // 如果不是固定解,就加入一个固定位姿
+  // 如果不是固定解,就加入一个固定的空位姿
   if (msg->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX) {
     trajectory_builder_->AddSensorData(
         sensor_id,
@@ -93,7 +94,7 @@ void SensorBridge::HandleNavSatFixMessage(
     return;
   }
 
-  // 确定 ecef原点到局部坐标系的坐标变换
+  // 确定ecef原点到局部坐标系的坐标变换
   if (!ecef_to_local_frame_.has_value()) {
     ecef_to_local_frame_ =
         ComputeLocalFrameFromLatLong(msg->latitude, msg->longitude);
@@ -110,13 +111,18 @@ void SensorBridge::HandleNavSatFixMessage(
                                                 msg->altitude)))});
 }
 
+// 处理Landmark数据, 先转成carto的格式,再传入trajectory_builder_
 void SensorBridge::HandleLandmarkMessage(
     const std::string& sensor_id,
     const cartographer_ros_msgs::LandmarkList::ConstPtr& msg) {
+  // 将在ros中自定义的LandmarkList类型的数据, 转成LandmarkData
   auto landmark_data = ToLandmarkData(*msg);
 
+  // 获取landmark的frame到tracking_frame的坐标变换
   auto tracking_from_landmark_sensor = tf_bridge_.LookupToTracking(
       landmark_data.time, CheckNoLeadingSlash(msg->header.frame_id));
+
+  // 将数据转到tracking_frame下
   if (tracking_from_landmark_sensor != nullptr) {
     for (auto& observation : landmark_data.landmark_observations) {
       observation.landmark_to_tracking_transform =
@@ -124,6 +130,7 @@ void SensorBridge::HandleLandmarkMessage(
           observation.landmark_to_tracking_transform;
     }
   }
+  // 调用trajectory_builder_的AddSensorData进行数据的处理
   trajectory_builder_->AddSensorData(sensor_id, landmark_data);
 }
 
@@ -171,7 +178,7 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id,
   }
 }
 
-// 处理LaserScan数据
+// 处理LaserScan数据, 先转成点云,再传入trajectory_builder_
 void SensorBridge::HandleLaserScanMessage(
     const std::string& sensor_id, const sensor_msgs::LaserScan::ConstPtr& msg) {
   carto::sensor::PointCloudWithIntensities point_cloud;
@@ -180,7 +187,7 @@ void SensorBridge::HandleLaserScanMessage(
   HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
-// 处理MultiEchoLaserScan数据
+// 处理MultiEchoLaserScan数据, 先转成点云,再传入trajectory_builder_
 void SensorBridge::HandleMultiEchoLaserScanMessage(
     const std::string& sensor_id,
     const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg) {
@@ -190,7 +197,7 @@ void SensorBridge::HandleMultiEchoLaserScanMessage(
   HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
-// 处理ros格式的PointCloud2
+// 处理ros格式的PointCloud2, 先转成点云,再传入trajectory_builder_
 void SensorBridge::HandlePointCloud2Message(
     const std::string& sensor_id,
     const sensor_msgs::PointCloud2::ConstPtr& msg) {
@@ -202,7 +209,7 @@ void SensorBridge::HandlePointCloud2Message(
 
 const TfBridge& SensorBridge::tf_bridge() const { return tf_bridge_; }
 
-// todo: 
+// 根据参数配置,将一帧雷达数据分成几段, 再传入trajectory_builder_
 void SensorBridge::HandleLaserScan(
     const std::string& sensor_id, const carto::common::Time time,
     const std::string& frame_id,
@@ -210,8 +217,13 @@ void SensorBridge::HandleLaserScan(
   if (points.points.empty()) {
     return;
   }
+  // CHECK_LE: 小于等于
   CHECK_LE(points.points.back().time, 0.f);
   // TODO(gaschler): Use per-point time instead of subdivisions.
+
+  // 参数num_subdivisions_per_laser_scan_
+  // 意为一帧雷达数据被分成几次处理, 一般将这个参数设置为1
+
   for (int i = 0; i != num_subdivisions_per_laser_scan_; ++i) {
     const size_t start_index =
         points.points.size() * i / num_subdivisions_per_laser_scan_;
@@ -227,8 +239,10 @@ void SensorBridge::HandleLaserScan(
     // send all other sensor data first.
     const carto::common::Time subdivision_time =
         time + carto::common::FromSeconds(time_to_subdivision_end);
+    
     auto it = sensor_to_previous_subdivision_time_.find(sensor_id);
     if (it != sensor_to_previous_subdivision_time_.end() &&
+        // 上一段点云的时间不应该大于等于这一段点云的时间
         it->second >= subdivision_time) {
       LOG(WARNING) << "Ignored subdivision of a LaserScan message from sensor "
                    << sensor_id << " because previous subdivision time "
@@ -237,16 +251,18 @@ void SensorBridge::HandleLaserScan(
       continue;
     }
     sensor_to_previous_subdivision_time_[sensor_id] = subdivision_time;
+    // 检查点云的时间
     for (auto& point : subdivision) {
       point.time -= time_to_subdivision_end;
     }
     CHECK_EQ(subdivision.back().time, 0.f);
+    // 将分段后的点云 subdivision 传入 trajectory_builder_
     HandleRangefinder(sensor_id, subdivision_time, frame_id, subdivision);
-  }
+  } // for 
 }
 
 // 雷达相关的数据最终的处理函数
-// 调用trajectory_builder_的AddSensorData进行数据的处理
+// 先将数据转到tracking坐标系下,再调用trajectory_builder_的AddSensorData进行数据的处理
 void SensorBridge::HandleRangefinder(
     const std::string& sensor_id, const carto::common::Time time,
     const std::string& frame_id, const carto::sensor::TimedPointCloud& ranges) {
@@ -255,6 +271,8 @@ void SensorBridge::HandleRangefinder(
   }
   const auto sensor_to_tracking =
       tf_bridge_.LookupToTracking(time, CheckNoLeadingSlash(frame_id));
+  
+  // 先将数据转到tracking坐标系下,再传入trajectory_builder_
   if (sensor_to_tracking != nullptr) {
     trajectory_builder_->AddSensorData(
         sensor_id, carto::sensor::TimedPointCloudData{

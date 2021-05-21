@@ -324,6 +324,7 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
   return std::make_tuple(point_cloud, timestamp);
 }
 
+// 将在ros中自定义的LandmarkList类型的数据, 转成LandmarkData
 LandmarkData ToLandmarkData(const LandmarkList& landmark_list) {
   LandmarkData landmark_data;
   landmark_data.time = FromRos(landmark_list.header.stamp);
