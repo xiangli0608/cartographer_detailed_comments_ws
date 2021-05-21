@@ -46,6 +46,7 @@ namespace {
 
 // Sizes of PCL point types have to be 4n floats for alignment, as described in
 // http://pointclouds.org/documentation/tutorials/adding_custom_ptype.php
+// 自定义的pcl点云格式
 struct PointXYZT {
   float x;
   float y;
@@ -62,6 +63,7 @@ struct PointXYZIT {
 
 }  // namespace
 
+// 将自定义的点云格式在pcl中注册
 POINT_CLOUD_REGISTER_POINT_STRUCT(
     PointXYZT, (float, x, x)(float, y, y)(float, z, z)(float, time, time))
 
@@ -132,11 +134,13 @@ bool HasEcho(const sensor_msgs::LaserEcho& echo) {
   return !echo.echoes.empty();
 }
 
+// 通过函数重载, 使得函数可以同时适用LaserScan与LaserEcho
 float GetFirstEcho(const sensor_msgs::LaserEcho& echo) {
   return echo.echoes[0];
 }
 
 // For sensor_msgs::LaserScan and sensor_msgs::MultiEchoLaserScan.
+// 将LaserScan与MultiEchoLaserScan转成carto格式的点云数据
 template <typename LaserMessageType>
 std::tuple<PointCloudWithIntensities, ::cartographer::common::Time>
 LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
@@ -147,20 +151,28 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
   } else {
     CHECK_GT(msg.angle_min, msg.angle_max);
   }
+
   PointCloudWithIntensities point_cloud;
   float angle = msg.angle_min;
   for (size_t i = 0; i < msg.ranges.size(); ++i) {
+    // c++11: 使用auto可以适应不同的数据类型
     const auto& echoes = msg.ranges[i];
     if (HasEcho(echoes)) {
+
       const float first_echo = GetFirstEcho(echoes);
+      // 满足范围才进行使用
       if (msg.range_min <= first_echo && first_echo <= msg.range_max) {
         const Eigen::AngleAxisf rotation(angle, Eigen::Vector3f::UnitZ());
         const cartographer::sensor::TimedRangefinderPoint point{
-            rotation * (first_echo * Eigen::Vector3f::UnitX()),
-            i * msg.time_increment};
+            rotation * (first_echo * Eigen::Vector3f::UnitX()), // position
+            i * msg.time_increment};                            // time
+        // 保存点云位置信息
         point_cloud.points.push_back(point);
+        
+        // 如果存在强度信息
         if (msg.intensities.size() > 0) {
           CHECK_EQ(msg.intensities.size(), msg.ranges.size());
+          // 使用auto可以适应不同的数据类型
           const auto& echo_intensities = msg.intensities[i];
           CHECK(HasEcho(echo_intensities));
           point_cloud.intensities.push_back(GetFirstEcho(echo_intensities));
@@ -171,6 +183,7 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
     }
     angle += msg.angle_increment;
   }
+
   ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
   if (!point_cloud.points.empty()) {
     const double duration = point_cloud.points.back().time;
@@ -182,6 +195,7 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
   return std::make_tuple(point_cloud, timestamp);
 }
 
+// 检查点云是否存在 field_name 字段
 bool PointCloud2HasField(const sensor_msgs::PointCloud2& pc2,
                          const std::string& field_name) {
   for (const auto& field : pc2.fields) {
@@ -220,26 +234,31 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
   return msg;
 }
 
+// 由ros格式的LaserScan转成carto格式的PointCloudWithIntensities
 std::tuple<::cartographer::sensor::PointCloudWithIntensities,
            ::cartographer::common::Time>
 ToPointCloudWithIntensities(const sensor_msgs::LaserScan& msg) {
   return LaserScanToPointCloudWithIntensities(msg);
 }
 
+// 由ros格式的MultiEchoLaserScan转成carto格式的PointCloudWithIntensities
 std::tuple<::cartographer::sensor::PointCloudWithIntensities,
            ::cartographer::common::Time>
 ToPointCloudWithIntensities(const sensor_msgs::MultiEchoLaserScan& msg) {
   return LaserScanToPointCloudWithIntensities(msg);
 }
 
+// 由ros格式的PointCloud2转成carto格式的PointCloudWithIntensities
 std::tuple<::cartographer::sensor::PointCloudWithIntensities,
            ::cartographer::common::Time>
 ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
   PointCloudWithIntensities point_cloud;
   // We check for intensity field here to avoid run-time warnings if we pass in
   // a PointCloud2 without intensity.
+
   if (PointCloud2HasField(msg, "intensity")) {
     if (PointCloud2HasField(msg, "time")) {
+      // 有强度字段, 有时间字段
       pcl::PointCloud<PointXYZIT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
@@ -250,19 +269,21 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
         point_cloud.intensities.push_back(point.intensity);
       }
     } else {
+      // 有强度字段, 没时间字段
       pcl::PointCloud<pcl::PointXYZI> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
       point_cloud.intensities.reserve(pcl_point_cloud.size());
       for (const auto& point : pcl_point_cloud) {
         point_cloud.points.push_back(
-            {Eigen::Vector3f{point.x, point.y, point.z}, 0.f});
+            {Eigen::Vector3f{point.x, point.y, point.z}, 0.f}); // 没有时间信息就把时间填0
         point_cloud.intensities.push_back(point.intensity);
       }
     }
   } else {
     // If we don't have an intensity field, just copy XYZ and fill in 1.0f.
     if (PointCloud2HasField(msg, "time")) {
+      // 没强度字段, 有时间字段
       pcl::PointCloud<PointXYZT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
@@ -273,21 +294,25 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
         point_cloud.intensities.push_back(1.0f);
       }
     } else {
+      // 没强度字段, 没时间字段
       pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
       point_cloud.intensities.reserve(pcl_point_cloud.size());
       for (const auto& point : pcl_point_cloud) {
         point_cloud.points.push_back(
-            {Eigen::Vector3f{point.x, point.y, point.z}, 0.f});
+            {Eigen::Vector3f{point.x, point.y, point.z}, 0.f}); // 没有时间信息就把时间填0
         point_cloud.intensities.push_back(1.0f);
       }
     }
   }
+
   ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
   if (!point_cloud.points.empty()) {
     const double duration = point_cloud.points.back().time;
+    // 点云开始的时间 加上 第一个点到最后一个点的时间, 作为整个点云的时间戳
     timestamp += cartographer::common::FromSeconds(duration);
+    // 对每个点进行时间检查, 看是否有数据点的时间比最后一个点的时间晚, 否则就报错
     for (auto& point : point_cloud.points) {
       point.time -= duration;
       CHECK_LE(point.time, 0.f)
@@ -295,6 +320,7 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
              "the last point in the cloud.";
     }
   }
+
   return std::make_tuple(point_cloud, timestamp);
 }
 
