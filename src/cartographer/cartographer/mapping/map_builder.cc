@@ -98,13 +98,15 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
         absl::make_unique<optimization::OptimizationProblem3D>(
             options_.pose_graph_options().optimization_problem_options()),
         &thread_pool_);
-  }
+  } 
 
   // 默认collate_by_trajectory = false
+  // 在 cartographer/configuration_files/map_builder.lua 中设置
   if (options.collate_by_trajectory()) {
     sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
   } else {
     // 实际是使用这个
+    // tag: sensor_collator_初始化
     sensor_collator_ = absl::make_unique<sensor::Collator>();
   }
 }
@@ -141,11 +143,13 @@ int MapBuilder::AddTrajectoryBuilder(
   } else {
     std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder;
     if (trajectory_options.has_trajectory_builder_2d_options()) {
+      // tag: LocalTrajectoryBuilder2D初始化
       local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder2D>(
           trajectory_options.trajectory_builder_2d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
     }
     DCHECK(dynamic_cast<PoseGraph2D*>(pose_graph_.get()));
+    // tag: CollatedTrajectoryBuilder初始化
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,

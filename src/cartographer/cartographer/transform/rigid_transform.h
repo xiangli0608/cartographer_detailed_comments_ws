@@ -71,6 +71,7 @@ class Rigid2 {
     return common::NormalizeAngleDifference(rotation().angle());
   }
 
+  // ?: inverse这没看懂
   Rigid2 inverse() const {
     const Rotation2D rotation = rotation_.inverse();
     const Vector translation = -(rotation * translation_);
@@ -87,6 +88,11 @@ class Rigid2 {
   Rotation2D rotation_;
 };
 
+// tag: Rigid2 operator*
+// rhs是全局坐标系下的坐姿变动量, lhs是全局坐标系下的位姿
+// 通过 lhs.rotation() * rhs.translation() + lhs.translation() 
+// 将 rhs 转换成 lhs自身坐标系下的位姿变动量 再与lhs的坐标相加
+// 得到 lhs 在全局坐标系下的新的位姿
 template <typename FloatType>
 Rigid2<FloatType> operator*(const Rigid2<FloatType>& lhs,
                             const Rigid2<FloatType>& rhs) {
@@ -156,7 +162,6 @@ class Rigid3 {
   const Vector& translation() const { return translation_; }
   const Quaternion& rotation() const { return rotation_; }
 
-  // todo: Rigid3 inverse()
   Rigid3 inverse() const {
     const Quaternion rotation = rotation_.conjugate();
     const Vector translation = -(rotation * translation_);
@@ -181,7 +186,6 @@ class Rigid3 {
   Quaternion rotation_;
 };
 
-// todo: 这里的乘法考虑了姿态
 template <typename FloatType>
 Rigid3<FloatType> operator*(const Rigid3<FloatType>& lhs,
                             const Rigid3<FloatType>& rhs) {

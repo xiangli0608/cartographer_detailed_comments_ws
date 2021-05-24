@@ -19,6 +19,7 @@
 namespace cartographer {
 namespace sensor {
 
+// todo: Collator
 void Collator::AddTrajectory(
     const int trajectory_id,
     const absl::flat_hash_set<std::string>& expected_sensor_ids,
