@@ -54,14 +54,12 @@ SensorBridge::SensorBridge(
 std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(
     const nav_msgs::Odometry::ConstPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
-  // 找到里程计的child_frame_id到tracking坐标系的坐标变换
+  // 找到 tracking坐标系 到 里程计的child_frame_id 的坐标变换, 所以下方要对sensor_to_tracking取逆
   const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
       time, CheckNoLeadingSlash(msg->child_frame_id));
   if (sensor_to_tracking == nullptr) {
     return nullptr;
   }
-
-  // ?: Rigid3d的乘法考虑了姿态
 
   // 将里程计的pose转成tracking_frame坐标系下的pose, 再转成carto的里程计数据类型
   return absl::make_unique<carto::sensor::OdometryData>(
@@ -118,7 +116,7 @@ void SensorBridge::HandleLandmarkMessage(
   // 将在ros中自定义的LandmarkList类型的数据, 转成LandmarkData
   auto landmark_data = ToLandmarkData(*msg);
 
-  // 获取landmark的frame到tracking_frame的坐标变换
+  // 获取 tracking_frame到landmark的frame 的坐标变换
   auto tracking_from_landmark_sensor = tf_bridge_.LookupToTracking(
       landmark_data.time, CheckNoLeadingSlash(msg->header.frame_id));
 
@@ -271,8 +269,9 @@ void SensorBridge::HandleRangefinder(
   }
   const auto sensor_to_tracking =
       tf_bridge_.LookupToTracking(time, CheckNoLeadingSlash(frame_id));
-  
-  // 先将数据转到tracking坐标系下,再传入trajectory_builder_
+
+  // 以 tracking 到 sensor_frame 的坐标变换为TimedPointCloudData 的 origin
+  // 将点云的坐标转成 tracking 坐标系下的坐标, 再传入trajectory_builder_
   if (sensor_to_tracking != nullptr) {
     trajectory_builder_->AddSensorData(
         sensor_id, carto::sensor::TimedPointCloudData{
