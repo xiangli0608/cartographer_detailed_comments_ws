@@ -190,18 +190,13 @@ int MapBuilder::AddTrajectoryForDeserialization(
   return trajectory_id;
 }
 
+// 结束指定id的轨迹, 分别进行 传感器数据处理的结束 与 位姿图的结束
 void MapBuilder::FinishTrajectory(const int trajectory_id) {
   sensor_collator_->FinishTrajectory(trajectory_id);
   pose_graph_->FinishTrajectory(trajectory_id);
 }
 
-/**
- * @brief 
- * 
- * @param[in] submap_id 
- * @param[in] response 
- * @return std::string 如果成功则返回空string
- */
+// 将submap写成proto格式
 std::string MapBuilder::SubmapToProto(
     const SubmapId& submap_id, proto::SubmapQuery::Response* const response) {
   if (submap_id.trajectory_id < 0 ||
@@ -221,12 +216,14 @@ std::string MapBuilder::SubmapToProto(
   return "";
 }
 
+// 调用 io::WritePbStream，保存所有数据
 void MapBuilder::SerializeState(bool include_unfinished_submaps,
                                 io::ProtoStreamWriterInterface* const writer) {
   io::WritePbStream(*pose_graph_, all_trajectory_builder_options_, writer,
                     include_unfinished_submaps);
 }
 
+// 调用 io::WritePbStream，保存所有数据到文件中去
 bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
                                       const std::string& filename) {
   io::ProtoStreamWriter writer(filename);
@@ -235,7 +232,7 @@ bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
   return (writer.Close());
 }
 
-// 解析数据
+// 从 proto流 中读取slam的各个状态
 std::map<int, int> MapBuilder::LoadState(
     io::ProtoStreamReaderInterface* const reader, bool load_frozen_state) {
   io::ProtoStreamDeserializer deserializer(reader);
@@ -406,6 +403,7 @@ std::map<int, int> MapBuilder::LoadState(
   return trajectory_remapping;
 }
 
+// 从文件读取slam的各个状态
 std::map<int, int> MapBuilder::LoadStateFromFile(
     const std::string& state_filename, const bool load_frozen_state) {
   const std::string suffix = ".pbstream";
@@ -419,6 +417,7 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
   return LoadState(&stream, load_frozen_state);
 }
 
+// 接口
 std::unique_ptr<MapBuilderInterface> CreateMapBuilder(
     const proto::MapBuilderOptions& options) {
   return absl::make_unique<MapBuilder>(options);

@@ -211,6 +211,7 @@ void SerializeLandmarkNodes(
 
 }  // namespace
 
+// 将slam的各个状态与信息写成proto格式
 void WritePbStream(
     const mapping::PoseGraph& pose_graph,
     const std::vector<mapping::proto::TrajectoryBuilderOptionsWithSensorIds>&

@@ -632,6 +632,7 @@ void PoseGraph2D::DeleteTrajectory(const int trajectory_id) {
   });
 }
 
+// todo: PoseGraph2D::FinishTrajectory
 void PoseGraph2D::FinishTrajectory(const int trajectory_id) {
   AddWorkItem([this, trajectory_id]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);

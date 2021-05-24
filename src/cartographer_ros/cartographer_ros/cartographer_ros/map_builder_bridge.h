@@ -63,7 +63,7 @@ class MapBuilderBridge {
  * 它的z轴指向上方, 即重力加速度矢量指向-z方向, 即由加速度计测得的重力分量沿+z方向。
  */
 
-
+  // tag: LocalTrajectoryData
   struct LocalTrajectoryData {
     // Contains the trajectory data received from local SLAM, after
     // it had processed accumulated 'range_data_in_local' and estimated
