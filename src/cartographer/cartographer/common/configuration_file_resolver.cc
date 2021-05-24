@@ -41,7 +41,7 @@ ConfigurationFileResolver::ConfigurationFileResolver(
  * @brief 在所有的配置文件目录中 根据给定配置文件的名字 搜索 配置文件
  * 
  * @param[in] basename 给定配置文件的名字
- * @return std::string 如果搜索成功，返回配置文件的全路径名
+ * @return std::string 如果搜索成功, 返回配置文件的全路径名
  */
 std::string ConfigurationFileResolver::GetFullPathOrDie(
     const std::string& basename) {

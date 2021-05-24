@@ -35,7 +35,7 @@ class PoseGraphInterface {
   // 2010 IEEE/RSJ International Conference on (pp. 22--29). IEEE, 2010.
   
   // tag: Constraint
-  // 包含了子图的id，节点的id，节点j相对于子图i的坐标变换，以及节点是在子图内还是子图外的标志
+  // 包含了子图的id, 节点的id, 节点j相对于子图i的坐标变换, 以及节点是在子图内还是子图外的标志
   struct Constraint {
     struct Pose {
       transform::Rigid3d zbar_ij;

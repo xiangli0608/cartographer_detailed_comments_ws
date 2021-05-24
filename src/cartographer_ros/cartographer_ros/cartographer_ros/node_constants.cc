@@ -23,8 +23,8 @@ namespace cartographer_ros {
 // 
 
 /**
- * @brief 如果只有一个传感器，那订阅的topic就是topic，
- *        如果是多个传感器，那订阅的topic就是topic_1,topic_2
+ * @brief 如果只有一个传感器, 那订阅的topic就是topic, 
+ *        如果是多个传感器, 那订阅的topic就是topic_1,topic_2
  * 
  * @param[in] topic 订阅话题的名字
  * @param[in] num_topics 传感器的个数

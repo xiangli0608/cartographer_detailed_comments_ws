@@ -167,7 +167,7 @@ LuaParameterDictionary::LuaParameterDictionary(
 
 /**
  * @brief Construct a new Lua Parameter Dictionary:: Lua Parameter Dictionary object
- *        根据给定的字符串，生成一个lua字典
+ *        根据给定的字符串, 生成一个lua字典
  * 
  * @param[in] code 配置文件内容
  * @param[in] reference_count 

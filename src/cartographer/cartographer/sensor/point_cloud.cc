@@ -81,7 +81,7 @@ TimedPointCloud TransformTimedPointCloud(const TimedPointCloud& point_cloud,
 }
 
 /**
- * @brief 对输入的点云进行滤波，保留数据点的z坐标处于min_z与max_z之间的点
+ * @brief 对输入的点云进行滤波, 保留数据点的z坐标处于min_z与max_z之间的点
  * 
  * @param[in] point_cloud 输入的点云
  * @param[in] min_z 最小的z
@@ -90,7 +90,7 @@ TimedPointCloud TransformTimedPointCloud(const TimedPointCloud& point_cloud,
  */
 PointCloud CropPointCloud(const PointCloud& point_cloud, const float min_z,
                           const float max_z) {
-  // 将lamda表达式传入copy_if，当lamda表达式返回true时才进行复制，
+  // 将lamda表达式传入copy_if, 当lamda表达式返回true时才进行复制, 
   return point_cloud.copy_if([min_z, max_z](const RangefinderPoint& point) {
     return min_z <= point.position.z() && point.position.z() <= max_z;
   });

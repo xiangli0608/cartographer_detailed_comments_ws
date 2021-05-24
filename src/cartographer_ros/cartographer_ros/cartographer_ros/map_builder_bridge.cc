@@ -58,7 +58,7 @@ visualization_msgs::Marker CreateTrajectoryMarker(const int trajectory_id,
   return marker;
 }
 
-// 获取landmark的index,如果在unordered_map找到就返回index，如果找不到就以map的个数新建个index
+// 获取landmark的index,如果在unordered_map找到就返回index, 如果找不到就以map的个数新建个index
 int GetLandmarkIndex(
     const std::string& landmark_id,
     std::unordered_map<std::string, int>* landmark_id_to_index) {
@@ -98,7 +98,7 @@ void PushAndResetLineMarker(visualization_msgs::Marker* marker,
 }  // namespace
 
 /**
- * @brief 根据传入的node_options，MapBuilder，以及tf_buffer 完成三个本地变量的初始化
+ * @brief 根据传入的node_options, MapBuilder, 以及tf_buffer 完成三个本地变量的初始化
  * 
  * @param[in] node_options 参数配置
  * @param[in] map_builder 在node_main.cc中传入的MapBuilder
@@ -175,13 +175,13 @@ void MapBuilderBridge::FinishTrajectory(const int trajectory_id) {
   sensor_bridges_.erase(trajectory_id);
 }
 
-// 当所有的轨迹结束时，执行一次全局优化
+// 当所有的轨迹结束时, 执行一次全局优化
 void MapBuilderBridge::RunFinalOptimization() {
   LOG(INFO) << "Running final trajectory optimization...";
   map_builder_->pose_graph()->RunFinalOptimization();
 }
 
-// 将地图，轨迹，以及各个传感器数据进行序列化保存
+// 将地图, 轨迹, 以及各个传感器数据进行序列化保存
 bool MapBuilderBridge::SerializeState(const std::string& filename,
                                       const bool include_unfinished_submaps) {
   return map_builder_->SerializeStateToFile(include_unfinished_submaps,
@@ -225,13 +225,13 @@ void MapBuilderBridge::HandleSubmapQuery(
   response.status.code = cartographer_ros_msgs::StatusCode::OK;
 }
 
-// 向pose graph中添加新的active状态的轨迹，并返回所有的轨迹状态
+// 向pose graph中添加新的active状态的轨迹, 并返回所有的轨迹状态
 std::map<int, ::cartographer::mapping::PoseGraphInterface::TrajectoryState>
 MapBuilderBridge::GetTrajectoryStates() {
   auto trajectory_states = map_builder_->pose_graph()->GetTrajectoryStates();
   // Add active trajectories that are not yet in the pose graph, but are e.g.
   // waiting for input sensor data and thus already have a sensor bridge.
-  // 向pose graph中添加新的active状态的轨迹，如果这个轨迹id已经存在则会被忽略不会被添加进去
+  // 向pose graph中添加新的active状态的轨迹, 如果这个轨迹id已经存在则会被忽略不会被添加进去
   for (const auto& sensor_bridge : sensor_bridges_) {
     trajectory_states.insert(std::make_pair(
         sensor_bridge.first,
@@ -240,7 +240,7 @@ MapBuilderBridge::GetTrajectoryStates() {
   return trajectory_states;
 }
 
-// 获取所有submap的信息，包括 trajectory_id,submap_index,submap_version,pose
+// 获取所有submap的信息, 包括 trajectory_id,submap_index,submap_version,pose
 cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList() {
   cartographer_ros_msgs::SubmapList submap_list;
   submap_list.header.stamp = ::ros::Time::now();
@@ -424,7 +424,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     
     PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
     size_t current_last_marker_id = static_cast<size_t>(marker.id - 1);
-    // 如果该轨迹id不在trajectory_to_highest_marker_id_中，将current_last_marker_id保存
+    // 如果该轨迹id不在trajectory_to_highest_marker_id_中, 将current_last_marker_id保存
     if (trajectory_to_highest_marker_id_.count(trajectory_id) == 0) {
       trajectory_to_highest_marker_id_[trajectory_id] = current_last_marker_id;
     } else {
@@ -466,7 +466,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
 
   // 6种marker
 
-  // 1 内部子图约束，非全局约束, rviz中显示的最多的约束
+  // 1 内部子图约束, 非全局约束, rviz中显示的最多的约束
   visualization_msgs::Marker constraint_intra_marker;
   constraint_intra_marker.id = marker_id++;
   constraint_intra_marker.ns = "Intra constraints";
@@ -483,10 +483,10 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   // This and other markers which are less numerous are set to be slightly
   // above the intra constraints marker in order to ensure that they are
   // visible.
-  // 将该标记和其他数量较少的标记设置z为略高于帧内约束标记，以确保它们可见。
+  // 将该标记和其他数量较少的标记设置z为略高于帧内约束标记, 以确保它们可见。
   residual_intra_marker.pose.position.z = 0.1;
 
-  // 外部子图约束，回环约束，全局约束
+  // 外部子图约束, 回环约束, 全局约束
   // 3 Inter constraints, same trajectory, rviz中显示的第二多的约束
   visualization_msgs::Marker constraint_inter_same_trajectory_marker =
       constraint_intra_marker;
@@ -536,7 +536,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
       // Color mapping for submaps of various trajectories - add trajectory id
       // to ensure different starting colors. Also add a fixed offset of 25
       // to avoid having identical colors as trajectories.
-      // 各种轨迹的子图的颜色映射-添加轨迹ID以确保不同的起始颜色 还要添加25的固定偏移量，以避免与轨迹具有相同的颜色。 
+      // 各种轨迹的子图的颜色映射-添加轨迹ID以确保不同的起始颜色 还要添加25的固定偏移量, 以避免与轨迹具有相同的颜色。 
       color_constraint = ToMessage(
           cartographer::io::GetColor(constraint.submap_id.submap_index +
                                      constraint.submap_id.trajectory_id + 25));
@@ -608,7 +608,7 @@ SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id) {
   return sensor_bridges_.at(trajectory_id).get();
 }
 
-// 保存local slam 的结果，包含当前轨迹id，当前时间，当前位姿，以及所有的雷达数据
+// 保存local slam 的结果, 包含当前轨迹id, 当前时间, 当前位姿, 以及所有的雷达数据
 void MapBuilderBridge::OnLocalSlamResult(
     const int trajectory_id, const ::cartographer::common::Time time,
     const Rigid3d local_pose,

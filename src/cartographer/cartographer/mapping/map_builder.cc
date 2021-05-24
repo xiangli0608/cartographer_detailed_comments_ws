@@ -42,6 +42,7 @@ namespace {
 
 using mapping::proto::SerializedData;
 
+// 只返回传感器类型是RANGE的topic的集合
 std::vector<std::string> SelectRangeSensorIds(
     const std::set<MapBuilder::SensorId>& expected_sensor_ids) {
   std::vector<std::string> range_sensor_ids;
@@ -53,6 +54,7 @@ std::vector<std::string> SelectRangeSensorIds(
   return range_sensor_ids;
 }
 
+// 检查是否是纯定位模式,支持2种纯定位的参数名字
 void MaybeAddPureLocalizationTrimmer(
     const int trajectory_id,
     const proto::TrajectoryBuilderOptions& trajectory_options,
@@ -75,7 +77,7 @@ void MaybeAddPureLocalizationTrimmer(
 }  // namespace
 
 /**
- * @brief SLAM算法的初始化，初始化各个参数，是2d建图还是3d建图
+ * @brief SLAM算法的初始化, 初始化各个参数, 是2d建图还是3d建图
  * 
  * @param[in] options proto::MapBuilderOptions格式的 map_builder参数
  */
@@ -86,6 +88,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
 
   // 是2d建图还是3d建图
   if (options.use_trajectory_builder_2d()) {
+    // 2d位姿图的初始化
     pose_graph_ = absl::make_unique<PoseGraph2D>(
         options_.pose_graph_options(),
         absl::make_unique<optimization::OptimizationProblem2D>(
@@ -93,6 +96,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
         &thread_pool_);
   }
   if (options.use_trajectory_builder_3d()) {
+    // 3d位姿图的初始化
     pose_graph_ = absl::make_unique<PoseGraph3D>(
         options_.pose_graph_options(),
         absl::make_unique<optimization::OptimizationProblem3D>(
@@ -111,13 +115,23 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
   }
 }
 
-// todo: MapBuilder::AddTrajectoryBuilder
+/**
+ * @brief 创建一个新的 TrajectoryBuilder 并返回它的 trajectory_id
+ * 
+ * @param[in] expected_sensor_ids 所有需要的topic的名字的集合
+ * @param[in] trajectory_options 轨迹的参数配置
+ * @param[in] local_slam_result_callback 需要传入的回调函数
+ * @return int 新生成的轨迹的id
+ */
 int MapBuilder::AddTrajectoryBuilder(
     const std::set<SensorId>& expected_sensor_ids,
     const proto::TrajectoryBuilderOptions& trajectory_options,
     LocalSlamResultCallback local_slam_result_callback) {
+
+  // id是从零开始的, 所以新trajectory_id就是trajectory_builders_的size()
   const int trajectory_id = trajectory_builders_.size();
 
+  // 运动过滤器, 运动太小没必要进行更新
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter;
   if (trajectory_options.has_pose_graph_odometry_motion_filter()) {
     LOG(INFO) << "Using a motion filter for adding odometry to the pose graph.";
@@ -125,42 +139,61 @@ int MapBuilder::AddTrajectoryBuilder(
         MotionFilter(trajectory_options.pose_graph_odometry_motion_filter()));
   }
 
+  // LocalTrajectoryBuilder 就是前端, 不带 Loop Closure 
+  // 包含了 Pose Extrapolator, Scan Matching 等
+
   if (options_.use_trajectory_builder_3d()) {
+    // 3d的轨迹
+
+    // local_trajectory_builder(前端)的初始化
     std::unique_ptr<LocalTrajectoryBuilder3D> local_trajectory_builder;
     if (trajectory_options.has_trajectory_builder_3d_options()) {
       local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder3D>(
           trajectory_options.trajectory_builder_3d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
     }
+
+    // todo: c++11: dynamic_cast
+    // static_cast
+
     DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get()));
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
+        // 将3D前端与3D位姿图打包在一起, 传入CollatedTrajectoryBuilder
         CreateGlobalTrajectoryBuilder3D(
             std::move(local_trajectory_builder), trajectory_id,
             static_cast<PoseGraph3D*>(pose_graph_.get()),
             local_slam_result_callback, pose_graph_odometry_motion_filter)));
-  } else {
+  } 
+  else {
+    // 2d的轨迹
     std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder;
     if (trajectory_options.has_trajectory_builder_2d_options()) {
-      // tag: LocalTrajectoryBuilder2D初始化
+      // local_trajectory_builder(前端)的初始化
       local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder2D>(
           trajectory_options.trajectory_builder_2d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
     }
+
     DCHECK(dynamic_cast<PoseGraph2D*>(pose_graph_.get()));
+
     // tag: CollatedTrajectoryBuilder初始化
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
+        // 将2D前端与2D位姿图打包在一起, 传入CollatedTrajectoryBuilder
         CreateGlobalTrajectoryBuilder2D(
             std::move(local_trajectory_builder), trajectory_id,
             static_cast<PoseGraph2D*>(pose_graph_.get()),
             local_slam_result_callback, pose_graph_odometry_motion_filter)));
   }
+
+  // 是否是纯定位模式, 如果是则只保存最近3个submap
   MaybeAddPureLocalizationTrimmer(trajectory_id, trajectory_options,
                                   pose_graph_.get());
 
+  // 如果给了初始位姿
   if (trajectory_options.has_initial_trajectory_pose()) {
     const auto& initial_trajectory_pose =
         trajectory_options.initial_trajectory_pose();
@@ -169,6 +202,7 @@ int MapBuilder::AddTrajectoryBuilder(
         transform::ToRigid3(initial_trajectory_pose.relative_pose()),
         common::FromUniversal(initial_trajectory_pose.timestamp()));
   }
+
   proto::TrajectoryBuilderOptionsWithSensorIds options_with_sensor_ids_proto;
   for (const auto& sensor_id : expected_sensor_ids) {
     *options_with_sensor_ids_proto.add_sensor_id() = ToProto(sensor_id);
@@ -180,6 +214,7 @@ int MapBuilder::AddTrajectoryBuilder(
   return trajectory_id;
 }
 
+// 从序列化的数据中构造一条 trajectory
 int MapBuilder::AddTrajectoryForDeserialization(
     const proto::TrajectoryBuilderOptionsWithSensorIds&
         options_with_sensor_ids_proto) {
@@ -216,14 +251,14 @@ std::string MapBuilder::SubmapToProto(
   return "";
 }
 
-// 调用 io::WritePbStream，保存所有数据
+// 调用 io::WritePbStream, 保存所有数据
 void MapBuilder::SerializeState(bool include_unfinished_submaps,
                                 io::ProtoStreamWriterInterface* const writer) {
   io::WritePbStream(*pose_graph_, all_trajectory_builder_options_, writer,
                     include_unfinished_submaps);
 }
 
-// 调用 io::WritePbStream，保存所有数据到文件中去
+// 调用 io::WritePbStream, 保存所有数据到文件中去
 bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
                                       const std::string& filename) {
   io::ProtoStreamWriter writer(filename);

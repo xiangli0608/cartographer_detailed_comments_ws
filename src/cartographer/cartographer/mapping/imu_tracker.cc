@@ -102,12 +102,12 @@ void ImuTracker::AddImuLinearAccelerationObservation(
   last_linear_acceleration_time_ = time_;
 
   // Step: 2 求alpha, alpha=1-e^(-delta_t/10)
-  // delta_t越大，alpha越大
+  // delta_t越大, alpha越大
   const double alpha = 1. - std::exp(-delta_t / imu_gravity_time_constant_);
 
   // Step: 3 加速度测量的各个重力方向与预测的进行融合, 这里采用指数滑动平均法
 
-  // 指数来确定权重，因为有噪声的存在，时间差越大，当前的线性加速度的权重越大
+  // 指数来确定权重, 因为有噪声的存在, 时间差越大, 当前的线性加速度的权重越大
   gravity_vector_ =
       (1. - alpha) * gravity_vector_ + alpha * imu_linear_acceleration;
       

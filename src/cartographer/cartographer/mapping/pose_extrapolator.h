@@ -33,7 +33,7 @@ namespace mapping {
 // Keep poses for a certain duration to estimate linear and angular velocity.
 // Uses the velocities to extrapolate motion. Uses IMU and/or odometry data if
 // available to improve the extrapolation.
-// 保持poses一定持续时间，以估计线速度和角速度。
+// 保持poses一定持续时间, 以估计线速度和角速度。
 // 使用速度预测运动。 使用IMU和/或里程计数据（如果有）来改善预测
 class PoseExtrapolator : public PoseExtrapolatorInterface {
  public:
@@ -92,7 +92,7 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
   std::deque<sensor::ImuData> imu_data_;
 
   // c++11: std::unique_ptr 是独享被管理对象指针所有权的智能指针
-  // 它无法复制到其他 unique_ptr，也无法通过值传递到函数,也无法用于需要副本的任何标准模板库 (STL) 算法
+  // 它无法复制到其他 unique_ptr, 也无法通过值传递到函数,也无法用于需要副本的任何标准模板库 (STL) 算法
   // 只能通过 std::move() 来移动unique_ptr
   // std::make_unique 是 C++14 才有的特性
 

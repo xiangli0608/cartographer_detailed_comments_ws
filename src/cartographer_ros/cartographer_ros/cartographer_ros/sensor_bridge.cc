@@ -40,7 +40,7 @@ const std::string& CheckNoLeadingSlash(const std::string& frame_id) {
 
 }  // namespace
 
-// 构造函数，并且初始化TfBridge
+// 构造函数, 并且初始化TfBridge
 SensorBridge::SensorBridge(
     const int num_subdivisions_per_laser_scan,
     const std::string& tracking_frame,

@@ -394,9 +394,9 @@ geometry_msgs::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d) {
 // 将经纬度数据转换成ecef坐标系下的坐标
 Eigen::Vector3d LatLongAltToEcef(const double latitude, const double longitude,
                                  const double altitude) {
-  // note: 地固坐标系(Earth-Fixed Coordinate System)也称地球坐标系，
+  // note: 地固坐标系(Earth-Fixed Coordinate System)也称地球坐标系, 
   // 是固定在地球上与地球一起旋转的坐标系。
-  // 如果忽略地球潮汐和板块运动，地面上点的坐标值在地固坐标系中是固定不变的。
+  // 如果忽略地球潮汐和板块运动, 地面上点的坐标值在地固坐标系中是固定不变的。
 
   // https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_geodetic_to_ECEF_coordinates
   

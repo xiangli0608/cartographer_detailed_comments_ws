@@ -28,7 +28,7 @@ namespace cartographer {
 namespace sensor {
 
 // Stores 3D position of a point observed by a rangefinder sensor.
-// 单个数据点的坐标，x y z 三维向量
+// 单个数据点的坐标, x y z 三维向量
 struct RangefinderPoint {
   Eigen::Vector3f position;
 };

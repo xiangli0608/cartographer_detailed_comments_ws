@@ -6,15 +6,15 @@
     "configurations": [
 
         {
-            "name": "(gdb) Launch test_code",         // 配置名称，将会在调试配置下拉列表中显示
+            "name": "(gdb) Launch test_code",         // 配置名称, 将会在调试配置下拉列表中显示
             "type": "cppdbg",               // 调试器类型 该值自动生成 test_grid2d_lx
             "request": "launch",            // 调试方式,还可以选择attach 
-            "program": "${workspaceRoot}/devel/lib/beginner_tutorials/test_node",     //要调试的程序（完整路径，支持相对路径）
-            "args": [],                     // 传递给上面程序的参数，没有参数留空即可
+            "program": "${workspaceRoot}/devel/lib/beginner_tutorials/test_node",     //要调试的程序（完整路径, 支持相对路径）
+            "args": [],                     // 传递给上面程序的参数, 没有参数留空即可
             "stopAtEntry": false,           // 是否停在程序入口点（停在main函数开始）
             "cwd": "${workspaceFolder}",    // 调试程序时的工作目录
-            "environment": [],              // 针对调试的程序，要添加到环境中的环境变量. 例如: [ { "name": "squid", "value": "clam" } ]
-            "externalConsole": false,       // 如果设置为true，则为应用程序启动外部控制台。 如果为false，则不会启动控制台，并使用VS Code的内置调试控制台。
+            "environment": [],              // 针对调试的程序, 要添加到环境中的环境变量. 例如: [ { "name": "squid", "value": "clam" } ]
+            "externalConsole": false,       // 如果设置为true, 则为应用程序启动外部控制台。 如果为false, 则不会启动控制台, 并使用VS Code的内置调试控制台。
             "MIMode": "gdb",                // VSCode要使用的调试工具
             "setupCommands": [
                 {

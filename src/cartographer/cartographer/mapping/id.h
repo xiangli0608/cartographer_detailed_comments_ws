@@ -243,7 +243,7 @@ class MapById {
         typename std::map<int, MapByIndex>::const_iterator current_trajectory)
         : current_trajectory_(current_trajectory) {}
 
-    // 仿函数，返回轨迹的id
+    // 仿函数, 返回轨迹的id
     int operator*() const { return current_trajectory_->first; }
 
     ConstTrajectoryIterator& operator++() {

@@ -59,6 +59,7 @@ namespace mapping {
 // Each node has been matched against one or more submaps (adding a constraint
 // for each match), both poses of nodes and of submaps are to be optimized.
 // All constraints are between a submap i and a node j.
+// todo: PoseGraph3D
 class PoseGraph3D : public PoseGraph {
  public:
   PoseGraph3D(

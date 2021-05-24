@@ -51,6 +51,7 @@ struct SubmapSpec2D {
   transform::Rigid2d global_pose;
 };
 
+// todo: OptimizationProblem2D
 class OptimizationProblem2D
     : public OptimizationProblemInterface<NodeSpec2D, SubmapSpec2D,
                                           transform::Rigid2d> {

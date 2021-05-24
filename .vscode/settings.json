@@ -1,7 +1,7 @@
 {
   "doxdocgen.generic.paramTemplate": "@param[in] {param} ",
 
-  // 在注释中搜索以 * // ，# ，; ，开头的标签！ -- 或 / * 
+  // 在注释中搜索以 * // , # , ; , 开头的标签！ -- 或 / * 
   "todo-tree.regex.regex": "((\\*|//|#|<!--|;|/\\*|^)\\s*($TAGS):|^\\s*- \\[ \\])",
   
   "todo-tree.highlights.defaultHighlight": {

@@ -188,8 +188,8 @@ class Node {
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
 
   // c++11: GUARDED_BY 是在Clang Thread Safety Analysis（线程安全分析）中定义的属性
-  // GUARDED_BY是数据成员的属性，该属性声明数据成员受给定功能保护。
-  // 对数据的读操作需要共享访问，而写操作则需要互斥访问。
+  // GUARDED_BY是数据成员的属性, 该属性声明数据成员受给定功能保护。
+  // 对数据的读操作需要共享访问, 而写操作则需要互斥访问。
   // 官方介绍文档: https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
   MapBuilderBridge map_builder_bridge_ GUARDED_BY(mutex_);
 
@@ -223,9 +223,9 @@ class Node {
     ::cartographer::common::FixedRatioSampler landmark_sampler;
   };
 
-  // c++11: std::unordered_map 是采用哈希数据结构实现的，内部数据保存是无序的
-  // 相对于std::map, unordered_map的查找和插入的效率高，时间复杂度为常数级别O(1),而额外空间复杂度则要高出许多
-  // 对于需要高效率查询的情况，使用unordered_map容器，但是unordered_map对于迭代器遍历效率并不高
+  // c++11: std::unordered_map 是采用哈希数据结构实现的, 内部数据保存是无序的
+  // 相对于std::map, unordered_map的查找和插入的效率高, 时间复杂度为常数级别O(1),而额外空间复杂度则要高出许多
+  // 对于需要高效率查询的情况, 使用unordered_map容器, 但是unordered_map对于迭代器遍历效率并不高
 
   // These are keyed with 'trajectory_id'.
   std::map<int, ::cartographer::mapping::PoseExtrapolator> extrapolators_;

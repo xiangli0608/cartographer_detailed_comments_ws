@@ -53,7 +53,7 @@ std::unique_ptr<PoseExtrapolator> PoseExtrapolator::InitializeWithImu(
   return extrapolator;
 }
 
-// 返回最新添加位姿的时间,如果尚未添加任何姿势，则返回Time::min()
+// 返回最新添加位姿的时间,如果尚未添加任何姿势, 则返回Time::min()
 common::Time PoseExtrapolator::GetLastPoseTime() const {
   if (timed_pose_queue_.empty()) {
     return common::Time::min();
@@ -205,12 +205,12 @@ void PoseExtrapolator::UpdateVelocitiesFromPoses() {
   // 取出队列最末尾的一个 Pose,也就是最新时间点的 Pose,并记录相应的时间
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   const auto newest_time = newest_timed_pose.time;
-  // 取出队列最开头的一个 Pose，也就是最旧时间点的 Pose,并记录相应的时间
+  // 取出队列最开头的一个 Pose, 也就是最旧时间点的 Pose,并记录相应的时间
   const TimedPose& oldest_timed_pose = timed_pose_queue_.front();
   const auto oldest_time = oldest_timed_pose.time;
   // 计算两者的时间差
   const double queue_delta = common::ToSeconds(newest_time - oldest_time);
-  // 如果时间差小于pose_queue_duration_(1ms)，不进行计算
+  // 如果时间差小于pose_queue_duration_(1ms), 不进行计算
   if (queue_delta < common::ToSeconds(pose_queue_duration_)) {
     LOG(WARNING) << "Queue too short for velocity estimation. Queue duration: "
                  << queue_delta << " s";
@@ -255,7 +255,7 @@ void PoseExtrapolator::TrimOdometryData() {
  */
 
 /**
- * @brief 对imu_data_进行处理，先进行时间同步，在依次进行预测和校准，最后预测出time时刻的状态
+ * @brief 对imu_data_进行处理, 先进行时间同步, 在依次进行预测和校准, 最后预测出time时刻的状态
  * 
  * @param[in] time 要预测的时刻
  * @param[in] imu_tracker 给定的先验状态
@@ -269,7 +269,7 @@ void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
   if (imu_data_.empty() || time < imu_data_.front().time) {
     // There is no IMU data until 'time', so we advance the ImuTracker and use
     // the angular velocities from poses and fake gravity to help 2D stability.
-    // 在time之前没有IMU数据，因此我们推进ImuTracker，并使用姿势和假重力产生的角速度来帮助2D稳定
+    // 在time之前没有IMU数据, 因此我们推进ImuTracker, 并使用姿势和假重力产生的角速度来帮助2D稳定
     
     // 预测当前时刻的姿态与重力方向
     imu_tracker->Advance(time);
@@ -284,13 +284,13 @@ void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
 
   // 进行时间同步
 
-  // imu_tracker的时间比imu数据队列中第一个数据的时间早，就先预测到imu数据队列中第一个数据的时间
+  // imu_tracker的时间比imu数据队列中第一个数据的时间早, 就先预测到imu数据队列中第一个数据的时间
   if (imu_tracker->time() < imu_data_.front().time) {
     // Advance to the beginning of 'imu_data_'.
     imu_tracker->Advance(imu_data_.front().time);
   }
 
-  // c++11: std::lower_bound() 是在区间内找到第一个大于等于 value 的值的位置并返回，如果没找到就返回 end() 位置
+  // c++11: std::lower_bound() 是在区间内找到第一个大于等于 value 的值的位置并返回, 如果没找到就返回 end() 位置
   // 在第四个参数位置可以自定义比较规则,在区域内查找第一个 **不符合** comp 规则的元素
 
   // 在imu数据队列中找到第一个时间上 大于等于 imu_tracker->time() 的数据的索引
@@ -300,7 +300,7 @@ void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
         return imu_data.time < time;
       });
 
-  // 然后依次对imu数据进行预测，以及添加观测，直到imu_data_的时间大于等于time截止
+  // 然后依次对imu数据进行预测, 以及添加观测, 直到imu_data_的时间大于等于time截止
   while (it != imu_data_.end() && it->time < time) {
     // 预测出当前时刻的姿态与重力方向
     imu_tracker->Advance(it->time);
@@ -319,7 +319,7 @@ Eigen::Quaterniond PoseExtrapolator::ExtrapolateRotation(
     const common::Time time, ImuTracker* const imu_tracker) const {
   CHECK_GE(time, imu_tracker->time());
 
-  // 更新imu_tracker的状态，使得imu_tracker预测到time时刻
+  // 更新imu_tracker的状态, 使得imu_tracker预测到time时刻
   AdvanceImuTracker(time, imu_tracker);
 
   // 通过 imu_tracker_ 获取上一帧的姿态
@@ -350,8 +350,8 @@ PoseExtrapolator::ExtrapolatePosesWithGravity(
   std::vector<transform::Rigid3f> poses;
 
   // c++11: std::prev 获取一个距离指定迭代器 n 个元素的迭代器,而不改变输入迭代器的值
-  // 默认 n 为1,当 n 为正数时，其返回的迭代器将位于 it 左侧；
-  // 反之，当 n 为负数时，其返回的迭代器位于 it 右侧
+  // 默认 n 为1,当 n 为正数时, 其返回的迭代器将位于 it 左侧；
+  // 反之, 当 n 为负数时, 其返回的迭代器位于 it 右侧
 
   // 获取 [0, n-1] 范围的预测位姿
   for (auto it = times.begin(); it != std::prev(times.end()); ++it) {

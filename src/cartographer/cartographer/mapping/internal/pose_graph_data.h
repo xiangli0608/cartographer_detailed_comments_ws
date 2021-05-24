@@ -69,7 +69,7 @@ struct PoseGraphData {
   MapById<SubmapId, optimization::SubmapSpec3D> global_submap_poses_3d;
 
   // Data that are currently being shown.
-  // 所有的轨迹节点的id与 节点的在global map下的坐标，在local map 下的坐标与时间
+  // 所有的轨迹节点的id与 节点的在global map下的坐标, 在local map 下的坐标与时间
   MapById<NodeId, TrajectoryNode> trajectory_nodes;
 
   // Global landmark poses with all observations.

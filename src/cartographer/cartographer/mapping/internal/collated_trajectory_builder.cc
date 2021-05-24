@@ -28,6 +28,7 @@ constexpr double kSensorDataRatesLoggingPeriodSeconds = 15.;
 
 }  // namespace
 
+// tag: CollatedTrajectoryBuilder
 CollatedTrajectoryBuilder::CollatedTrajectoryBuilder(
     const proto::TrajectoryBuilderOptions& trajectory_options,
     sensor::CollatorInterface* const sensor_collator, const int trajectory_id,
