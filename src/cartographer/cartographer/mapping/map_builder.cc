@@ -88,7 +88,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
 
   // 是2d建图还是3d建图
   if (options.use_trajectory_builder_2d()) {
-    // 2d位姿图的初始化
+    // 2d位姿图(后端)的初始化
     pose_graph_ = absl::make_unique<PoseGraph2D>(
         options_.pose_graph_options(),
         absl::make_unique<optimization::OptimizationProblem2D>(
@@ -96,7 +96,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
         &thread_pool_);
   }
   if (options.use_trajectory_builder_3d()) {
-    // 3d位姿图的初始化
+    // 3d位姿图(后端)的初始化
     pose_graph_ = absl::make_unique<PoseGraph3D>(
         options_.pose_graph_options(),
         absl::make_unique<optimization::OptimizationProblem3D>(
@@ -151,12 +151,27 @@ int MapBuilder::AddTrajectoryBuilder(
       local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder3D>(
           trajectory_options.trajectory_builder_3d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
-    }
+    } 
 
-    // todo: c++11: dynamic_cast
-    // static_cast
+    /**
+     * c++11: static_cast关键字（编译时类型检查）: static_cast < type-id > ( expression )
+     * 该运算符把expression转换为type-id类型，但没有运行时类型检查来保证转换的安全性
+      （1）用于基本数据类型之间的转换，如把int转换为char，把int转换成enum，
+      （2）把空指针转换成目标类型的空指针
+      （3）把任何类型的表达式类型转换成void类型
+      （4）用于类层次结构中父类和子类之间指针和引用的转换。
 
+     * c++11: dynamic_cast关键字（运行时类型检查）: dynamic_cast < type-id > ( expression )
+        该运算符把 expression 转换成 type-id 类型的对象. Type-id必须是类的指针、类的引用或者void *
+        如果type-id是类指针类型，那么expression也必须是一个指针
+        如果type-id是一个引用，那么expression也必须是一个引用
+
+        dynamic_cast主要用于类层次间的上行转换（子类到父类）和下行转换（父类到子类），还可以用于类之间的交叉转换。
+        在类层次间进行上行转换时，dynamic_cast和static_cast的效果是一样的；
+        在进行下行转换时，dynamic_cast具有类型检查的功能，比static_cast更安全。
+     */
     DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get()));
+
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
@@ -219,6 +234,9 @@ int MapBuilder::AddTrajectoryForDeserialization(
     const proto::TrajectoryBuilderOptionsWithSensorIds&
         options_with_sensor_ids_proto) {
   const int trajectory_id = trajectory_builders_.size();
+
+  // c++11: emplace_back 在原地构造, 直接传入vector, 不调用移动构造函数
+
   trajectory_builders_.emplace_back();
   all_trajectory_builder_options_.push_back(options_with_sensor_ids_proto);
   CHECK_EQ(trajectory_builders_.size(), all_trajectory_builder_options_.size());

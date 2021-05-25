@@ -31,6 +31,7 @@ namespace common {
 
 // A thread-safe blocking queue that is useful for producer/consumer patterns.
 // 'T' must be movable.
+// todo: BlockingQueue
 template <typename T>
 class BlockingQueue {
  public:

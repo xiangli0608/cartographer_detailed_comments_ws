@@ -20,6 +20,13 @@ namespace cartographer {
 namespace sensor {
 
 // todo: Collator
+/**
+ * @brief 每个topic设置一个回调函数
+ * 
+ * @param[in] trajectory_id 
+ * @param[in] expected_sensor_ids 
+ * @param[in] callback CollatedTrajectoryBuilder::HandleCollatedSensorData()
+ */
 void Collator::AddTrajectory(
     const int trajectory_id,
     const absl::flat_hash_set<std::string>& expected_sensor_ids,
@@ -27,6 +34,7 @@ void Collator::AddTrajectory(
   for (const auto& sensor_id : expected_sensor_ids) {
     const auto queue_key = QueueKey{trajectory_id, sensor_id};
     queue_.AddQueue(queue_key,
+                    // void(std::unique_ptr<Data> data) 带了个默认参数sensor_id
                     [callback, sensor_id](std::unique_ptr<Data> data) {
                       callback(sensor_id, std::move(data));
                     });

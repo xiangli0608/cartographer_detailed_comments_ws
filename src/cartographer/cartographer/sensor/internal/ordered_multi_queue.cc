@@ -46,6 +46,7 @@ OrderedMultiQueue::~OrderedMultiQueue() {
   }
 }
 
+// 保存回调函数 CollatedTrajectoryBuilder::HandleCollatedSensorData
 void OrderedMultiQueue::AddQueue(const QueueKey& queue_key, Callback callback) {
   CHECK_EQ(queues_.count(queue_key), 0);
   queues_[queue_key].callback = std::move(callback);
@@ -94,6 +95,7 @@ void OrderedMultiQueue::Dispatch() {
     const Data* next_data = nullptr;
     Queue* next_queue = nullptr;
     QueueKey next_queue_key;
+
     for (auto it = queues_.begin(); it != queues_.end();) {
       const auto* data = it->second.queue.Peek<Data>();
       if (data == nullptr) {
@@ -113,6 +115,7 @@ void OrderedMultiQueue::Dispatch() {
           << "Non-sorted data added to queue: '" << it->first << "'";
       ++it;
     }
+
     if (next_data == nullptr) {
       CHECK(queues_.empty());
       return;
@@ -123,6 +126,7 @@ void OrderedMultiQueue::Dispatch() {
     const common::Time common_start_time =
         GetCommonStartTime(next_queue_key.trajectory_id);
 
+    // 将数据传入 callback() 函数进行处理
     if (next_data->GetTime() >= common_start_time) {
       // Happy case, we are beyond the 'common_start_time' already.
       last_dispatched_time_ = next_data->GetTime();
@@ -145,6 +149,7 @@ void OrderedMultiQueue::Dispatch() {
         next_queue->callback(std::move(next_data_owner));
       }
     }
+
   }
 }
 

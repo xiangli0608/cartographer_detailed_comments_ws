@@ -41,12 +41,20 @@ proto::TrajectoryBuilderOptions CreateTrajectoryBuilderOptions(
 
 class LocalSlamResultData;
 
-// todo: TrajectoryBuilderInterface
-
 // This interface is used for both 2D and 3D SLAM. Implementations wire up a
 // global SLAM stack, i.e. local SLAM for initial pose estimates, scan matching
 // to detect loop closure, and a sparse pose graph optimization to compute
 // optimized pose estimates.
+// 此接口同时用于2D和3D SLAM
+// 将local slam 与 global slam 连接起来,实现了一个完整的slam
+// 即用于初始姿势估计的 local SLAM，
+// 用于检测环路闭合的扫描匹配 以及 用于计算优化姿势估计的稀疏姿势图优化
+
+/**
+ * @brief TrajectoryBuilderInterface是个接口类,没有具体实现
+ * GlobalTrajectoryBuilder类 与 CollatedTrajectoryBuilder类 都继承了 TrajectoryBuilderInterface
+ * 并且都做了 AddSensorData() 的实现
+ */
 class TrajectoryBuilderInterface {
  public:
   struct InsertionResult {

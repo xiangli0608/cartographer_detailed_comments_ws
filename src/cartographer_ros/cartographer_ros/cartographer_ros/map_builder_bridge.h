@@ -51,7 +51,7 @@ class MapBuilderBridge {
  public:
 
 /**
- * tag: local map frame与global map frame
+ * tag: local map frame 与 global map frame
  * carographer中存在两个地图坐标系, 分别为global map frame与local map frame
  * 
  * local map frame

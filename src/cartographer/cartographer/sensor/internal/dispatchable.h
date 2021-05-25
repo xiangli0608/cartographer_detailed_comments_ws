@@ -23,6 +23,8 @@
 namespace cartographer {
 namespace sensor {
 
+// c++11: template <typename DataType> 类模板
+
 template <typename DataType>
 class Dispatchable : public Data {
  public:
@@ -30,10 +32,13 @@ class Dispatchable : public Data {
       : Data(sensor_id), data_(data) {}
 
   common::Time GetTime() const override { return data_.time; }
+
+  // 调用传入的trajectory_builder的AddSensorData()
   void AddToTrajectoryBuilder(
       mapping::TrajectoryBuilderInterface *const trajectory_builder) override {
     trajectory_builder->AddSensorData(sensor_id_, data_);
   }
+
   const DataType &data() const { return data_; }
 
  private:

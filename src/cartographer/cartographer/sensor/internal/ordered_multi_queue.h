@@ -31,6 +31,7 @@
 namespace cartographer {
 namespace sensor {
 
+// tag: QueueKey
 struct QueueKey {
   int trajectory_id;
   std::string sensor_id;
@@ -46,8 +47,10 @@ struct QueueKey {
 // queue before dispatching the next time ordered value across all queues.
 //
 // This class is thread-compatible.
+// todo: OrderedMultiQueue
 class OrderedMultiQueue {
  public:
+  // OrderedMultiQueue::Callback 1个参数的
   using Callback = std::function<void(std::unique_ptr<Data>)>;
 
   OrderedMultiQueue();
