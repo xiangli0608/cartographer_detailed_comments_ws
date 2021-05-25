@@ -46,12 +46,19 @@ OrderedMultiQueue::~OrderedMultiQueue() {
   }
 }
 
-// 保存回调函数 CollatedTrajectoryBuilder::HandleCollatedSensorData
+/**
+ * @brief 添加一个数据队列,并保存回调函数 CollatedTrajectoryBuilder::HandleCollatedSensorData
+ * 
+ * @param[in] queue_key 轨迹id与topic名字
+ * @param[in] callback void(std::unique_ptr<Data> data) 型的函数
+ * 这里的callback已经是对应sensor_id的callback了
+ */
 void OrderedMultiQueue::AddQueue(const QueueKey& queue_key, Callback callback) {
   CHECK_EQ(queues_.count(queue_key), 0);
   queues_[queue_key].callback = std::move(callback);
 }
 
+// 将queue_key对应的queues_设置成 finished=true
 void OrderedMultiQueue::MarkQueueAsFinished(const QueueKey& queue_key) {
   auto it = queues_.find(queue_key);
   CHECK(it != queues_.end()) << "Did not find '" << queue_key << "'.";
@@ -64,22 +71,30 @@ void OrderedMultiQueue::MarkQueueAsFinished(const QueueKey& queue_key) {
 void OrderedMultiQueue::Add(const QueueKey& queue_key,
                             std::unique_ptr<Data> data) {
   auto it = queues_.find(queue_key);
+  // 如果queue_key不在queues_中, 就忽略data
   if (it == queues_.end()) {
     LOG_EVERY_N(WARNING, 1000)
         << "Ignored data for queue: '" << queue_key << "'";
     return;
   }
+
+  // 
   it->second.queue.Push(std::move(data));
+
+  // 
   Dispatch();
 }
 
+// 将所有处于未完成状态的数据队列标记为完成状态
 void OrderedMultiQueue::Flush() {
+  // 找到所有unfinished的数据队列
   std::vector<QueueKey> unfinished_queues;
   for (auto& entry : queues_) {
     if (!entry.second.finished) {
       unfinished_queues.push_back(entry.first);
     }
   }
+  // 将unfinished_queues标记为完成状态
   for (auto& unfinished_queue : unfinished_queues) {
     MarkQueueAsFinished(unfinished_queue);
   }

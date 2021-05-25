@@ -45,6 +45,7 @@ class Dispatchable : public Data {
   const DataType data_;
 };
 
+// 根据传入的data的数据类型,自动推断DataType, 实现一个函数处理不同类型的传感器数据
 template <typename DataType>
 std::unique_ptr<Dispatchable<DataType>> MakeDispatchable(
     const std::string &sensor_id, const DataType &data) {

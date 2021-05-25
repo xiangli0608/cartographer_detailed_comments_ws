@@ -32,6 +32,8 @@
 namespace cartographer {
 namespace common {
 
+// todo: RateTimer
+
 // Computes the rate at which pulses come in.
 template <typename ClockType = std::chrono::steady_clock>
 class RateTimer {

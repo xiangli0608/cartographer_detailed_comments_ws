@@ -31,6 +31,8 @@ namespace common {
 
 // A thread-safe blocking queue that is useful for producer/consumer patterns.
 // 'T' must be movable.
+// 一个线程安全的阻塞队列, 对 生产者/消费者模式 很有用。
+
 // todo: BlockingQueue
 template <typename T>
 class BlockingQueue {
@@ -38,6 +40,7 @@ class BlockingQueue {
   static constexpr size_t kInfiniteQueueSize = 0;
 
   // Constructs a blocking queue with infinite queue size.
+  // 构造一个具有无限队列大小的阻塞队列
   BlockingQueue() : BlockingQueue(kInfiniteQueueSize) {}
 
   BlockingQueue(const BlockingQueue&) = delete;
@@ -47,11 +50,15 @@ class BlockingQueue {
   explicit BlockingQueue(const size_t queue_size) : queue_size_(queue_size) {}
 
   // Pushes a value onto the queue. Blocks if the queue is full.
+  // 将值压入队列. 如果队列已满, 则阻塞
   void Push(T t) {
     const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
       return QueueNotFullCondition();
     };
     absl::MutexLock lock(&mutex_);
+
+    // ?: absl::Mutex::Await
+
     mutex_.Await(absl::Condition(&predicate));
     deque_.push_back(std::move(t));
   }
@@ -140,12 +147,18 @@ class BlockingQueue {
   }
 
  private:
+
+  // todo: EXCLUSIVE_LOCKS_REQUIRED
+
+
   // Returns true iff the queue is empty.
+  // 如果队列为空, 则返回true
   bool QueueEmptyCondition() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
     return deque_.empty();
   }
 
   // Returns true iff the queue is not full.
+  // 如果队列未满, 则返回true
   bool QueueNotFullCondition() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
     return queue_size_ == kInfiniteQueueSize || deque_.size() < queue_size_;
   }

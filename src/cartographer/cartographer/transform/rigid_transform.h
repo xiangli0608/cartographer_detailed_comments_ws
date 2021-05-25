@@ -88,7 +88,7 @@ class Rigid2 {
   Rotation2D rotation_;
 };
 
-// tag: Rigid2 operator*
+// note: Rigid2 operator*
 // rhs是全局坐标系下的坐姿变动量, lhs是全局坐标系下的位姿
 // 通过 lhs.rotation() * rhs.translation() + lhs.translation() 
 // 将 rhs 转换成 lhs自身坐标系下的位姿变动量 再与lhs的坐标相加

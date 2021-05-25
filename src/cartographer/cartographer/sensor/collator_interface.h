@@ -30,7 +30,7 @@ namespace sensor {
 
 class CollatorInterface {
  public:
-  // CollatorInterface::Callback 2个参数的
+  // note: CollatorInterface::Callback 2个参数
   using Callback =
       std::function<void(const std::string&, std::unique_ptr<Data>)>;
 

@@ -36,7 +36,10 @@ namespace mapping {
 
 // Collates sensor data using a sensor::CollatorInterface, then passes it on to
 // a mapping::TrajectoryBuilderInterface which is common for 2D and 3D.
-// todo: CollatedTrajectoryBuilder
+// 使用 sensor::CollatorInterface 整理传感器数据, 
+// 然后将其传递到2D和3D通用的 mapping::TrajectoryBuilderInterface
+
+// 处理传感器数据, 使其按照时间排列, 然后传入GlobalTrajectoryBuilder
 class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
  public:
   using SensorId = TrajectoryBuilderInterface::SensorId;
@@ -52,22 +55,28 @@ class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
   CollatedTrajectoryBuilder& operator=(const CollatedTrajectoryBuilder&) =
       delete;
 
+  // 处理雷达点云数据
   void AddSensorData(
       const std::string& sensor_id,
       const sensor::TimedPointCloudData& timed_point_cloud_data) override {
     AddData(sensor::MakeDispatchable(sensor_id, timed_point_cloud_data));
   }
 
+  // 处理IMU数据
   void AddSensorData(const std::string& sensor_id,
                      const sensor::ImuData& imu_data) override {
     AddData(sensor::MakeDispatchable(sensor_id, imu_data));
   }
 
+  // 处理里程计数据
   void AddSensorData(const std::string& sensor_id,
                      const sensor::OdometryData& odometry_data) override {
     AddData(sensor::MakeDispatchable(sensor_id, odometry_data));
   }
 
+  // 根据参数决定gps数据是否需要排序
+  // AddData与wrapped_trajectory_builder_->AddSensorData只能选一种
+  // 因为AddData最终调用的就是wrapped_trajectory_builder_->AddSensorData
   void AddSensorData(
       const std::string& sensor_id,
       const sensor::FixedFramePoseData& fixed_frame_pose_data) override {
@@ -79,6 +88,7 @@ class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
                                                fixed_frame_pose_data);
   }
 
+  // 根据参数决定Landmark数据是否需要排序
   void AddSensorData(const std::string& sensor_id,
                      const sensor::LandmarkData& landmark_data) override {
     if (collate_landmarks_) {
@@ -88,6 +98,7 @@ class CollatedTrajectoryBuilder : public TrajectoryBuilderInterface {
     wrapped_trajectory_builder_->AddSensorData(sensor_id, landmark_data);
   }
 
+  // 将local slam 的结果也作为一种传感器数据进行处理
   void AddLocalSlamResultData(std::unique_ptr<mapping::LocalSlamResultData>
                                   local_slam_result_data) override {
     AddData(std::move(local_slam_result_data));

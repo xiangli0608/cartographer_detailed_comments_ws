@@ -33,8 +33,8 @@ namespace sensor {
 
 // tag: QueueKey
 struct QueueKey {
-  int trajectory_id;
-  std::string sensor_id;
+  int trajectory_id;      // 轨迹id
+  std::string sensor_id;  // topic名字
 
   bool operator<(const QueueKey& other) const {
     return std::forward_as_tuple(trajectory_id, sensor_id) <
@@ -45,12 +45,15 @@ struct QueueKey {
 // Maintains multiple queues of sorted sensor data and dispatches it in merge
 // sorted order. It will wait to see at least one value for each unfinished
 // queue before dispatching the next time ordered value across all queues.
-//
-// This class is thread-compatible.
+// 维护排序后的传感器数据的多个队列, 并按合并排序的顺序进行调度
+// 它将等待为每个未完成的队列查看至少一个值, 然后再在所有队列中分派下一个按时间排序的值。
+
+// This class is thread-compatible. 此类是线程兼容的
+
 // todo: OrderedMultiQueue
 class OrderedMultiQueue {
  public:
-  // OrderedMultiQueue::Callback 1个参数的
+  // note: OrderedMultiQueue::Callback 1个参数
   using Callback = std::function<void(std::unique_ptr<Data>)>;
 
   OrderedMultiQueue();
@@ -81,9 +84,9 @@ class OrderedMultiQueue {
 
  private:
   struct Queue {
-    common::BlockingQueue<std::unique_ptr<Data>> queue;
-    Callback callback;
-    bool finished = false;
+    common::BlockingQueue<std::unique_ptr<Data>> queue;   // 存储数据的队列
+    Callback callback;                                    // 本数据队列对应的回调函数
+    bool finished = false;                                // 这个queue是否finished
   };
 
   void Dispatch();

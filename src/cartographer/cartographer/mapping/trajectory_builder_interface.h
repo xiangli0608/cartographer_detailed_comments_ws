@@ -47,7 +47,7 @@ class LocalSlamResultData;
 // optimized pose estimates.
 // 此接口同时用于2D和3D SLAM
 // 将local slam 与 global slam 连接起来,实现了一个完整的slam
-// 即用于初始姿势估计的 local SLAM，
+// 即用于初始姿势估计的 local SLAM, 
 // 用于检测环路闭合的扫描匹配 以及 用于计算优化姿势估计的稀疏姿势图优化
 
 /**
