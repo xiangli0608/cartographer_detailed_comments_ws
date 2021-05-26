@@ -62,6 +62,15 @@ LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
       sensor::VoxelFilter(cropped.misses, options_.voxel_filter_size())};
 }
 
+/**
+ * @brief 
+ * todo: LocalTrajectoryBuilder2D::ScanMatch
+ * 
+ * @param[in] time 
+ * @param[in] pose_prediction 
+ * @param[in] filtered_gravity_aligned_point_cloud 
+ * @return std::unique_ptr<transform::Rigid2d> 
+ */
 std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
     const common::Time time, const transform::Rigid2d& pose_prediction,
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud) {
@@ -101,10 +110,19 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
   return pose_observation;
 }
 
+
+/**
+ * @brief 
+ * 
+ * @param[in] sensor_id 
+ * @param[in] unsynchronized_data 
+ * @return std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult> 
+ */
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
 LocalTrajectoryBuilder2D::AddRangeData(
     const std::string& sensor_id,
     const sensor::TimedPointCloudData& unsynchronized_data) {
+  // Step: 1 进行多个传感器的数据同步，只有一个传感器的时候，可以直接忽略
   auto synchronized_data =
       range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);
   if (synchronized_data.ranges.empty()) {
@@ -128,6 +146,8 @@ LocalTrajectoryBuilder2D::AddRangeData(
   CHECK(!synchronized_data.ranges.empty());
   // TODO(gaschler): Check if this can strictly be 0.
   CHECK_LE(synchronized_data.ranges.back().point_time.time, 0.f);
+
+  // Step: 2 运动畸变的去除
   const common::Time time_first_point =
       time +
       common::FromSeconds(synchronized_data.ranges.front().point_time.time);
@@ -139,6 +159,8 @@ LocalTrajectoryBuilder2D::AddRangeData(
   std::vector<transform::Rigid3f> range_data_poses;
   range_data_poses.reserve(synchronized_data.ranges.size());
   bool warned = false;
+
+  // 插值得到每一个时间点的位姿
   for (const auto& range : synchronized_data.ranges) {
     common::Time time_point = time + common::FromSeconds(range.point_time.time);
     if (time_point < extrapolator_->GetLastExtrapolatedTime()) {
@@ -162,6 +184,8 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
   // Drop any returns below the minimum range and convert returns beyond the
   // maximum range into misses.
+  // Step: 3 无效数据滤波
+  // 得到所有的累计数据，对范围的数据进行滤除
   for (size_t i = 0; i < synchronized_data.ranges.size(); ++i) {
     const sensor::TimedRangefinderPoint& hit =
         synchronized_data.ranges[i].point_time;
@@ -171,6 +195,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
     sensor::RangefinderPoint hit_in_local =
         range_data_poses[i] * sensor::ToRangefinderPoint(hit);
     const Eigen::Vector3f delta = hit_in_local.position - origin_in_local;
+
     const float range = delta.norm();
     if (range >= options_.min_range()) {
       if (range <= options_.max_range()) {
@@ -205,6 +230,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
             accumulated_range_data_),
         gravity_alignment, sensor_duration);
   }
+
   return nullptr;
 }
 
@@ -233,8 +259,10 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   }
 
   // local map frame <- gravity-aligned frame
+  // 扫描匹配, 进行点云与submap的匹配
   std::unique_ptr<transform::Rigid2d> pose_estimate_2d =
       ScanMatch(time, pose_prediction, filtered_gravity_aligned_point_cloud);
+
   if (pose_estimate_2d == nullptr) {
     LOG(WARNING) << "Scan matching failed.";
     return nullptr;
@@ -299,12 +327,14 @@ LocalTrajectoryBuilder2D::InsertIntoSubmap(
       std::move(insertion_submaps)});
 }
 
+// 将IMU数据加入到Extrapolator中
 void LocalTrajectoryBuilder2D::AddImuData(const sensor::ImuData& imu_data) {
   CHECK(options_.use_imu_data()) << "An unexpected IMU packet was added.";
   InitializeExtrapolator(imu_data.time);
   extrapolator_->AddImuData(imu_data);
 }
 
+// 将里程计数据加入到Extrapolator中
 void LocalTrajectoryBuilder2D::AddOdometryData(
     const sensor::OdometryData& odometry_data) {
   if (extrapolator_ == nullptr) {
@@ -315,6 +345,7 @@ void LocalTrajectoryBuilder2D::AddOdometryData(
   extrapolator_->AddOdometryData(odometry_data);
 }
 
+// 如果Extrapolator没有初始化就进行初始化
 void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
   if (extrapolator_ != nullptr) {
     return;

@@ -38,7 +38,17 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
  public:
   // Passing a 'nullptr' for 'local_trajectory_builder' is acceptable, but no
   // 'TimedPointCloudData' may be added in that case.
-  // tag: GlobalTrajectoryBuilder 完整的slam, 包含前端与后端
+
+  /**
+   * @brief Construct a new Global Trajectory Builder object
+   *        完整的slam, 连接起了前端与后端
+   * 
+   * @param[in] local_trajectory_builder 2d or 3d local slam 前端
+   * @param[in] trajectory_id 轨迹id
+   * @param[in] pose_graph 2d or 3d pose_graph 后端
+   * @param[in] local_slam_result_callback 前端的回调函数
+   * @param[in] pose_graph_odometry_motion_filter 里程计的滤波器
+   */
   GlobalTrajectoryBuilder(
       std::unique_ptr<LocalTrajectoryBuilder> local_trajectory_builder,
       const int trajectory_id, PoseGraph* const pose_graph,
@@ -54,25 +64,39 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
   GlobalTrajectoryBuilder(const GlobalTrajectoryBuilder&) = delete;
   GlobalTrajectoryBuilder& operator=(const GlobalTrajectoryBuilder&) = delete;
 
+  /**
+   * @brief 
+   * 
+   * @param[in] sensor_id topic名字
+   * @param[in] timed_point_cloud_data 点云数据
+   */
   void AddSensorData(
       const std::string& sensor_id,
       const sensor::TimedPointCloudData& timed_point_cloud_data) override {
     CHECK(local_trajectory_builder_)
         << "Cannot add TimedPointCloudData without a LocalTrajectoryBuilder.";
+
+    // 进行扫描匹配, 返回匹配后的结果
     std::unique_ptr<typename LocalTrajectoryBuilder::MatchingResult>
         matching_result = local_trajectory_builder_->AddRangeData(
             sensor_id, timed_point_cloud_data);
+
     if (matching_result == nullptr) {
       // The range data has not been fully accumulated yet.
       return;
     }
+
     kLocalSlamMatchingResults->Increment();
+
     std::unique_ptr<InsertionResult> insertion_result;
     if (matching_result->insertion_result != nullptr) {
       kLocalSlamInsertionResults->Increment();
+
+      // 将匹配后的结果 当做节点 加入到位姿图中
       auto node_id = pose_graph_->AddNode(
           matching_result->insertion_result->constant_data, trajectory_id_,
           matching_result->insertion_result->insertion_submaps);
+          
       CHECK_EQ(node_id.trajectory_id, trajectory_id_);
       insertion_result = absl::make_unique<InsertionResult>(InsertionResult{
           node_id, matching_result->insertion_result->constant_data,
@@ -80,14 +104,18 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
               matching_result->insertion_result->insertion_submaps.begin(),
               matching_result->insertion_result->insertion_submaps.end())});
     }
+
+    // 将结果数据传入回调函数中, 进行保存
     if (local_slam_result_callback_) {
       local_slam_result_callback_(
           trajectory_id_, matching_result->time, matching_result->local_pose,
           std::move(matching_result->range_data_in_local),
           std::move(insertion_result));
     }
+
   }
 
+  // imu数据的走向有两个,一个是进入前端local_trajectory_builder_, 一个是进入后端pose_graph_
   void AddSensorData(const std::string& sensor_id,
                      const sensor::ImuData& imu_data) override {
     if (local_trajectory_builder_) {
@@ -96,6 +124,8 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
     pose_graph_->AddImuData(trajectory_id_, imu_data);
   }
 
+  // 里程计数据的走向有两个,一个是进入前端local_trajectory_builder_, 一个是进入后端pose_graph_
+  // 加入到后端之前, 先做一个距离的计算, 只有时间,移动距离,角度 变换量大于阈值才加入到后端中
   void AddSensorData(const std::string& sensor_id,
                      const sensor::OdometryData& odometry_data) override {
     CHECK(odometry_data.pose.IsValid()) << odometry_data.pose;
@@ -113,6 +143,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
     pose_graph_->AddOdometryData(trajectory_id_, odometry_data);
   }
 
+  // gps数据只在后端中使用
   void AddSensorData(
       const std::string& sensor_id,
       const sensor::FixedFramePoseData& fixed_frame_pose) override {
@@ -123,11 +154,13 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
     pose_graph_->AddFixedFramePoseData(trajectory_id_, fixed_frame_pose);
   }
 
+  // Landmark的数据只在后端中使用
   void AddSensorData(const std::string& sensor_id,
                      const sensor::LandmarkData& landmark_data) override {
     pose_graph_->AddLandmarkData(trajectory_id_, landmark_data);
   }
 
+  // 将local slam的结果加入到后端中, 作为位姿图的一个节点
   void AddLocalSlamResultData(std::unique_ptr<mapping::LocalSlamResultData>
                                   local_slam_result_data) override {
     CHECK(!local_trajectory_builder_) << "Can't add LocalSlamResultData with "
@@ -144,6 +177,8 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
 };
 
 }  // namespace
+
+// 类模板不支持实参推演, 所以在类外指定模板参数的具体类型, 在进行类的实例化
 
 // 2d的完整的slam
 std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder2D(

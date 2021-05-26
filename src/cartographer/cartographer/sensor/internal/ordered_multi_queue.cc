@@ -68,6 +68,7 @@ void OrderedMultiQueue::MarkQueueAsFinished(const QueueKey& queue_key) {
   Dispatch();
 }
 
+// 
 void OrderedMultiQueue::Add(const QueueKey& queue_key,
                             std::unique_ptr<Data> data) {
   auto it = queues_.find(queue_key);
@@ -105,29 +106,45 @@ QueueKey OrderedMultiQueue::GetBlocker() const {
   return blocker_;
 }
 
+/**
+ * @brief 
+ * todo: OrderedMultiQueue::Dispatch()
+ */
 void OrderedMultiQueue::Dispatch() {
   while (true) {
     const Data* next_data = nullptr;
     Queue* next_queue = nullptr;
     QueueKey next_queue_key;
 
+    // c++11: auto*(指针类型说明符), auto&(引用类型说明符), auto &&(右值引用)
+
+    // 遍历队列中的每一个key: 填充上面3个变量值 
     for (auto it = queues_.begin(); it != queues_.end();) {
+
+      // 获取当前队列中时间最老的一个的一个数据
       const auto* data = it->second.queue.Peek<Data>();
+
       if (data == nullptr) {
+        // 如果队列已经处于finished状态了, 就删掉这个队列
         if (it->second.finished) {
           queues_.erase(it++);
           continue;
         }
+        // 如果数据为空, 此时不做处理
         CannotMakeProgress(it->first);
         return;
       }
+
+      // 将data赋值给next_data, 并保存当前的数据队列以及queue_key
       if (next_data == nullptr || data->GetTime() < next_data->GetTime()) {
         next_data = data;
         next_queue = &it->second;
         next_queue_key = it->first;
       }
+
       CHECK_LE(last_dispatched_time_, next_data->GetTime())
           << "Non-sorted data added to queue: '" << it->first << "'";
+      
       ++it;
     }
 
@@ -168,6 +185,7 @@ void OrderedMultiQueue::Dispatch() {
   }
 }
 
+// 
 void OrderedMultiQueue::CannotMakeProgress(const QueueKey& queue_key) {
   blocker_ = queue_key;
   for (auto& entry : queues_) {

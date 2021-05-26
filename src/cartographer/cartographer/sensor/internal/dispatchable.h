@@ -23,8 +23,6 @@
 namespace cartographer {
 namespace sensor {
 
-// c++11: template <typename DataType> 类模板
-
 template <typename DataType>
 class Dispatchable : public Data {
  public:
@@ -44,6 +42,13 @@ class Dispatchable : public Data {
  private:
   const DataType data_;
 };
+
+
+// c++11: template <typename DataType> 
+// 函数模板的调用使用 实参推演 来进行
+// 类模板 模板形参的类型必须在类名后的尖括号中明确指定, 不能使用实参推演 
+// 在类外声明一个 函数模板, 使用 实参推演 的方式来使得 类模板可以自动适应不同的数据类型
+
 
 // 根据传入的data的数据类型,自动推断DataType, 实现一个函数处理不同类型的传感器数据
 template <typename DataType>

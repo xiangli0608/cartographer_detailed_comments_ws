@@ -60,6 +60,17 @@ CeresScanMatcher2D::CeresScanMatcher2D(
 
 CeresScanMatcher2D::~CeresScanMatcher2D() {}
 
+/**
+ * @brief 
+ * todo: CeresScanMatcher2D::Match
+ * 
+ * @param[in] target_translation 
+ * @param[in] initial_pose_estimate 
+ * @param[in] point_cloud 
+ * @param[in] grid 
+ * @param[out] pose_estimate 
+ * @param[out] summary 
+ */
 void CeresScanMatcher2D::Match(const Eigen::Vector2d& target_translation,
                                const transform::Rigid2d& initial_pose_estimate,
                                const sensor::PointCloud& point_cloud,

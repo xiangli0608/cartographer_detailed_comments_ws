@@ -121,6 +121,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
  * @param[in] expected_sensor_ids 所有需要的topic的名字的集合
  * @param[in] trajectory_options 轨迹的参数配置
  * @param[in] local_slam_result_callback 需要传入的回调函数
+ *        实际上是map_builder_bridge.cc 中的 OnLocalSlamResult() 函数
  * @return int 新生成的轨迹的id
  */
 int MapBuilder::AddTrajectoryBuilder(
@@ -132,7 +133,12 @@ int MapBuilder::AddTrajectoryBuilder(
   const int trajectory_id = trajectory_builders_.size();
 
   // 运动过滤器, 运动太小没必要进行更新
+  // 配置文件中没有 pose_graph_odometry_motion_filte
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter;
+
+  // LOG(INFO) << "pose_graph odometry_motion_filter is " << trajectory_options.has_pose_graph_odometry_motion_filter();
+  // 上面会打印出0, 所以没有使用后端的里程计的motion_filter
+
   if (trajectory_options.has_pose_graph_odometry_motion_filter()) {
     LOG(INFO) << "Using a motion filter for adding odometry to the pose graph.";
     pose_graph_odometry_motion_filter.emplace(

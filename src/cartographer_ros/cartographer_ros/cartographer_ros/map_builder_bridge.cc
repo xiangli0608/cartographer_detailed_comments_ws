@@ -138,14 +138,15 @@ int MapBuilderBridge::AddTrajectory(
   // 开始一条新的轨迹, 返回新轨迹的id,需要传入一个函数
   const int trajectory_id = map_builder_->AddTrajectoryBuilder(
       expected_sensor_ids, trajectory_options.trajectory_builder_options,
-      // lambda表达式
-      [this](const int trajectory_id, const ::cartographer::common::Time time,
+      // lambda表达式 local_slam_result_callback_
+      [this](const int trajectory_id, 
+             const ::cartographer::common::Time time,
              const Rigid3d local_pose,
              ::cartographer::sensor::RangeData range_data_in_local,
              const std::unique_ptr<
                  const ::cartographer::mapping::TrajectoryBuilderInterface::
                      InsertionResult>) {
-        // 保存local slam 的结果数据
+        // 保存local slam 的结果数据 5个参数实际只用了4个
         OnLocalSlamResult(trajectory_id, time, local_pose, range_data_in_local);
       });
   LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
@@ -608,7 +609,14 @@ SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id) {
   return sensor_bridges_.at(trajectory_id).get();
 }
 
-// 保存local slam 的结果, 包含当前轨迹id, 当前时间, 当前位姿, 以及所有的雷达数据
+/**
+ * @brief 保存local slam 的结果, 包含当前轨迹id, 当前时间, 当前位姿, 以及所有的雷达数据
+ * 
+ * @param[in] trajectory_id 
+ * @param[in] time 
+ * @param[in] local_pose 
+ * @param[in] range_data_in_local 
+ */
 void MapBuilderBridge::OnLocalSlamResult(
     const int trajectory_id, const ::cartographer::common::Time time,
     const Rigid3d local_pose,

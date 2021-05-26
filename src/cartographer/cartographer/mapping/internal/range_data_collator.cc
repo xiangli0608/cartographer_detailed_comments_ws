@@ -27,6 +27,7 @@ namespace mapping {
 
 constexpr float RangeDataCollator::kDefaultIntensityValue;
 
+// todo: RangeDataCollator::AddRangeData 多个雷达数据的时间同步
 sensor::TimedPointCloudOriginData RangeDataCollator::AddRangeData(
     const std::string& sensor_id,
     sensor::TimedPointCloudData timed_point_cloud_data) {

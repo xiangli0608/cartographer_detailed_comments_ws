@@ -27,11 +27,13 @@ void LocalSlamResult2D::AddToTrajectoryBuilder(
       absl::make_unique<LocalSlamResult2D>(*this));
 }
 
+// 将local_slam_result_data_的各个数据作为节点加入到位姿图中
 void LocalSlamResult2D::AddToPoseGraph(int trajectory_id,
                                        PoseGraph* pose_graph) const {
   DCHECK(dynamic_cast<PoseGraph2D*>(pose_graph));
   CHECK_GE(local_slam_result_data_.submaps().size(), 1);
   CHECK(local_slam_result_data_.submaps(0).has_submap_2d());
+
   std::vector<std::shared_ptr<const mapping::Submap2D>> submaps;
   for (const auto& submap_proto : local_slam_result_data_.submaps()) {
     auto submap_ptr = submap_controller_->UpdateSubmap(submap_proto);
@@ -41,10 +43,12 @@ void LocalSlamResult2D::AddToPoseGraph(int trajectory_id,
       LOG(INFO) << "Ignoring submap";
     }
   }
+
   if (submaps.size() == 0) {
     LOG(INFO) << "Ignoring node";
     return;
   }
+  
   static_cast<PoseGraph2D*>(pose_graph)
       ->AddNode(std::make_shared<const mapping::TrajectoryNode::Data>(
                     mapping::FromProto(local_slam_result_data_.node_data())),
