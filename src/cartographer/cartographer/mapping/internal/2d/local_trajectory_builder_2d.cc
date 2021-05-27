@@ -48,6 +48,13 @@ LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
 
 LocalTrajectoryBuilder2D::~LocalTrajectoryBuilder2D() {}
 
+/**
+ * @brief 先进行z方向的滤波, 然后再进行体素滤波减少数据量
+ * 
+ * @param[in] transform_to_gravity_aligned_frame 
+ * @param[in] range_data 
+ * @return sensor::RangeData 
+ */
 sensor::RangeData
 LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
     const transform::Rigid3f& transform_to_gravity_aligned_frame,
@@ -184,7 +191,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
   // Drop any returns below the minimum range and convert returns beyond the
   // maximum range into misses.
-  // Step: 3 无效数据滤波
+  // Step: 3 无效数据的处理
   // 得到所有的累计数据，对范围的数据进行滤除
   for (size_t i = 0; i < synchronized_data.ranges.size(); ++i) {
     const sensor::TimedRangefinderPoint& hit =
@@ -225,6 +232,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
     accumulated_range_data_.origin = range_data_poses.back().translation();
     return AddAccumulatedRangeData(
         time,
+        // Step: 5 对数据
         TransformToGravityAlignedFrameAndFilter(
             gravity_alignment.cast<float>() * range_data_poses.back().inverse(),
             accumulated_range_data_),
@@ -234,6 +242,15 @@ LocalTrajectoryBuilder2D::AddRangeData(
   return nullptr;
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] time 
+ * @param[in] gravity_aligned_range_data 
+ * @param[in] gravity_alignment 
+ * @param[in] sensor_duration 
+ * @return std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult> 
+ */
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
 LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
     const common::Time time,
@@ -274,6 +291,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   sensor::RangeData range_data_in_local =
       TransformRangeData(gravity_aligned_range_data,
                          transform::Embed3D(pose_estimate_2d->cast<float>()));
+  
   std::unique_ptr<InsertionResult> insertion_result = InsertIntoSubmap(
       time, range_data_in_local, filtered_gravity_aligned_point_cloud,
       pose_estimate, gravity_alignment.rotation());

@@ -138,6 +138,7 @@ std::vector<RangefinderPoint> VoxelFilter(
       [](const RangefinderPoint& point) { return point.position; });
 }
 
+// todo: VoxelFilter
 PointCloud VoxelFilter(const PointCloud& point_cloud, const float resolution) {
   const std::vector<bool> points_used = RandomizedVoxelFilterIndices(
       point_cloud.points(), resolution,

@@ -151,6 +151,14 @@ NodeId PoseGraph2D::AppendNode(
   return node_id;
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] constant_data 
+ * @param[in] trajectory_id 
+ * @param[in] insertion_submaps 
+ * @return NodeId 
+ */
 NodeId PoseGraph2D::AddNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,

@@ -195,7 +195,7 @@ LocalTrajectoryBuilder3D::AddRangeData(
 
       hit_times.push_back(time_point);
       prev_time_point = time_point;
-    }
+    } 
   }
   hit_times.push_back(accumulated_point_cloud_origin_data_.back().time);
 
