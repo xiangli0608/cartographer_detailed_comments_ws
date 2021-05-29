@@ -35,6 +35,17 @@ class Task {
   using WorkItem = std::function<void()>;
   enum State { NEW, DISPATCHED, DEPENDENCIES_COMPLETED, RUNNING, COMPLETED };
 
+  /**
+    NEW：新建任务，还未schedule到线程池
+    DISPATCHED： 任务已经schedule 到线程池
+    DEPENDENCIES_COMPLETED： 任务依赖已经执行完成
+    RUNNING： 任务执行中
+    COMPLETED： 任务完成
+
+    对任一个任务的状态转换顺序为：
+    NEW->DISPATCHED->DEPENDENCIES_COMPLETED->RUNNING->COMPLETED
+  */
+
   Task() = default;
   ~Task();
 

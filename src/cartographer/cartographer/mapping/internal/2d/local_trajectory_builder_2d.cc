@@ -322,17 +322,31 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
                      std::move(insertion_result)});
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] time 
+ * @param[in] range_data_in_local 
+ * @param[in] filtered_gravity_aligned_point_cloud 
+ * @param[in] pose_estimate 
+ * @param[in] gravity_alignment 
+ * @return std::unique_ptr<LocalTrajectoryBuilder2D::InsertionResult> 
+ */
 std::unique_ptr<LocalTrajectoryBuilder2D::InsertionResult>
 LocalTrajectoryBuilder2D::InsertIntoSubmap(
     const common::Time time, const sensor::RangeData& range_data_in_local,
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud,
     const transform::Rigid3d& pose_estimate,
     const Eigen::Quaterniond& gravity_alignment) {
+  // 如果移动距离过小, 或者时间过短, 不进行地图的更新
   if (motion_filter_.IsSimilar(time, pose_estimate)) {
     return nullptr;
   }
+  // 将点云数据写入到submap中
   std::vector<std::shared_ptr<const Submap2D>> insertion_submaps =
       active_submaps_.InsertRangeData(range_data_in_local);
+
+  // 生成InsertionResult格式的数据
   return absl::make_unique<InsertionResult>(InsertionResult{
       std::make_shared<const TrajectoryNode::Data>(TrajectoryNode::Data{
           time,

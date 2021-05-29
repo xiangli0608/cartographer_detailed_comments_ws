@@ -147,6 +147,7 @@ int MapBuilderBridge::AddTrajectory(
                  const ::cartographer::mapping::TrajectoryBuilderInterface::
                      InsertionResult>) {
         // 保存local slam 的结果数据 5个参数实际只用了4个
+        // tag: MapBuilderBridge::OnLocalSlamResult
         OnLocalSlamResult(trajectory_id, time, local_pose, range_data_in_local);
       });
   LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";

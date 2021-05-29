@@ -42,6 +42,7 @@ struct TrajectoryNodePose {
   absl::optional<ConstantPoseData> constant_pose_data;
 };
 
+// tag: TrajectoryNode Data
 struct TrajectoryNode {
   struct Data {
     common::Time time;

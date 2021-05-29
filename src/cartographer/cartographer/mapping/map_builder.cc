@@ -110,7 +110,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
     sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
   } else {
     // 实际是使用这个
-    // tag: sensor_collator_初始化
+    // sensor_collator_初始化
     sensor_collator_ = absl::make_unique<sensor::Collator>();
   }
 }
@@ -199,7 +199,7 @@ int MapBuilder::AddTrajectoryBuilder(
 
     DCHECK(dynamic_cast<PoseGraph2D*>(pose_graph_.get()));
 
-    // tag: CollatedTrajectoryBuilder初始化
+    // CollatedTrajectoryBuilder初始化
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
@@ -218,6 +218,8 @@ int MapBuilder::AddTrajectoryBuilder(
   if (trajectory_options.has_initial_trajectory_pose()) {
     const auto& initial_trajectory_pose =
         trajectory_options.initial_trajectory_pose();
+    
+    // 在位姿图中设置初始位姿
     pose_graph_->SetInitialTrajectoryPose(
         trajectory_id, initial_trajectory_pose.to_trajectory_id(),
         transform::ToRigid3(initial_trajectory_pose.relative_pose()),

@@ -78,12 +78,24 @@ class PoseGraph2D : public PoseGraph {
   // node data was inserted into the 'insertion_submaps'. If
   // 'insertion_submaps.front().finished()' is 'true', data was inserted into
   // this submap for the last time.
-  // todo: PoseGraph2D::AddNode
+  // 添加一个带有“constant_data”的新节点。 它的“constant_data->local_pose”是
+  // 通过对“insertion_submaps.front()”的扫描匹配来确定的，并且节点数据被插入到“insertion_submaps”中。 
+  // 如果 'insertion_submaps.front().finished()' 为 'true'，则数据最后一次插入到该子图中。
+
   NodeId AddNode(
       std::shared_ptr<const TrajectoryNode::Data> constant_data,
       int trajectory_id,
       const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps)
       LOCKS_EXCLUDED(mutex_);
+
+  // c++11: LOCKS_EXCLUDED 现在改名为EXCLUDES
+  // 它声明调用者不能拥有给定的能力。 该注解用于防止死锁。 
+  // 许多互斥体实现是不可重入的，因此如果函数第二次获取互斥体，就会发生死锁。
+
+  // c++11: EXCLUSIVE_LOCKS_REQUIRED 现在改名为REQUIRES
+  // 它声明调用线程必须具有对给定功能(线程锁)的独占访问权限。 可以指定不止一种能力(多个线程锁)
+  // 这些能力必须在进入函数时保持，并且在退出时仍然必须保持。
+
 
   void AddImuData(int trajectory_id, const sensor::ImuData& imu_data) override
       LOCKS_EXCLUDED(mutex_);

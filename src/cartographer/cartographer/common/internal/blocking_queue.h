@@ -147,10 +147,6 @@ class BlockingQueue {
   }
 
  private:
-
-  // todo: EXCLUSIVE_LOCKS_REQUIRED
-
-
   // Returns true iff the queue is empty.
   // 如果队列为空, 则返回true
   bool QueueEmptyCondition() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {

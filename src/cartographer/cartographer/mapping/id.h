@@ -37,6 +37,11 @@ namespace cartographer {
 namespace mapping {
 namespace internal {
 
+// c++11: decltype 可以从一个变量或表达式中得到类型
+// 在 C++11 中, auto可以和decltype一起用, 将auto放置在返回值类型上当做占位符, 不表达实际意思
+// 在参数列表后添加 -> decltype( ), 这是后置返回类型, 代表返回的类型是 () 中的类型
+// 在 C++14 中，则可以不用 decltype
+
 template <class T>
 auto GetTimeImpl(const T& t, int) -> decltype(t.time()) {
   return t.time();
@@ -54,6 +59,8 @@ common::Time GetTime(const T& t) {
 
 // Uniquely identifies a trajectory node using a combination of a unique
 // trajectory ID and a zero-based index of the node inside that trajectory.
+// 使用唯一的轨迹ID和该轨迹内节点的从零开始的索引的组合来唯一地标识轨迹节点。
+// 一个是轨迹ID，一个是节点的序号
 struct NodeId {
   NodeId(int trajectory_id, int node_index)
       : trajectory_id(trajectory_id), node_index(node_index) {}
@@ -86,6 +93,7 @@ inline std::ostream& operator<<(std::ostream& os, const NodeId& v) {
 // Uniquely identifies a submap using a combination of a unique trajectory ID
 // and a zero-based index of the submap inside that trajectory.
 // 使用唯一的轨迹ID和该轨迹内子图的从零开始的索引的组合来唯一地标识子图。
+// 一个是轨迹ID，一个是子图的序号
 struct SubmapId {
   SubmapId(int trajectory_id, int submap_index)
       : trajectory_id(trajectory_id), submap_index(submap_index) {}
@@ -134,6 +142,7 @@ class Range {
 // 'SubmapId'.
 // Note: This container will only ever contain non-empty trajectories. Trimming
 // the last remaining node of a trajectory drops the trajectory.
+// std::map的封装
 template <typename IdType, typename DataType>
 class MapById {
  private:
@@ -147,6 +156,7 @@ class MapById {
 
   class ConstIterator {
    public:
+    // c++11: std::bidirectional_iterator_tag 用于将迭代器的类别标识为双向迭代器
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = IdDataReference;
     using difference_type = int64;

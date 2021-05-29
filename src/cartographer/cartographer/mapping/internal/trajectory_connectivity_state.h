@@ -28,6 +28,7 @@ namespace mapping {
 // constraint connected to trajectories.
 //
 // This class is thread-compatible.
+// 描述不同轨迹之间的连接状态
 class TrajectoryConnectivityState {
  public:
   TrajectoryConnectivityState() {}

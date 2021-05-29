@@ -1288,6 +1288,7 @@ PoseGraph3D::GetSubmapDataUnderLock() const {
   return submaps;
 }
 
+// 设置后端优化的回调函数, 目前没有使用
 void PoseGraph3D::SetGlobalSlamOptimizationCallback(
     PoseGraphInterface::GlobalSlamOptimizationCallback callback) {
   global_slam_optimization_callback_ = callback;

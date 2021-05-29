@@ -49,6 +49,13 @@ static auto* kActiveSubmapsMetric = metrics::Gauge::Null();
 static auto* kFrozenSubmapsMetric = metrics::Gauge::Null();
 static auto* kDeletedSubmapsMetric = metrics::Gauge::Null();
 
+/**
+ * @brief Construct a new Pose Graph 2D:: Pose Graph 2D object
+ * 
+ * @param[in] options 位姿图的参数配置
+ * @param[in] optimization_problem 优化问题
+ * @param[in] thread_pool 线程池
+ */
 PoseGraph2D::PoseGraph2D(
     const proto::PoseGraphOptions& options,
     std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem,
@@ -57,6 +64,7 @@ PoseGraph2D::PoseGraph2D(
       optimization_problem_(std::move(optimization_problem)),
       constraint_builder_(options_.constraint_builder_options(), thread_pool),
       thread_pool_(thread_pool) {
+  // overlapping_submaps_trimmer_2d 在配置文件中被注释掉了
   if (options.has_overlapping_submaps_trimmer_2d()) {
     const auto& trimmer_options = options.overlapping_submaps_trimmer_2d();
     AddTrimmer(absl::make_unique<OverlappingSubmapsTrimmer2D>(
@@ -152,17 +160,19 @@ NodeId PoseGraph2D::AppendNode(
 }
 
 /**
- * @brief 
+ * @brief 增加一个节点.并计算跟这个节点相关的约束.返回节点的ID
  * 
- * @param[in] constant_data 
- * @param[in] trajectory_id 
- * @param[in] insertion_submaps 
+ * @param[in] constant_data 约束数据
+ * @param[in] trajectory_id 轨迹id
+ * @param[in] insertion_submaps 子地图
  * @return NodeId 
  */
 NodeId PoseGraph2D::AddNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
+  
+
   const transform::Rigid3d optimized_pose(
       GetLocalToGlobalTransform(trajectory_id) * constant_data->local_pose);
 
@@ -1053,6 +1063,14 @@ std::vector<PoseGraphInterface::Constraint> PoseGraph2D::constraints() const {
   return result;
 }
 
+/**
+ * @brief 设置当前轨迹的起始坐标
+ * 
+ * @param[in] from_trajectory_id 当前的轨迹id
+ * @param[in] to_trajectory_id pose相对于的轨迹的id
+ * @param[in] pose 在to_trajectory_id中的坐标
+ * @param[in] time 当前的时间
+ */
 void PoseGraph2D::SetInitialTrajectoryPose(const int from_trajectory_id,
                                            const int to_trajectory_id,
                                            const transform::Rigid3d& pose,

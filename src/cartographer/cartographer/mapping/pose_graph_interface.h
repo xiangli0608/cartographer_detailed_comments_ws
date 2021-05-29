@@ -34,7 +34,7 @@ class PoseGraphInterface {
   // pose adjustment for 2d mapping." Intelligent Robots and Systems (IROS),
   // 2010 IEEE/RSJ International Conference on (pp. 22--29). IEEE, 2010.
   
-  // tag: Constraint
+  // tag: PoseGraphInterface::Constraint
   // 包含了子图的id, 节点的id, 节点j相对于子图i的坐标变换, 以及节点是在子图内还是子图外的标志
   struct Constraint {
     struct Pose {
@@ -78,7 +78,7 @@ class PoseGraphInterface {
     transform::Rigid3d pose;
   };
 
-  // tag: TrajectoryData
+  // tag: PoseGraphInterface::TrajectoryData
   struct TrajectoryData {
     double gravity_constant = 9.8;
     std::array<double, 4> imu_calibration{{1., 0., 0., 0.}};

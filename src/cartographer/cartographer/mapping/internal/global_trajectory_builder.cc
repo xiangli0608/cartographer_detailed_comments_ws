@@ -40,8 +40,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
   // 'TimedPointCloudData' may be added in that case.
 
   /**
-   * @brief Construct a new Global Trajectory Builder object
-   *        完整的slam, 连接起了前端与后端
+   * @brief 完整的slam, 连接起了前端与后端
    * 
    * @param[in] local_trajectory_builder 2d or 3d local slam 前端
    * @param[in] trajectory_id 轨迹id
@@ -61,11 +60,12 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
         pose_graph_odometry_motion_filter_(pose_graph_odometry_motion_filter) {}
   ~GlobalTrajectoryBuilder() override {}
 
+  // 禁用拷贝构造函数与赋值运算符
   GlobalTrajectoryBuilder(const GlobalTrajectoryBuilder&) = delete;
   GlobalTrajectoryBuilder& operator=(const GlobalTrajectoryBuilder&) = delete;
 
   /**
-   * @brief 
+   * @brief 点云数据的处理, 先进行扫描匹配, 然后将扫描匹配的结果当做节点插入到后端的位姿图中
    * 
    * @param[in] sensor_id topic名字
    * @param[in] timed_point_cloud_data 点云数据
@@ -85,10 +85,10 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
       // The range data has not been fully accumulated yet.
       return;
     }
-
     kLocalSlamMatchingResults->Increment();
-
     std::unique_ptr<InsertionResult> insertion_result;
+
+    // matching_result->insertion_result 的类型是 LocalTrajectoryBuilder2D::InsertionResult
     if (matching_result->insertion_result != nullptr) {
       kLocalSlamInsertionResults->Increment();
 
@@ -98,8 +98,11 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
           matching_result->insertion_result->insertion_submaps);
           
       CHECK_EQ(node_id.trajectory_id, trajectory_id_);
+
+      // 这里的InsertionResult的类型是 TrajectoryBuilderInterface::InsertionResult
       insertion_result = absl::make_unique<InsertionResult>(InsertionResult{
-          node_id, matching_result->insertion_result->constant_data,
+          node_id, 
+          matching_result->insertion_result->constant_data,
           std::vector<std::shared_ptr<const Submap>>(
               matching_result->insertion_result->insertion_submaps.begin(),
               matching_result->insertion_result->insertion_submaps.end())});
@@ -115,7 +118,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
 
   }
 
-  // imu数据的走向有两个,一个是进入前端local_trajectory_builder_, 一个是进入后端pose_graph_
+  // imu数据的处理, 数据走向有两个,一个是进入前端local_trajectory_builder_,一个是进入后端pose_graph_
   void AddSensorData(const std::string& sensor_id,
                      const sensor::ImuData& imu_data) override {
     if (local_trajectory_builder_) {
@@ -124,7 +127,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
     pose_graph_->AddImuData(trajectory_id_, imu_data);
   }
 
-  // 里程计数据的走向有两个,一个是进入前端local_trajectory_builder_, 一个是进入后端pose_graph_
+  // 里程计数据的处理, 数据走向有两个,一个是进入前端local_trajectory_builder_, 一个是进入后端pose_graph_
   // 加入到后端之前, 先做一个距离的计算, 只有时间,移动距离,角度 变换量大于阈值才加入到后端中
   void AddSensorData(const std::string& sensor_id,
                      const sensor::OdometryData& odometry_data) override {
@@ -170,8 +173,8 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
 
  private:
   const int trajectory_id_;
-  PoseGraph* const pose_graph_;
-  std::unique_ptr<LocalTrajectoryBuilder> local_trajectory_builder_;
+  PoseGraph* const pose_graph_;     // 模板参数, 可以指向PoseGraph2D也可以指向PoseGraph3D
+  std::unique_ptr<LocalTrajectoryBuilder> local_trajectory_builder_;  // 模板参数
   LocalSlamResultCallback local_slam_result_callback_;
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter_;
 };
