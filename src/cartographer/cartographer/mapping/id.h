@@ -142,7 +142,7 @@ class Range {
 // 'SubmapId'.
 // Note: This container will only ever contain non-empty trajectories. Trimming
 // the last remaining node of a trajectory drops the trajectory.
-// std::map的封装
+// std::map的封装 IdType 只能是 NodeId 或者SubmapId, 数据类型都是轨迹id加索引
 template <typename IdType, typename DataType>
 class MapById {
  private:
@@ -162,6 +162,8 @@ class MapById {
     using difference_type = int64;
     using pointer = std::unique_ptr<const IdDataReference>;
     using reference = const IdDataReference&;
+
+    // c++11: explicit关键字 的作用就是防止类构造函数的隐式自动转换
 
     explicit ConstIterator(const MapById& map_by_id, const int trajectory_id)
         : current_trajectory_(
@@ -279,13 +281,18 @@ class MapById {
   };
 
   // Appends data to a 'trajectory_id', creating trajectories as needed.
+  // 向轨迹的最后添加数据, 返回新添加数据的IdType索引
   IdType Append(const int trajectory_id, const DataType& data) {
     CHECK_GE(trajectory_id, 0);
+    // 获取轨迹数据trajectory
     auto& trajectory = trajectories_[trajectory_id];
     CHECK(trajectory.can_append_);
+    // 找到最后一个元素的下一个索引
     const int index =
         trajectory.data_.empty() ? 0 : trajectory.data_.rbegin()->first + 1;
+    // 加入到trajectory.data_中
     trajectory.data_.emplace(index, data);
+    // 返回新生成的IdType
     return IdType{trajectory_id, index};
   }
 
@@ -306,9 +313,12 @@ class MapById {
 
   // Removes the data for 'id' which must exist.
   void Trim(const IdType& id) {
+    // trajectory是轨迹内的数据
     auto& trajectory = trajectories_.at(id.trajectory_id);
+
     const auto it = trajectory.data_.find(GetIndex(id));
     CHECK(it != trajectory.data_.end()) << id;
+    // 将索引最高的一项的轨迹设置成不可再添加的状态
     if (std::next(it) == trajectory.data_.end()) {
       // We are removing the data with the highest index from this trajectory.
       // We assume that we will never append to it anymore. If we did, we would
@@ -316,7 +326,9 @@ class MapById {
       // correct connectivity.
       trajectory.can_append_ = false;
     }
+    // 将索引最高的一项删除掉
     trajectory.data_.erase(it);
+    // 如果删除之后轨迹空了, 就把轨迹删除掉
     if (trajectory.data_.empty()) {
       trajectories_.erase(id.trajectory_id);
     }
@@ -420,14 +432,21 @@ class MapById {
   }
 
  private:
+ 
   struct MapByIndex {
     bool can_append_ = true;
+    // int: NodeId或者SubmapId的index, DataType为实际存储的数据
     std::map<int, DataType> data_;
   };
 
+  // c++11: static 修饰 成员函数, 代表静态成员函数
+  // 静态成员函数是属于类的, 不是属于对象的. 静态成员函数只能访问静态成员变量
+
+  // 只有 NodeId 和 SubmapId 才可以当做 MapById 的key
   static int GetIndex(const NodeId& id) { return id.node_index; }
   static int GetIndex(const SubmapId& id) { return id.submap_index; }
 
+  // 所有的轨迹, 以及轨迹内的数据
   std::map<int, MapByIndex> trajectories_;
 };
 

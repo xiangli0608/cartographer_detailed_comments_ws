@@ -46,6 +46,7 @@ proto::PoseGraphOptions CreatePoseGraphOptions(
 
 class PoseGraph : public PoseGraphInterface {
  public:
+  // 相对于to_trajectory_id的初始位姿
   struct InitialTrajectoryPose {
     int to_trajectory_id;
     transform::Rigid3d relative_pose;

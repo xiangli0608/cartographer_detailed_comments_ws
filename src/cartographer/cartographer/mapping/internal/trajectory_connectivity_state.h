@@ -29,6 +29,7 @@ namespace mapping {
 //
 // This class is thread-compatible.
 // 描述不同轨迹之间的连接状态
+// todo: TrajectoryConnectivityState
 class TrajectoryConnectivityState {
  public:
   TrajectoryConnectivityState() {}

@@ -39,6 +39,7 @@ namespace mapping {
 // 同样，所有新节点都与kNoConstraintSearch状态下的子图匹配。
 enum class SubmapState { kNoConstraintSearch, kFinished };
 
+// 轨迹的状态
 struct InternalTrajectoryState {
   enum class DeletionState {
     NORMAL,
@@ -66,7 +67,8 @@ struct InternalSubmapData {
 struct PoseGraphData {
   // Submaps get assigned an ID and state as soon as they are seen, even
   // before they take part in the background computations.
-  // 子图一被看到就会被分配一个 ID 和状态
+
+  // submap_data_ 里面,包含了所有的submap
   MapById<SubmapId, InternalSubmapData> submap_data;
 
   // Global submap poses currently used for displaying data.
@@ -84,7 +86,9 @@ struct PoseGraphData {
 
   // How our various trajectories are related.
   TrajectoryConnectivityState trajectory_connectivity_state;
+  // 节点的个数
   int num_trajectory_nodes = 0;
+  // 轨迹与轨迹的状态
   std::map<int, InternalTrajectoryState> trajectories_state;
 
   // Set of all initial trajectory poses.

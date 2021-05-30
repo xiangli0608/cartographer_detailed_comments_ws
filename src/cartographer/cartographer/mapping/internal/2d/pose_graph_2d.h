@@ -259,6 +259,7 @@ class PoseGraph2D : public PoseGraph {
 
   // If it exists, further work items must be added to this queue, and will be
   // considered later.
+  // 指向 双端队列 的指针
   std::unique_ptr<WorkQueue> work_queue_ GUARDED_BY(work_queue_mutex_);
 
   // We globally localize a fraction of the nodes from each trajectory.

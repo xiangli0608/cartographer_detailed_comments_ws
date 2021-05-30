@@ -131,27 +131,44 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
   return {front_submap_id, last_submap_id};
 }
 
+/**
+ * @brief 向节点列表中添加一个新的节点, 并保存新生成的submap
+ * 
+ * @param[in] constant_data 约束数据
+ * @param[in] trajectory_id 轨迹id
+ * @param[in] insertion_submaps 子地图
+ * @param[in] optimized_pose 当前节点在global坐标系下的坐标
+ * @return NodeId 返回新生成的节点id
+ */
 NodeId PoseGraph2D::AppendNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps,
     const transform::Rigid3d& optimized_pose) {
   absl::MutexLock locker(&mutex_);
+
   AddTrajectoryIfNeeded(trajectory_id);
+
   if (!CanAddWorkItemModifying(trajectory_id)) {
     LOG(WARNING) << "AddNode was called for finished or deleted trajectory.";
   }
+
   const NodeId node_id = data_.trajectory_nodes.Append(
       trajectory_id, TrajectoryNode{constant_data, optimized_pose});
   ++data_.num_trajectory_nodes;
+
   // Test if the 'insertion_submap.back()' is one we never saw before.
   if (data_.submap_data.SizeOfTrajectoryOrZero(trajectory_id) == 0 ||
       std::prev(data_.submap_data.EndOfTrajectory(trajectory_id))
               ->data.submap != insertion_submaps.back()) {
     // We grow 'data_.submap_data' as needed. This code assumes that the first
     // time we see a new submap is as 'insertion_submaps.back()'.
+
+    // 如果insertion_submaps.back()是第一次看到, 也就是新生成的
+    // 在data_.submap_data中加入一个新的InternalSubmapData
     const SubmapId submap_id =
         data_.submap_data.Append(trajectory_id, InternalSubmapData());
+    // 将地图赋值 到新生成的 data_.submap_data.at(submap_id) 的 submap 中
     data_.submap_data.at(submap_id).submap = insertion_submaps.back();
     LOG(INFO) << "Inserted submap " << submap_id << ".";
     kActiveSubmapsMetric->Increment();
@@ -160,46 +177,59 @@ NodeId PoseGraph2D::AppendNode(
 }
 
 /**
- * @brief 增加一个节点.并计算跟这个节点相关的约束.返回节点的ID
+ * @brief 增加一个节点.并计算跟这个节点相关的约束
  * 
  * @param[in] constant_data 约束数据
  * @param[in] trajectory_id 轨迹id
  * @param[in] insertion_submaps 子地图
- * @return NodeId 
+ * @return NodeId 返回节点的ID
  */
 NodeId PoseGraph2D::AddNode(
     std::shared_ptr<const TrajectoryNode::Data> constant_data,
     const int trajectory_id,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
   
-
+  // 将节点在local坐标系下的坐标转成global坐标系下的坐标
   const transform::Rigid3d optimized_pose(
       GetLocalToGlobalTransform(trajectory_id) * constant_data->local_pose);
 
+  // 向节点列表加入节点,并得到节点的id
   const NodeId node_id = AppendNode(constant_data, trajectory_id,
                                     insertion_submaps, optimized_pose);
+
   // We have to check this here, because it might have changed by the time we
   // execute the lambda.
+  // 我们必须在这里检查这一点，因为在我们执行 lambda 时它可能已经改变了
   const bool newly_finished_submap =
       insertion_submaps.front()->insertion_finished();
+
+  // 把计算约束的工作放入workitem中等待执行
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
     return ComputeConstraintsForNode(node_id, insertion_submaps,
                                      newly_finished_submap);
   });
+
   return node_id;
 }
 
+// 将任务放入到任务队列中等待被执行
 void PoseGraph2D::AddWorkItem(
     const std::function<WorkItem::Result()>& work_item) {
   absl::MutexLock locker(&work_queue_mutex_);
+
   if (work_queue_ == nullptr) {
+    // work_queue_的初始化
     work_queue_ = absl::make_unique<WorkQueue>();
+    // 将 执行一次DrainWorkQueue()的任务 放入线程池中等待计算
     auto task = absl::make_unique<common::Task>();
     task->SetWorkItem([this]() { DrainWorkQueue(); });
     thread_pool_->Schedule(std::move(task));
   }
+
   const auto now = std::chrono::steady_clock::now();
+  // 将任务放入work_queue_队列中
   work_queue_->push_back({now, work_item});
+
   kWorkQueueSizeMetric->Set(work_queue_->size());
   kWorkQueueDelayMetric->Set(
       std::chrono::duration_cast<std::chrono::duration<double>>(
@@ -207,16 +237,23 @@ void PoseGraph2D::AddWorkItem(
           .count());
 }
 
+// 如果轨迹不存在, 则为轨迹添加连接性和采样器
 void PoseGraph2D::AddTrajectoryIfNeeded(const int trajectory_id) {
+  // 如果不存在就添加
   data_.trajectories_state[trajectory_id];
+
   CHECK(data_.trajectories_state.at(trajectory_id).state !=
         TrajectoryState::FINISHED);
   CHECK(data_.trajectories_state.at(trajectory_id).state !=
         TrajectoryState::DELETED);
   CHECK(data_.trajectories_state.at(trajectory_id).deletion_state ==
         InternalTrajectoryState::DeletionState::NORMAL);
+
+  // 为轨迹添加连接状态
   data_.trajectory_connectivity_state.Add(trajectory_id);
+
   // Make sure we have a sampler for this trajectory.
+  // 为轨迹添加采样器
   if (!global_localization_samplers_[trajectory_id]) {
     global_localization_samplers_[trajectory_id] =
         absl::make_unique<common::FixedRatioSampler>(
@@ -536,24 +573,30 @@ void PoseGraph2D::HandleWorkQueue(
   DrainWorkQueue();
 }
 
+// 在调用线程上执行工作队列中的待处理任务, 直到队列为空或需要优化时退出循环, 执行优化
 void PoseGraph2D::DrainWorkQueue() {
   bool process_work_queue = true;
   size_t work_queue_size;
+
   while (process_work_queue) {
     std::function<WorkItem::Result()> work_item;
     {
       absl::MutexLock locker(&work_queue_mutex_);
+      // 如果任务队列空了, 就释放指针资源
       if (work_queue_->empty()) {
         work_queue_.reset();
         return;
       }
+      // 取出第一个任务
       work_item = work_queue_->front().task;
       work_queue_->pop_front();
       work_queue_size = work_queue_->size();
       kWorkQueueSizeMetric->Set(work_queue_size);
     }
+    // 执行任务, 如果需要优化, process_work_queue就会为false, 退出循环
     process_work_queue = work_item() == WorkItem::Result::kDoNotRunOptimization;
   }
+  // 退出循环了, 执行优化
   LOG(INFO) << "Remaining work items in queue: " << work_queue_size;
   // We have to optimize again.
   constraint_builder_.WhenDone(
@@ -1146,6 +1189,7 @@ transform::Rigid3d PoseGraph2D::ComputeLocalToGlobalTransform(
     const int trajectory_id) const {
   auto begin_it = global_submap_poses.BeginOfTrajectory(trajectory_id);
   auto end_it = global_submap_poses.EndOfTrajectory(trajectory_id);
+  // 
   if (begin_it == end_it) {
     const auto it = data_.initial_trajectory_poses.find(trajectory_id);
     if (it != data_.initial_trajectory_poses.end()) {
