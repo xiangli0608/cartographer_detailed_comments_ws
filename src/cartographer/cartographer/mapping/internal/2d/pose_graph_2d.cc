@@ -147,12 +147,15 @@ NodeId PoseGraph2D::AppendNode(
     const transform::Rigid3d& optimized_pose) {
   absl::MutexLock locker(&mutex_);
 
+  // 如果轨迹不存在, 则为轨迹添加连接性和采样器
   AddTrajectoryIfNeeded(trajectory_id);
 
+  // 根据轨迹状态判断是否可以添加任务
   if (!CanAddWorkItemModifying(trajectory_id)) {
     LOG(WARNING) << "AddNode was called for finished or deleted trajectory.";
   }
 
+  // 向节点列表中添加一个新的节点
   const NodeId node_id = data_.trajectory_nodes.Append(
       trajectory_id, TrajectoryNode{constant_data, optimized_pose});
   ++data_.num_trajectory_nodes;
@@ -165,7 +168,7 @@ NodeId PoseGraph2D::AppendNode(
     // time we see a new submap is as 'insertion_submaps.back()'.
 
     // 如果insertion_submaps.back()是第一次看到, 也就是新生成的
-    // 在data_.submap_data中加入一个新的InternalSubmapData
+    // 在data_.submap_data中加入一个空的InternalSubmapData
     const SubmapId submap_id =
         data_.submap_data.Append(trajectory_id, InternalSubmapData());
     // 将地图赋值 到新生成的 data_.submap_data.at(submap_id) 的 submap 中
@@ -261,6 +264,7 @@ void PoseGraph2D::AddTrajectoryIfNeeded(const int trajectory_id) {
   }
 }
 
+// 将 把imu数据加入到优化问题中 这个任务放入到任务队列中
 void PoseGraph2D::AddImuData(const int trajectory_id,
                              const sensor::ImuData& imu_data) {
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
@@ -268,10 +272,12 @@ void PoseGraph2D::AddImuData(const int trajectory_id,
     if (CanAddWorkItemModifying(trajectory_id)) {
       optimization_problem_->AddImuData(trajectory_id, imu_data);
     }
+    // 添加数据后不用立刻执行全局优化
     return WorkItem::Result::kDoNotRunOptimization;
   });
 }
 
+// 将 把里程计数据加入到优化问题中 这个任务放入到任务队列中
 void PoseGraph2D::AddOdometryData(const int trajectory_id,
                                   const sensor::OdometryData& odometry_data) {
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
@@ -283,6 +289,7 @@ void PoseGraph2D::AddOdometryData(const int trajectory_id,
   });
 }
 
+// 将 把gps数据加入到优化问题中 这个任务放入到任务队列中
 void PoseGraph2D::AddFixedFramePoseData(
     const int trajectory_id,
     const sensor::FixedFramePoseData& fixed_frame_pose_data) {
@@ -296,6 +303,7 @@ void PoseGraph2D::AddFixedFramePoseData(
   });
 }
 
+// 将 把landmark数据加入到优化问题中 这个任务放入到任务队列中
 void PoseGraph2D::AddLandmarkData(int trajectory_id,
                                   const sensor::LandmarkData& landmark_data) {
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
@@ -364,6 +372,22 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
   }
 }
 
+
+
+// 四步：
+//1.把该节点的信息加入到OptimizationProblem中，方便进行优化
+//2.计算节点和新加入的submap之间的约束
+//3.计算其它submap与节点之间约束
+//4.计算新的submap和旧的节点的约束
+
+/**
+ * @brief 
+ * 
+ * @param[in] node_id 刚加入的节点ID
+ * @param[in] insertion_submaps Local Slam返回的insertion_submaps
+ * @param[in] newly_finished_submap 是否是新finished的submap
+ * @return WorkItem::Result 是否需要执行全局优化
+ */
 WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     const NodeId& node_id,
     std::vector<std::shared_ptr<const Submap2D>> insertion_submaps,
@@ -373,26 +397,35 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
   std::set<NodeId> newly_finished_submap_node_ids;
   {
     absl::MutexLock locker(&mutex_);
+    // 获取节点数据
     const auto& constant_data =
         data_.trajectory_nodes.at(node_id).constant_data;
+    
+    // ?: 根据节点数据的时间获取最新的submap的id
     submap_ids = InitializeGlobalSubmapPoses(
         node_id.trajectory_id, constant_data->time, insertion_submaps);
     CHECK_EQ(submap_ids.size(), insertion_submaps.size());
+    // ?: 获取这两个submap中前一个的id
     const SubmapId matching_id = submap_ids.front();
+    // ?: 计算该Node经过重力align后的相对位姿，即在submap中的位姿
     const transform::Rigid2d local_pose_2d =
         transform::Project2D(constant_data->local_pose *
                              transform::Rigid3d::Rotation(
                                  constant_data->gravity_alignment.inverse()));
+    // ?: 计算该Node在世界坐标系中的绝对位姿；
+    // 但中间为啥要乘一个constraints::ComputeSubmapPose(*insertion_submaps.front()).inverse()呢？
     const transform::Rigid2d global_pose_2d =
         optimization_problem_->submap_data().at(matching_id).global_pose *
         constraints::ComputeSubmapPose(*insertion_submaps.front()).inverse() *
         local_pose_2d;
+    
+    // 把该节点的信息加入到OptimizationProblem中，方便进行优化
     optimization_problem_->AddTrajectoryNode(
         matching_id.trajectory_id,
         optimization::NodeSpec2D{constant_data->time, local_pose_2d,
                                  global_pose_2d,
                                  constant_data->gravity_alignment});
-                                 
+    // 遍历处理每一个insertion_submaps
     for (size_t i = 0; i < insertion_submaps.size(); ++i) {
       const SubmapId submap_id = submap_ids[i];
       // Even if this was the last node added to 'submap_id', the submap will
@@ -430,12 +463,14 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
       finished_submap_data.state = SubmapState::kFinished;
       newly_finished_submap_node_ids = finished_submap_data.node_ids;
     }
-  }
+  } // end {}
 
+  // 遍历历史中的submap，计算新的Node与每个submap的约束
   for (const auto& submap_id : finished_submap_ids) {
     ComputeConstraint(node_id, submap_id);
   }
 
+  // 如果有新的刚被finished的submap
   if (newly_finished_submap) {
     const SubmapId newly_finished_submap_id = submap_ids.front();
     // We have a new completed submap, so we look into adding constraints for
@@ -447,11 +482,16 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
       }
     }
   }
+
+  // 结束构建约束
   constraint_builder_.NotifyEndOfNode();
+
   absl::MutexLock locker(&mutex_);
   ++num_nodes_since_last_loop_closure_;
+  // 插入的节点数大于optimize_every_n_nodes时执行一次优化
   if (options_.optimize_every_n_nodes() > 0 &&
       num_nodes_since_last_loop_closure_ > options_.optimize_every_n_nodes()) {
+    // 需要执行优化
     return WorkItem::Result::kRunOptimization;
   }
   return WorkItem::Result::kDoNotRunOptimization;
@@ -704,6 +744,7 @@ void PoseGraph2D::FinishTrajectory(const int trajectory_id) {
     for (const auto& submap : data_.submap_data.trajectory(trajectory_id)) {
       data_.submap_data.at(submap.id).state = SubmapState::kFinished;
     }
+    // 轨迹结束时执行一次优化
     return WorkItem::Result::kRunOptimization;
   });
 }
@@ -908,6 +949,7 @@ void PoseGraph2D::RunFinalOptimization() {
       absl::MutexLock locker(&mutex_);
       optimization_problem_->SetMaxNumIterations(
           options_.max_num_final_iterations());
+      // 轨迹结束后再执行一次优化
       return WorkItem::Result::kRunOptimization;
     });
     AddWorkItem([this]() LOCKS_EXCLUDED(mutex_) {
@@ -972,6 +1014,7 @@ void PoseGraph2D::RunOptimization() {
   data_.global_submap_poses_2d = submap_data;
 }
 
+// 根据轨迹状态判断是否可以添加任务
 bool PoseGraph2D::CanAddWorkItemModifying(int trajectory_id) {
   auto it = data_.trajectories_state.find(trajectory_id);
   if (it == data_.trajectories_state.end()) {

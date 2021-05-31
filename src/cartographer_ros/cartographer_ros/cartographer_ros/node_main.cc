@@ -99,7 +99,7 @@ void Run() {
   // 结束所有处于活动状态的轨迹
   node.FinishAllTrajectories();
 
-  // 当所有的轨迹结束时, 执行一次全局优化
+  // 当所有的轨迹结束时, 再执行一次全局优化
   node.RunFinalOptimization();
 
   // 如果save_state_filename非空, 就保存pbstream文件
