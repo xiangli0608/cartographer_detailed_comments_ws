@@ -136,6 +136,7 @@ void ConstraintBuilder2D::MaybeAddGlobalConstraint(
   finish_node_task_->AddDependency(constraint_task_handle);
 }
 
+// todo: ConstraintBuilder2D::NotifyEndOfNode
 void ConstraintBuilder2D::NotifyEndOfNode() {
   absl::MutexLock locker(&mutex_);
   CHECK(finish_node_task_ != nullptr);

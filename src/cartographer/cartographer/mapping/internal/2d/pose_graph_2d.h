@@ -254,6 +254,7 @@ class PoseGraph2D : public PoseGraph {
 
   const proto::PoseGraphOptions options_;
   GlobalSlamOptimizationCallback global_slam_optimization_callback_;
+  // 只有这两个线程互斥锁
   mutable absl::Mutex mutex_;
   absl::Mutex work_queue_mutex_;
 

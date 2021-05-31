@@ -190,6 +190,7 @@ void OptimizationProblem2D::AddFixedFramePoseData(
   fixed_frame_pose_data_.Append(trajectory_id, fixed_frame_pose_data);
 }
 
+// todo: OptimizationProblem2D::AddTrajectoryNode
 void OptimizationProblem2D::AddTrajectoryNode(const int trajectory_id,
                                               const NodeSpec2D& node_data) {
   node_data_.Append(trajectory_id, node_data);
