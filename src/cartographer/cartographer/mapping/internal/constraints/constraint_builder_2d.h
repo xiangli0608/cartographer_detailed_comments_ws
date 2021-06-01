@@ -107,6 +107,7 @@ class ConstraintBuilder2D {
   static void RegisterMetrics(metrics::FamilyFactory* family_factory);
 
  private:
+  // FastCorrelativeScanMatcher2D的对象
   struct SubmapScanMatcher {
     const Grid2D* grid = nullptr;
     std::unique_ptr<scan_matching::FastCorrelativeScanMatcher2D>

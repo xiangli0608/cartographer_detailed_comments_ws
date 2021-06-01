@@ -52,10 +52,17 @@ static auto* kConstraintScoresMetric = metrics::Histogram::Null();
 static auto* kGlobalConstraintScoresMetric = metrics::Histogram::Null();
 static auto* kNumSubmapScanMatchersMetric = metrics::Gauge::Null();
 
+// 返回submap的原点在local坐标系下的二维坐标
 transform::Rigid2d ComputeSubmapPose(const Submap2D& submap) {
   return transform::Project2D(submap.local_pose());
 }
 
+/**
+ * @brief Construct a new Constraint Builder 2D:: Constraint Builder 2D object
+ * 
+ * @param[in] options 约束构造器的配置参数
+ * @param[in] thread_pool map_builder中构造的线程池
+ */
 ConstraintBuilder2D::ConstraintBuilder2D(
     const constraints::proto::ConstraintBuilderOptions& options,
     common::ThreadPoolInterface* const thread_pool)
@@ -74,14 +81,18 @@ ConstraintBuilder2D::~ConstraintBuilder2D() {
   CHECK(when_done_ == nullptr);
 }
 
+// todo: ConstraintBuilder2D::MaybeAddConstraint
 void ConstraintBuilder2D::MaybeAddConstraint(
     const SubmapId& submap_id, const Submap2D* const submap,
     const NodeId& node_id, const TrajectoryNode::Data* const constant_data,
     const transform::Rigid2d& initial_relative_pose) {
+  // 超过阈值的不添加约束
   if (initial_relative_pose.translation().norm() >
       options_.max_constraint_distance()) {
     return;
   }
+  // 根据参数配置添加约束的频率
+  // tag: 这里可以现场演示一下
   if (!per_submap_sampler_
            .emplace(std::piecewise_construct, std::forward_as_tuple(submap_id),
                     std::forward_as_tuple(options_.sampling_ratio()))
@@ -90,13 +101,16 @@ void ConstraintBuilder2D::MaybeAddConstraint(
   }
 
   absl::MutexLock locker(&mutex_);
+  // 当when_done_正在处理任务时调用本函数, 报个警告
   if (when_done_) {
     LOG(WARNING)
         << "MaybeAddConstraint was called while WhenDone was scheduled.";
   }
+
   constraints_.emplace_back();
   kQueueLengthMetric->Set(constraints_.size());
   auto* const constraint = &constraints_.back();
+  
   const auto* scan_matcher =
       DispatchScanMatcherConstruction(submap_id, submap->grid());
   auto constraint_task = absl::make_unique<common::Task>();
@@ -111,6 +125,7 @@ void ConstraintBuilder2D::MaybeAddConstraint(
   finish_node_task_->AddDependency(constraint_task_handle);
 }
 
+// todo: ConstraintBuilder2D::MaybeAddGlobalConstraint
 void ConstraintBuilder2D::MaybeAddGlobalConstraint(
     const SubmapId& submap_id, const Submap2D* const submap,
     const NodeId& node_id, const TrajectoryNode::Data* const constant_data) {
@@ -151,6 +166,7 @@ void ConstraintBuilder2D::NotifyEndOfNode() {
   ++num_started_nodes_;
 }
 
+// todo: ConstraintBuilder2D::WhenDone
 void ConstraintBuilder2D::WhenDone(
     const std::function<void(const ConstraintBuilder2D::Result&)>& callback) {
   absl::MutexLock locker(&mutex_);
@@ -277,6 +293,7 @@ void ConstraintBuilder2D::ComputeConstraint(
   }
 }
 
+// todo: ConstraintBuilder2D::RunWhenDoneCallback
 void ConstraintBuilder2D::RunWhenDoneCallback() {
   Result result;
   std::unique_ptr<std::function<void(const Result&)>> callback;
@@ -287,24 +304,30 @@ void ConstraintBuilder2D::RunWhenDoneCallback() {
       if (constraint == nullptr) continue;
       result.push_back(*constraint);
     }
+
     if (options_.log_matches()) {
       LOG(INFO) << constraints_.size() << " computations resulted in "
                 << result.size() << " additional constraints.";
       LOG(INFO) << "Score histogram:\n" << score_histogram_.ToString(10);
     }
+
     constraints_.clear();
+
     callback = std::move(when_done_);
     when_done_.reset();
     kQueueLengthMetric->Set(constraints_.size());
   }
+  // 执行回调函数
   (*callback)(result);
 }
 
+// 
 int ConstraintBuilder2D::GetNumFinishedNodes() {
   absl::MutexLock locker(&mutex_);
   return num_finished_nodes_;
 }
 
+// 
 void ConstraintBuilder2D::DeleteScanMatcher(const SubmapId& submap_id) {
   absl::MutexLock locker(&mutex_);
   if (when_done_) {

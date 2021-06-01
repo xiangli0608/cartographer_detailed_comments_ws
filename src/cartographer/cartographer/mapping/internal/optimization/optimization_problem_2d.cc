@@ -173,6 +173,7 @@ OptimizationProblem2D::OptimizationProblem2D(
 
 OptimizationProblem2D::~OptimizationProblem2D() {}
 
+// 2D优化中不使用IMU数据，所以我们忽略这部分接口
 void OptimizationProblem2D::AddImuData(const int trajectory_id,
                                        const sensor::ImuData& imu_data) {
   // IMU data is not used in 2D optimization, so we ignore this part of the
