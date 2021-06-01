@@ -165,6 +165,7 @@ class MapById {
 
     // c++11: explicit关键字 的作用就是防止类构造函数的隐式自动转换
 
+    // 通过表和轨迹id（trajectory_id）获得索引，current_data_为该轨迹的第一个validData值
     explicit ConstIterator(const MapById& map_by_id, const int trajectory_id)
         : current_trajectory_(
               map_by_id.trajectories_.lower_bound(trajectory_id)),
@@ -175,6 +176,7 @@ class MapById {
       }
     }
 
+    // 通过表和data的Id获取索引
     explicit ConstIterator(const MapById& map_by_id, const IdType& id)
         : current_trajectory_(map_by_id.trajectories_.find(id.trajectory_id)),
           end_trajectory_(map_by_id.trajectories_.end()) {
@@ -227,6 +229,7 @@ class MapById {
     bool operator!=(const ConstIterator& it) const { return !operator==(it); }
 
    private:
+    // 如果数据到了current_trajectory_末尾，那么移动到下一个trajectory_的begin()
     void AdvanceToValidDataIterator() {
       CHECK(current_trajectory_ != end_trajectory_);
       while (current_data_ == current_trajectory_->second.data_.end()) {
@@ -243,6 +246,7 @@ class MapById {
     typename std::map<int, DataType>::const_iterator current_data_;
   };
 
+
   class ConstTrajectoryIterator {
    public:
     using iterator_category = std::bidirectional_iterator_tag;
@@ -255,7 +259,7 @@ class MapById {
         typename std::map<int, MapByIndex>::const_iterator current_trajectory)
         : current_trajectory_(current_trajectory) {}
 
-    // 仿函数, 返回轨迹的id
+    // 仿函数
     int operator*() const { return current_trajectory_->first; }
 
     ConstTrajectoryIterator& operator++() {
@@ -298,11 +302,13 @@ class MapById {
 
   // Returns an iterator to the element at 'id' or the end iterator if it does
   // not exist.
+  // 返回 本表（map）中，id对应索引（ConstIterator形式）
   ConstIterator find(const IdType& id) const {
     return ConstIterator(*this, id);
   }
 
   // Inserts data (which must not exist already) into a trajectory.
+  // 把id对应的data插入到表中
   void Insert(const IdType& id, const DataType& data) {
     CHECK_GE(id.trajectory_id, 0);
     CHECK_GE(GetIndex(id), 0);
@@ -312,6 +318,7 @@ class MapById {
   }
 
   // Removes the data for 'id' which must exist.
+  // 删除表中对应id的数据
   void Trim(const IdType& id) {
     // trajectory是轨迹内的数据
     auto& trajectory = trajectories_.at(id.trajectory_id);
@@ -334,11 +341,13 @@ class MapById {
     }
   }
 
+  // 查看是否有对应id的数据
   bool Contains(const IdType& id) const {
     return trajectories_.count(id.trajectory_id) != 0 &&
            trajectories_.at(id.trajectory_id).data_.count(GetIndex(id)) != 0;
   }
 
+  // 返回表中固定id对应的数据
   const DataType& at(const IdType& id) const {
     return trajectories_.at(id.trajectory_id).data_.at(GetIndex(id));
   }
@@ -348,14 +357,19 @@ class MapById {
   }
 
   // Support querying by trajectory.
+  // 某个trajectory_id 对应的首地址ConstIterator表示形式
   ConstIterator BeginOfTrajectory(const int trajectory_id) const {
     return ConstIterator(*this, trajectory_id);
   }
+
+  // ?: 没看懂
+  // 某个trajectory_id 对应的尾地址ConstIterator表示形式
   ConstIterator EndOfTrajectory(const int trajectory_id) const {
     return BeginOfTrajectory(trajectory_id + 1);
   }
 
   // Returns 0 if 'trajectory_id' does not exist.
+  // 整个表轨迹个数
   size_t SizeOfTrajectoryOrZero(const int trajectory_id) const {
     return trajectories_.count(trajectory_id)
                ? trajectories_.at(trajectory_id).data_.size()
@@ -363,6 +377,7 @@ class MapById {
   }
 
   // Returns count of all elements.
+  // 整个表数据的个数
   size_t size() const {
     size_t size = 0;
     for (const auto& item : trajectories_) {
@@ -435,7 +450,7 @@ class MapById {
  
   struct MapByIndex {
     bool can_append_ = true;
-    // int: NodeId或者SubmapId的index, DataType为实际存储的数据
+    // 这里的int指的是 NodeId或者SubmapId的index, DataType为实际存储的数据
     std::map<int, DataType> data_;
   };
 

@@ -69,7 +69,7 @@ void ThreadPool::NotifyDependenciesCompleted(Task* task) {
 
   // 加入到任务队列中
   task_queue_.push_back(it->second);
-  // 从为准备好的任务队列中删除task
+  // 从未准备好的任务队列中删除task
   tasks_not_ready_.erase(it);
 }
 

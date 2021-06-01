@@ -57,6 +57,7 @@ void Task::AddDependency(std::weak_ptr<Task> dependency) {
       ++uncompleted_dependencies_;
     }
   }
+  
   if (shared_dependency) {
     // 将本task加入到shared_dependency的集合dependent_tasks_中
     shared_dependency->AddDependentTask(this);

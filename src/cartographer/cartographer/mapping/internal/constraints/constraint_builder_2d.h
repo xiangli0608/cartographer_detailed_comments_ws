@@ -57,6 +57,7 @@ transform::Rigid2d ComputeSubmapPose(const Submap2D& submap);
 // and another MaybeAdd(Global)Constraint()/WhenDone() cycle can follow.
 //
 // This class is thread-safe.
+// 计算某一个节点与某一个submap之间的约束关系
 class ConstraintBuilder2D {
  public:
   using Constraint = PoseGraphInterface::Constraint;
