@@ -332,7 +332,7 @@ void PoseGraph2D::AddFixedFramePoseData(
   });
 }
 
-// 将 把landmark数据加入到优化问题中 这个任务放入到任务队列中
+// 将 把landmark数据加入到data_.landmark_nodes中 这个任务放入到任务队列中
 void PoseGraph2D::AddLandmarkData(int trajectory_id,
                                   const sensor::LandmarkData& landmark_data) {
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
@@ -560,7 +560,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
   // 插入的节点数大于optimize_every_n_nodes时执行一次优化
   if (options_.optimize_every_n_nodes() > 0 &&
       num_nodes_since_last_loop_closure_ > options_.optimize_every_n_nodes()) {
-    // 需要执行优化
+    // 加入的节点数大于阈值时需要执行优化
     return WorkItem::Result::kRunOptimization;
   }
   return WorkItem::Result::kDoNotRunOptimization;
@@ -618,10 +618,11 @@ void PoseGraph2D::HandleWorkQueue(
     const constraints::ConstraintBuilder2D::Result& result) {
   {
     absl::MutexLock locker(&mutex_);
-    // 把result中的所有约束加入到constraints_向量的末尾处
+    // 把计算出的约束信息 添加到 constraints_向量的末尾处
     data_.constraints.insert(data_.constraints.end(), result.begin(),
                              result.end());
   }
+
   // 执行优化
   RunOptimization();
 
@@ -658,6 +659,8 @@ void PoseGraph2D::HandleWorkQueue(
     for (const Constraint& constraint : result) {
       UpdateTrajectoryConnectivity(constraint);
     }
+
+    // 
     DeleteTrajectoriesIfNeeded();
     
     // ?: TrimmingHandle
@@ -697,7 +700,7 @@ void PoseGraph2D::HandleWorkQueue(
 
   } // end {}
 
-  // 优化结束了, 继续处理任务队列中的其他任务
+  // 优化执行结束了, 继续处理任务队列中的其他任务
   DrainWorkQueue();
 }
 
@@ -706,6 +709,7 @@ void PoseGraph2D::DrainWorkQueue() {
   bool process_work_queue = true;
   size_t work_queue_size;
 
+  // 循环一直执行, 直到需要进行优化时结束循环
   while (process_work_queue) {
     std::function<WorkItem::Result()> work_item;
     {
@@ -727,13 +731,14 @@ void PoseGraph2D::DrainWorkQueue() {
   
   LOG(INFO) << "Remaining work items in queue: " << work_queue_size;
   // We have to optimize again.
-  // 退出循环了, 执行优化, 
+  // 退出循环了, 首先等待计算约束中的任务执行完, 再进行优化 
   constraint_builder_.WhenDone(
       [this](const constraints::ConstraintBuilder2D::Result& result) {
         HandleWorkQueue(result);
       });
 }
 
+// 等待所有的计算任务执行完成
 void PoseGraph2D::WaitForAllComputations() {
   int num_trajectory_nodes;
   {
@@ -775,6 +780,7 @@ void PoseGraph2D::WaitForAllComputations() {
   }
 
   // Now wait for any pending constraint computations to finish.
+  // 现在等待任何挂起的约束计算完成
   absl::MutexLock locker(&mutex_);
   bool notification = false;
   constraint_builder_.WhenDone(
@@ -786,9 +792,11 @@ void PoseGraph2D::WaitForAllComputations() {
                                      result.end());
             notification = true;
           });
+
   const auto predicate = [&notification]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
     return notification;
   };
+
   while (!mutex_.AwaitWithTimeout(absl::Condition(&predicate),
                                   absl::FromChrono(common::FromSeconds(1.)))) {
     report_progress();
@@ -823,17 +831,18 @@ void PoseGraph2D::DeleteTrajectory(const int trajectory_id) {
   });
 }
 
-// todo: PoseGraph2D::FinishTrajectory
+// 结束指定id的轨迹
 void PoseGraph2D::FinishTrajectory(const int trajectory_id) {
   AddWorkItem([this, trajectory_id]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     CHECK(!IsTrajectoryFinished(trajectory_id));
+    // 把轨迹的状态设置为FINISHED
     data_.trajectories_state[trajectory_id].state = TrajectoryState::FINISHED;
-
+    // 把轨迹内的所有子图的状态设置为kFinished
     for (const auto& submap : data_.submap_data.trajectory(trajectory_id)) {
       data_.submap_data.at(submap.id).state = SubmapState::kFinished;
     }
-    // 轨迹结束时执行一次优化
+    // 轨迹结束后执行一次优化
     return WorkItem::Result::kRunOptimization;
   });
 }
@@ -1037,29 +1046,34 @@ void PoseGraph2D::AddTrimmer(std::unique_ptr<PoseGraphTrimmer> trimmer) {
   });
 }
 
+// 执行最后一次的优化, 等待所有的计算任务结束
 void PoseGraph2D::RunFinalOptimization() {
   {
     AddWorkItem([this]() LOCKS_EXCLUDED(mutex_) {
       absl::MutexLock locker(&mutex_);
+      // 设置更多的最大迭代次数
       optimization_problem_->SetMaxNumIterations(
           options_.max_num_final_iterations());
-      // 轨迹结束后再执行一次优化
+      // 执行一次优化
       return WorkItem::Result::kRunOptimization;
     });
     AddWorkItem([this]() LOCKS_EXCLUDED(mutex_) {
       absl::MutexLock locker(&mutex_);
+      // 再设置回去
       optimization_problem_->SetMaxNumIterations(
           options_.optimization_problem_options()
               .ceres_solver_options()
               .max_num_iterations());
+      // 结束了不用执行优化
       return WorkItem::Result::kDoNotRunOptimization;
     });
   }
   WaitForAllComputations();
 }
 
-// todo: PoseGraph2D::RunOptimization
+// 进行优化处理，并将优化结果进行更新
 void PoseGraph2D::RunOptimization() {
+  // 如果submap为空直接退出
   if (optimization_problem_->submap_data().empty()) {
     return;
   }
@@ -1068,14 +1082,28 @@ void PoseGraph2D::RunOptimization() {
   // data_.constraints, data_.frozen_trajectories and data_.landmark_nodes
   // when executing the Solve. Solve is time consuming, so not taking the mutex
   // before Solve to avoid blocking foreground processing.
+  // Solve 比较耗时，所以在执行 Solve 之前不要加互斥锁，以免阻塞其他的任务处理
+  // landmark直接参与优化问题
   optimization_problem_->Solve(data_.constraints, GetTrajectoryStates(),
                                data_.landmark_nodes);
+
   absl::MutexLock locker(&mutex_);
 
+  // 获取优化后的结果
+  // submap_data的类型是 
+  // MapById<SubmapId, optimization::SubmapSpec2D> global_submap_poses_2d
   const auto& submap_data = optimization_problem_->submap_data();
+
+  // node_data的类型是 MapById<NodeId, NodeSpec2D> node_data_
   const auto& node_data = optimization_problem_->node_data();
+
+  // 更新轨迹内的节点位置
   for (const int trajectory_id : node_data.trajectory_ids()) {
+
+    // 根据 优化后的结果 对data_.trajectory_nodes进行更新
     for (const auto& node : node_data.trajectory(trajectory_id)) {
+      // node 是 IdDataReference 类型
+      // mutable_trajectory_node是TrajectoryNode类型
       auto& mutable_trajectory_node = data_.trajectory_nodes.at(node.id);
       mutable_trajectory_node.global_pose =
           transform::Embed3D(node.data.global_pose_2d) *
@@ -1085,27 +1113,40 @@ void PoseGraph2D::RunOptimization() {
 
     // Extrapolate all point cloud poses that were not included in the
     // 'optimization_problem_' yet.
+    // 推断尚未包含在“optimization_problem_”中的所有点云姿势
+
+    // 获取优化后的 local坐标系到global坐标系间的坐标变换, 因为global坐标系改变了
     const auto local_to_new_global =
         ComputeLocalToGlobalTransform(submap_data, trajectory_id);
+    // 优化前的 local坐标系到global坐标系间的坐标变换
     const auto local_to_old_global = ComputeLocalToGlobalTransform(
         data_.global_submap_poses_2d, trajectory_id);
+    // 优化产生的改变量
     const transform::Rigid3d old_global_to_new_global =
         local_to_new_global * local_to_old_global.inverse();
-
+    // 这一次优化的node的最后一个id
     const NodeId last_optimized_node_id =
         std::prev(node_data.EndOfTrajectory(trajectory_id))->id;
+    // 指向下一个没有优化过的节点
     auto node_it =
         std::next(data_.trajectory_nodes.find(last_optimized_node_id));
+
+    // 根据之前的位姿改变量, 对没有优化过的位姿进行校正
     for (; node_it != data_.trajectory_nodes.EndOfTrajectory(trajectory_id);
          ++node_it) {
       auto& mutable_trajectory_node = data_.trajectory_nodes.at(node_it->id);
       mutable_trajectory_node.global_pose =
           old_global_to_new_global * mutable_trajectory_node.global_pose;
     }
-  }
+
+  } // end for trajectory_id
+
+  // 更新data_.landmark_nodes
   for (const auto& landmark : optimization_problem_->landmark_data()) {
     data_.landmark_nodes[landmark.first].global_landmark_pose = landmark.second;
   }
+
+  // 更新所有submap的位姿
   data_.global_submap_poses_2d = submap_data;
 }
 
@@ -1189,7 +1230,7 @@ std::map<std::string, transform::Rigid3d> PoseGraph2D::GetLandmarkPoses()
   return landmark_poses;
 }
 
-// 设置landmark在global坐标系下的坐标
+// 设置landmark在global坐标系下的坐标, 只有在从proto加载状态时进行使用
 void PoseGraph2D::SetLandmarkPose(const std::string& landmark_id,
                                   const transform::Rigid3d& global_pose,
                                   const bool frozen) {
@@ -1213,7 +1254,7 @@ sensor::MapByTime<sensor::OdometryData> PoseGraph2D::GetOdometryData() const {
   return optimization_problem_->odometry_data();
 }
 
-// 
+// 获取所有的landmark_nodes
 std::map<std::string /* landmark ID */, PoseGraphInterface::LandmarkNode>
 PoseGraph2D::GetLandmarkNodes() const {
   absl::MutexLock locker(&mutex_);

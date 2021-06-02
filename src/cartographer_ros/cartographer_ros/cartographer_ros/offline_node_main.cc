@@ -35,7 +35,6 @@ int main(int argc, char** argv) {
     return ::cartographer::mapping::CreateMapBuilder(map_builder_options);
   };
 
-  // todo: offline_main
   cartographer_ros::RunOfflineNode(map_builder_factory);
 
   ::ros::shutdown();

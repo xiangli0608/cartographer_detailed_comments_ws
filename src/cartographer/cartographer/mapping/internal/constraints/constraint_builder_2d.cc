@@ -284,9 +284,9 @@ void ConstraintBuilder2D::ComputeConstraint(
   // 2. Prune if the score is too low.
   // 3. Refine.
 
-  // Step:2 用基于分支定界算法的匹配器进行粗匹配
+  // Step:2 使用基于分支定界算法的匹配器进行粗匹配
   if (match_full_submap) {
-    // 节点与全地图范围内匹配
+    // 节点与全地图进行匹配
     kGlobalConstraintsSearchedMetric->Increment();
     if (submap_scan_matcher.fast_correlative_scan_matcher->MatchFullSubmap(
             constant_data->filtered_gravity_aligned_point_cloud,
@@ -301,7 +301,7 @@ void ConstraintBuilder2D::ComputeConstraint(
     }
   } 
   else {
-    // 节点与局部地图匹配
+    // 节点与局部地图进行匹配
     kConstraintsSearchedMetric->Increment();
     if (submap_scan_matcher.fast_correlative_scan_matcher->Match(
             initial_pose, constant_data->filtered_gravity_aligned_point_cloud,
@@ -332,10 +332,11 @@ void ConstraintBuilder2D::ComputeConstraint(
                             &unused_summary);
 
   // Step:4 获取节点到submap间的坐标变换
+  // pose_estimate 是 在 loacl frame 下的坐标, map <- node j
   const transform::Rigid2d constraint_transform =
       ComputeSubmapPose(*submap).inverse() * pose_estimate;
 
-  // Step:5 返回结果
+  // Step:5 返回计算后的约束
   constraint->reset(new Constraint{submap_id,
                                    node_id,
                                    {transform::Embed3D(constraint_transform),
