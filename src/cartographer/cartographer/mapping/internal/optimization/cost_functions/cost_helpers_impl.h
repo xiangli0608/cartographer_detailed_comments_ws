@@ -25,6 +25,11 @@ namespace cartographer {
 namespace mapping {
 namespace optimization {
 
+// 计算残差：
+// relative_pose = T1.inverse() * T2
+// [R1.inverse * R2  R1.inverse * (t2 -t1)]
+// [0                1                    ]
+
 template <typename T>
 static std::array<T, 3> ComputeUnscaledError(
     const transform::Rigid2d& relative_pose, const T* const start,
@@ -42,6 +47,8 @@ static std::array<T, 3> ComputeUnscaledError(
                T(relative_pose.rotation().angle()) - h[2])}};
 }
 
+
+// 残差加上尺度
 template <typename T>
 std::array<T, 3> ScaleError(const std::array<T, 3>& error,
                             double translation_weight, double rotation_weight) {

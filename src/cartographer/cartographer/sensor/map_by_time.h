@@ -32,6 +32,7 @@ namespace cartographer {
 namespace sensor {
 
 // 'DataType' must contain a 'time' member of type common::Time.
+// todo: MapByTime
 template <typename DataType>
 class MapByTime {
  public:

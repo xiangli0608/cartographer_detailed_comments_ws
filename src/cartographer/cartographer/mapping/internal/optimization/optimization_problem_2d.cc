@@ -206,13 +206,14 @@ void OptimizationProblem2D::AddFixedFramePoseData(
   fixed_frame_pose_data_.Append(trajectory_id, fixed_frame_pose_data);
 }
 
-// todo: OptimizationProblem2D::AddTrajectoryNode
+// 向优化问题中加入节点位姿数据
 void OptimizationProblem2D::AddTrajectoryNode(const int trajectory_id,
                                               const NodeSpec2D& node_data) {
   node_data_.Append(trajectory_id, node_data);
   trajectory_data_[trajectory_id];
 }
 
+// 设置trajectory_data_
 void OptimizationProblem2D::SetTrajectoryData(
     int trajectory_id, const TrajectoryData& trajectory_data) {
   trajectory_data_[trajectory_id] = trajectory_data;
@@ -234,16 +235,19 @@ void OptimizationProblem2D::TrimTrajectoryNode(const NodeId& node_id) {
   }
 }
 
+// 添加子图位姿
 void OptimizationProblem2D::AddSubmap(
     const int trajectory_id, const transform::Rigid2d& global_submap_pose) {
   submap_data_.Append(trajectory_id, SubmapSpec2D{global_submap_pose});
 }
 
+// 添加子图位姿
 void OptimizationProblem2D::InsertSubmap(
     const SubmapId& submap_id, const transform::Rigid2d& global_submap_pose) {
   submap_data_.Insert(submap_id, SubmapSpec2D{global_submap_pose});
 }
 
+// 删除指定id的子图位姿
 void OptimizationProblem2D::TrimSubmap(const SubmapId& submap_id) {
   submap_data_.Trim(submap_id);
 }
@@ -408,7 +412,7 @@ void OptimizationProblem2D::Solve(
     }
   }
 
-  // 
+  // 遍历多个轨迹
   std::map<int, std::array<double, 3>> C_fixed_frames;
   for (auto node_it = node_data_.begin(); node_it != node_data_.end();) {
     const int trajectory_id = node_it->id.trajectory_id;
@@ -421,10 +425,12 @@ void OptimizationProblem2D::Solve(
     const TrajectoryData& trajectory_data = trajectory_data_.at(trajectory_id);
     bool fixed_frame_pose_initialized = false;
     
+    // 遍历一个轨迹的所有节点
     for (; node_it != trajectory_end; ++node_it) {
       const NodeId node_id = node_it->id;
       const NodeSpec2D& node_data = node_it->data;
 
+      // 根据节点的时间对gps数据进行插值
       const std::unique_ptr<transform::Rigid3d> fixed_frame_pose =
           Interpolate(fixed_frame_pose_data_, trajectory_id, node_data.time);
       if (fixed_frame_pose == nullptr) {
@@ -435,8 +441,10 @@ void OptimizationProblem2D::Solve(
           *fixed_frame_pose, options_.fixed_frame_pose_translation_weight(),
           options_.fixed_frame_pose_rotation_weight()};
 
+      // 计算初始位姿
       if (!fixed_frame_pose_initialized) {
         transform::Rigid2d fixed_frame_pose_in_map;
+
         if (trajectory_data.fixed_frame_origin_in_map.has_value()) {
           fixed_frame_pose_in_map = transform::Project2D(
               trajectory_data.fixed_frame_origin_in_map.value());
@@ -446,12 +454,14 @@ void OptimizationProblem2D::Solve(
               transform::Project2D(constraint_pose.zbar_ij).inverse();
         }
 
+        // 将这个初始位姿加入到ceres需要的格式数据中
         C_fixed_frames.emplace(trajectory_id,
                                FromPose(fixed_frame_pose_in_map));
         fixed_frame_pose_initialized = true;
       }
 
-      // Step: 第五种残差
+      // Step: 第五种残差 
+      // ?: 节点与gps第一帧间的坐标变换
       problem.AddResidualBlock(
           CreateAutoDiffSpaCostFunction(constraint_pose),
           options_.fixed_frame_pose_use_tolerant_loss()
@@ -463,7 +473,7 @@ void OptimizationProblem2D::Solve(
     }
   }
 
-  // Solve.
+  // Solve. 进行求解
   ceres::Solver::Summary summary;
   ceres::Solve(
       common::CreateCeresSolverOptions(options_.ceres_solver_options()),
@@ -493,19 +503,24 @@ void OptimizationProblem2D::Solve(
   }
 }
 
+// 
 std::unique_ptr<transform::Rigid3d> OptimizationProblem2D::InterpolateOdometry(
     const int trajectory_id, const common::Time time) const {
+  // 找到node最近的两帧轮速计(一前一后)
   const auto it = odometry_data_.lower_bound(trajectory_id, time);
   if (it == odometry_data_.EndOfTrajectory(trajectory_id)) {
     return nullptr;
   }
+
   if (it == odometry_data_.BeginOfTrajectory(trajectory_id)) {
     if (it->time == time) {
       return absl::make_unique<transform::Rigid3d>(it->pose);
     }
     return nullptr;
   }
+
   const auto prev_it = std::prev(it);
+  // 根据时间线性插值
   return absl::make_unique<transform::Rigid3d>(
       Interpolate(transform::TimestampedTransform{prev_it->time, prev_it->pose},
                   transform::TimestampedTransform{it->time, it->pose}, time)
@@ -513,12 +528,12 @@ std::unique_ptr<transform::Rigid3d> OptimizationProblem2D::InterpolateOdometry(
 }
 
 /**
- * @brief 
+ * @brief 两个节点间的相对坐标变换 // 轮速计插值计算位姿
  * 
- * @param[in] trajectory_id 
- * @param[in] first_node_data 
- * @param[in] second_node_data 
- * @return std::unique_ptr<transform::Rigid3d> 
+ * @param[in] trajectory_id 轨迹的id
+ * @param[in] first_node_data 前一个节点数据
+ * @param[in] second_node_data 后一个节点数据
+ * @return std::unique_ptr<transform::Rigid3d> 两个节点的坐标变换
  */
 std::unique_ptr<transform::Rigid3d>
 OptimizationProblem2D::CalculateOdometryBetweenNodes(
@@ -526,17 +541,23 @@ OptimizationProblem2D::CalculateOdometryBetweenNodes(
     const NodeSpec2D& second_node_data) const {
 
   if (odometry_data_.HasTrajectory(trajectory_id)) {
+    // 轮速计插值得到第一个node的位姿
     const std::unique_ptr<transform::Rigid3d> first_node_odometry =
         InterpolateOdometry(trajectory_id, first_node_data.time);
+    // 轮速计插值得到第二个node的位姿
     const std::unique_ptr<transform::Rigid3d> second_node_odometry =
         InterpolateOdometry(trajectory_id, second_node_data.time);
 
     if (first_node_odometry != nullptr && second_node_odometry != nullptr) {
+      // 两个节点间的相对坐标变化
+      // 需要注意的是，实际上在optimization_problem中，node的位姿都是不带重力对齐的，
+      // 而odometry的pose是带重力对齐的，因此，需要将轮速计插值出来的位姿减掉重力对齐
       transform::Rigid3d relative_odometry =
           transform::Rigid3d::Rotation(first_node_data.gravity_alignment) *
           first_node_odometry->inverse() * (*second_node_odometry) *
           transform::Rigid3d::Rotation(
               second_node_data.gravity_alignment.inverse());
+
       return absl::make_unique<transform::Rigid3d>(relative_odometry);
     }
   }

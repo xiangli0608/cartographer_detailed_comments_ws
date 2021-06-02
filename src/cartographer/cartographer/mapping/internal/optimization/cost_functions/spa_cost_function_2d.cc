@@ -41,16 +41,19 @@ class SpaCostFunction2D {
   bool operator()(const T* const start_pose, const T* const end_pose,
                   T* e) const {
     const std::array<T, 3> error =
+        // 计算残差并乘以尺度
         ScaleError(ComputeUnscaledError(
                        transform::Project2D(observed_relative_pose_.zbar_ij),
                        start_pose, end_pose),
                    observed_relative_pose_.translation_weight,
                    observed_relative_pose_.rotation_weight);
+    // c++11: std::copy
     std::copy(std::begin(error), std::end(error), e);
     return true;
   }
 
  private:
+  // 边
   const PoseGraphInterface::Constraint::Pose observed_relative_pose_;
 };
 
@@ -132,6 +135,7 @@ class AnalyticalSpaCostFunction2D
 
 }  // namespace
 
+// 残差为x/y/theta
 ceres::CostFunction* CreateAutoDiffSpaCostFunction(
     const PoseGraphInterface::Constraint::Pose& observed_relative_pose) {
   return new ceres::AutoDiffCostFunction<SpaCostFunction2D, 3 /* residuals */,
