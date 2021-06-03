@@ -32,20 +32,29 @@ SearchParameters::SearchParameters(const double linear_search_window,
   // We set this value to something on the order of resolution to make sure that
   // the std::acos() below is defined.
   float max_scan_range = 3.f * resolution;
+
+  // 求得 point_cloud 中雷达数据的 最大的值（最远点的距离）
   for (const sensor::RangefinderPoint& point : point_cloud) {
     const float range = point.position.head<2>().norm();
     max_scan_range = std::max(range, max_scan_range);
   }
+
+  // 求得角度搜索步长 angular_perturbation_step_size
   const double kSafetyMargin = 1. - 1e-3;
   angular_perturbation_step_size =
       kSafetyMargin * std::acos(1. - common::Pow2(resolution) /
                                          (2. * common::Pow2(max_scan_range)));
+
+  // 求得角度搜索空间的个数 num_scans，将 num_angular_perturbations 扩大了2倍
   num_angular_perturbations =
       std::ceil(angular_search_window / angular_perturbation_step_size);
   num_scans = 2 * num_angular_perturbations + 1;
 
+  // XY方向的搜索步长 num_linear_perturbations
   const int num_linear_perturbations =
       std::ceil(linear_search_window / resolution);
+
+  // linear_bounds 的作用是 确定每一个 scan 的最大最小边界
   linear_bounds.reserve(num_scans);
   for (int i = 0; i != num_scans; ++i) {
     linear_bounds.push_back(
@@ -74,15 +83,21 @@ void SearchParameters::ShrinkToFit(const std::vector<DiscreteScan2D>& scans,
                                    const CellLimits& cell_limits) {
   CHECK_EQ(scans.size(), num_scans);
   CHECK_EQ(linear_bounds.size(), num_scans);
+
+  // 遍历生成的旋转后的很多scan
   for (int i = 0; i != num_scans; ++i) {
     Eigen::Array2i min_bound = Eigen::Array2i::Zero();
     Eigen::Array2i max_bound = Eigen::Array2i::Zero();
+
+    // 对每一帧scan进行遍历，确定每一帧的最大最小的坐标索引
     for (const Eigen::Array2i& xy_index : scans[i]) {
       min_bound = min_bound.min(-xy_index);
       max_bound = max_bound.max(Eigen::Array2i(cell_limits.num_x_cells - 1,
                                                cell_limits.num_y_cells - 1) -
                                 xy_index);
     }
+
+    // 每一帧scan的最大最小的坐标索引
     linear_bounds[i].min_x = std::max(linear_bounds[i].min_x, min_bound.x());
     linear_bounds[i].max_x = std::min(linear_bounds[i].max_x, max_bound.x());
     linear_bounds[i].min_y = std::max(linear_bounds[i].min_y, min_bound.y());
@@ -90,17 +105,24 @@ void SearchParameters::ShrinkToFit(const std::vector<DiscreteScan2D>& scans,
   }
 }
 
+
 std::vector<sensor::PointCloud> GenerateRotatedScans(
     const sensor::PointCloud& point_cloud,
     const SearchParameters& search_parameters) {
   std::vector<sensor::PointCloud> rotated_scans;
   rotated_scans.reserve(search_parameters.num_scans);
 
+  // 在 MatchFullSubmap 情况下，大约等于 -3.14186
   double delta_theta = -search_parameters.num_angular_perturbations *
                        search_parameters.angular_perturbation_step_size;
+
+  // 遍历360度
   for (int scan_index = 0; scan_index < search_parameters.num_scans;
        ++scan_index,
            delta_theta += search_parameters.angular_perturbation_step_size) {
+    
+    // 将 point_cloud 绕Z轴旋转 delta_theta 
+    // 在 MatchFullSubmap 情况下，生成360度的 point_cloud
     rotated_scans.push_back(sensor::TransformPointCloud(
         point_cloud, transform::Rigid3f::Rotation(Eigen::AngleAxisf(
                          delta_theta, Eigen::Vector3f::UnitZ()))));
@@ -111,14 +133,21 @@ std::vector<sensor::PointCloud> GenerateRotatedScans(
 std::vector<DiscreteScan2D> DiscretizeScans(
     const MapLimits& map_limits, const std::vector<sensor::PointCloud>& scans,
     const Eigen::Translation2f& initial_translation) {
+  // discrete_scans的size 为 旋转的点云的个数
   std::vector<DiscreteScan2D> discrete_scans;
   discrete_scans.reserve(scans.size());
+
   for (const sensor::PointCloud& scan : scans) {
+    // discrete_scans中的每一个 DiscreteScan2D 的size 设置为 当前这一帧scan的个数
     discrete_scans.emplace_back();
     discrete_scans.back().reserve(scan.size());
+
     for (const sensor::RangefinderPoint& point : scan) {
+      // 对scan中的每个点进行坐标变换
       const Eigen::Vector2f translated_point =
           Eigen::Affine2f(initial_translation) * point.position.head<2>();
+
+      // 将旋转后的对应的栅格的索引放入discrete_scans
       discrete_scans.back().push_back(
           map_limits.GetCellIndex(translated_point));
     }
