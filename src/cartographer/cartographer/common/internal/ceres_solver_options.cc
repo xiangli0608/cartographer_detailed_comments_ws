@@ -32,6 +32,7 @@ proto::CeresSolverOptions CreateCeresSolverOptionsProto(
   return proto;
 }
 
+// 生成Solver::Options
 ceres::Solver::Options CreateCeresSolverOptions(
     const proto::CeresSolverOptions& proto) {
   ceres::Solver::Options options;
