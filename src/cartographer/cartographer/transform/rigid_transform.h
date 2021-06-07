@@ -71,7 +71,9 @@ class Rigid2 {
     return common::NormalizeAngleDifference(rotation().angle());
   }
 
-  // ?: inverse这没看懂
+  // T = [R t] T^-1 = [R^-1  -R*t]
+  //     [0 1]        [0      1  ] 
+  // R是旋转矩阵, 特殊正交群, 所以R^-1 = R^T
   Rigid2 inverse() const {
     const Rotation2D rotation = rotation_.inverse();
     const Vector translation = -(rotation * translation_);
