@@ -1,0 +1,253 @@
+<?xml version="1.0" ?>
+
+<robot name="nucbot_scout">
+
+	
+  <link name="footprint"/>
+  <joint name="base_joint" type="fixed">
+    <parent link="footprint"/>
+    <child link="base_link"/>
+  </joint>
+
+  <!-- base_link -->
+  <link name="base_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.978 0.4 0.2"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="1.0 0.423529411765 0.0392156862745 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.978 0.4 0.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="15"/>
+      <inertia ixx="0.18125" ixy="0.0" ixz="0.0" iyy="0.40625" iyz="0.0" izz="0.53125"/>
+    </inertial>
+  </link>
+
+
+  <!-- left_front_link -->
+  <link name="left_front_link">
+    <visual>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00135416666667" ixy="0.0" ixz="0.0" iyy="0.00135416666667" iyz="0.0" izz="0.0025"/>
+    </inertial>
+  </link>
+
+  <joint name="left_front_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_front_link"/>
+    <origin rpy="0 0 0" xyz="0.324 0.289 0"/>
+    <axis rpy="0 0 0" xyz="0 1 0"/>
+  </joint>
+
+
+
+  <!-- left_back_link -->
+  <link name="left_back_link">
+    <visual>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00135416666667" ixy="0.0" ixz="0.0" iyy="0.00135416666667" iyz="0.0" izz="0.0025"/>
+    </inertial>
+  </link>
+
+  <joint name="left_back_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_back_link"/>
+    <origin rpy="0 0 0" xyz="-0.324 0.289 0"/>
+    <axis rpy="0 0 0" xyz="0 1 0"/>
+  </joint>
+
+
+
+  <!-- right_front_link -->
+  <link name="right_front_link">
+    <visual>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00135416666667" ixy="0.0" ixz="0.0" iyy="0.00135416666667" iyz="0.0" izz="0.0025"/>
+    </inertial>
+  </link>
+  <joint name="right_front_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_front_link"/>
+    <origin rpy="0 0 0" xyz="0.324 -0.289 0"/>
+    <axis rpy="0 0 0" xyz="0 1 0"/>
+  </joint>
+
+
+
+  <!-- right_back_link -->
+  <link name="right_back_link">
+    <visual>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.15" radius="0.165"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.00135416666667" ixy="0.0" ixz="0.0" iyy="0.00135416666667" iyz="0.0" izz="0.0025"/>
+    </inertial>
+  </link>
+  <joint name="right_back_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_back_link"/>
+    <origin rpy="0 0 0" xyz="-0.324 -0.289 0"/>
+    <axis rpy="0 0 0" xyz="0 1 0"/>
+  </joint>
+
+
+
+  <!-- front_laser_joint -->
+  <joint name="front_laser_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.025 0 0.785"/>
+    <parent link="base_link"/>
+    <child link="front_laser_link"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+
+  <link name="front_laser_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.1" radius="0.05"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.1" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.000145833333333" ixy="0.0" ixz="0.0" iyy="0.000145833333333" iyz="0.0" izz="0.000125"/>
+    </inertial>
+  </link>
+
+
+  <!-- imu_link -->
+  <joint name="imu_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.188"/>
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="imu_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.1" radius="0.05"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- GPS_front_link -->
+  <joint name="GPS_front_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.4 0 0.515"/>
+    <parent link="base_link"/>
+    <child link="GPS_front_link"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="GPS_front_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.1" radius="0.05"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- GPS_back_link -->
+  <joint name="GPS_back_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="-0.34 0 0.515"/>
+    <parent link="base_link"/>
+    <child link="GPS_back_link"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="GPS_back_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.1" radius="0.05"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+</robot>
+

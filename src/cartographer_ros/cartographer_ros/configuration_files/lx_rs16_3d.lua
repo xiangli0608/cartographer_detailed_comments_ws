@@ -26,7 +26,7 @@ options = {
   publish_frame_projected_to_2d = false,
   
   use_odometry = false,
-  use_nav_sat = true,
+  use_nav_sat = false,
   use_landmarks = false,
   num_laser_scans = 0,
   num_multi_echo_laser_scans = 0,
@@ -48,7 +48,7 @@ MAP_BUILDER.use_trajectory_builder_3d = true
 --MAP_BUILDER.num_background_threads = 7
 
 TRAJECTORY_BUILDER_3D.min_range = 0.3
-TRAJECTORY_BUILDER_3D.max_range = 150.
+TRAJECTORY_BUILDER_3D.max_range = 100.
 TRAJECTORY_BUILDER_3D.voxel_filter_size = 0.25
 
 --TRAJECTORY_BUILDER_3D.high_resolution_adaptive_voxel_filter.max_length = 2.

@@ -1,4 +1,4 @@
--- Copyright 2016 The Cartographer Authors
+-- Copyright 2018 The Cartographer Authors
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -12,9 +12,29 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-include "nucros-rs16-2d-indoor.lua"
-
-TRAJECTORY_BUILDER.pure_localization = true
-POSE_GRAPH.optimize_every_n_nodes = 80
+options = {
+  tracking_frame = "imu_link",
+  pipeline = {
+    {
+      action = "min_max_range_filter",
+      min_range = 1.,
+      max_range = 80.,
+    },
+    -- {
+    --   action = "voxel_filter_and_remove_moving_objects",
+    --   voxel_size = 0.1,
+    -- },
+    {
+      action = "write_ros_map",
+      range_data_inserter = {
+        insert_free_space = true,
+        hit_probability = 0.55,
+        miss_probability = 0.49,
+      },
+      filestem = "map",
+      resolution = 0.05,
+    }
+  }
+}
 
 return options

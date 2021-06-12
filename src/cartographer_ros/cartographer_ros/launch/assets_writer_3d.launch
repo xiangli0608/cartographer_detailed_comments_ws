@@ -1,0 +1,33 @@
+<!--
+  Copyright 2016 The Cartographer Authors
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<launch>
+  <arg name="urdf_filename" default="$(find cartographer_ros)/urdf/scout.urdf"/>
+  <arg name="bag_filenames" default="/home/lx/bagfiles/rslidar-outdoor-gps-notf.bag"/>
+  <arg name="pose_graph_filename" default="/home/lx/carto_ws/map/3d-1.pbstream"/>
+  <arg name="output_file_prefix" default="/home/lx/carto_ws/map/"/>
+
+  <node name="cartographer_assets_writer" pkg="cartographer_ros" required="true"
+      type="cartographer_assets_writer" args="
+          -configuration_directory $(find cartographer_ros)/configuration_files
+          -configuration_basename assets_writer_3d.lua
+          -urdf_filename $(arg urdf_filename)
+          -bag_filenames $(arg bag_filenames)
+          -pose_graph_filename $(arg pose_graph_filename)
+          -output_file_prefix $(arg output_file_prefix)"
+      output="screen">
+  </node>
+</launch>
