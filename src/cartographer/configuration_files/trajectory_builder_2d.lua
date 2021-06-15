@@ -13,32 +13,37 @@
 -- limitations under the License.
 
 TRAJECTORY_BUILDER_2D = {
-  use_imu_data = true,
-  min_range = 0.,
+  use_imu_data = true,            -- 是否使用imu数据
+  min_range = 0.,                 -- 雷达数据的最远最近滤波, 保存中间值
   max_range = 30.,
-  min_z = -0.8,
+  min_z = -0.8,                   -- 雷达数据的最高值与最低值的过滤, 保存中间值
   max_z = 2.,
-  missing_data_ray_length = 5.,
-  num_accumulated_range_data = 1,
-  voxel_filter_size = 0.025,
+  missing_data_ray_length = 5.,   -- 没有击中的数据点用这个距离代替
+  num_accumulated_range_data = 1, -- 一帧雷达数据被分成了几次发送, 一般就是1
+  voxel_filter_size = 0.025,      -- 体素滤波的立方体的边长
 
+  -- 使用固定的voxel滤波之后, 再使用自适应体素滤波器
+  -- 体素滤波器 用于生成稀疏点云 以进行 扫描匹配
   adaptive_voxel_filter = {
-    max_length = 0.5,
-    min_num_points = 200,
-    max_range = 50.,
+    max_length = 0.5,             -- 尝试确定最佳的立方体边长, 边长最大为0.5
+    min_num_points = 200,         -- 如果存在 较多点 并且大于'min_num_points', 则减小体素长度以尝试获得该最小点数
+    max_range = 50.,              -- 距远离原点超过max_range 的点被移除
   },
 
+  -- 闭环检测的自适应体素滤波器, 用于生成稀疏点云 以进行 闭环检测
   loop_closure_adaptive_voxel_filter = {
     max_length = 0.9,
     min_num_points = 100,
     max_range = 50.,
   },
 
+  -- 是否使用 real_time_correlative_scan_matcher 为ceres提供先验信息
+  -- 计算复杂度高，但是很鲁棒，在odom或者imu不准时依然能达到很好的效果
   use_online_correlative_scan_matching = false,
   real_time_correlative_scan_matcher = {
-    linear_search_window = 0.1,
-    angular_search_window = math.rad(20.),
-    translation_delta_cost_weight = 1e-1,
+    linear_search_window = 0.1,             -- 线性搜索窗口的大小
+    angular_search_window = math.rad(20.),  -- 角度搜索窗口的大小
+    translation_delta_cost_weight = 1e-1,   -- 用于计算各部分score的权重
     rotation_delta_cost_weight = 1e-1,
   },
 

@@ -92,7 +92,7 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
   // slam刚启动时insertion_submaps.size()为1
   if (insertion_submaps.size() == 1) {
     // If we don't already have an entry for the first submap, add one.
-    // 如果判断指定id的submap_data的size为0，说明该trajectory_id上还没有submap数据，那么就需要建立一个submap
+    // 如果判断指定id的submap_data的size为0, 说明该trajectory_id上还没有submap数据, 那么就需要建立一个submap
     if (submap_data.SizeOfTrajectoryOrZero(trajectory_id) == 0) {
       // 如果没设置初始位姿就是0, 设置了就是1
       if (data_.initial_trajectory_poses.count(trajectory_id) > 0) {
@@ -102,7 +102,7 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
             data_.initial_trajectory_poses.at(trajectory_id).to_trajectory_id,
             time);
       }
-      // 将该submap的global pose加入到optimization_problem_中，方便以后优化
+      // 将该submap的global pose加入到optimization_problem_中, 方便以后优化
       optimization_problem_->AddSubmap(
           trajectory_id, transform::Project2D(
                              ComputeLocalToGlobalTransform(
@@ -111,11 +111,11 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
     }
     CHECK_EQ(1, submap_data.SizeOfTrajectoryOrZero(trajectory_id));
 
-    // 因为是第一个submap，所以该submap的ID是(trajectory_id,0)，其中0是submap的index, 从0开始
+    // 因为是第一个submap, 所以该submap的ID是(trajectory_id,0), 其中0是submap的index, 从0开始
     const SubmapId submap_id{trajectory_id, 0};
     // 检查这个SubmapId下的submap是否等于insertion_submaps的第一个元素。因为我们初始化第一个submap肯定是要被插入的那个submap
     CHECK(data_.submap_data.at(submap_id).submap == insertion_submaps.front());
-    // 因为是第一个submap，那就把刚刚建立的submap的id返回
+    // 因为是第一个submap, 那就把刚刚建立的submap的id返回
     return {submap_id};
   }
   CHECK_EQ(2, insertion_submaps.size());
@@ -127,13 +127,13 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
   // end_it是最后一个元素的下一个位置, 所以它之前的一个submap的id就是submap_data中的最后一个元素
   const SubmapId last_submap_id = std::prev(end_it)->id;
 
-  // 如果是等于insertion_submaps的第一个元素，说明insertion_submaps的第二个元素还没有在加入到optimization_problem_中
+  // 如果是等于insertion_submaps的第一个元素, 说明insertion_submaps的第二个元素还没有在加入到optimization_problem_中
   if (data_.submap_data.at(last_submap_id).submap ==
       insertion_submaps.front()) {
     // In this case, 'last_submap_id' is the ID of
     // 'insertions_submaps.front()' and 'insertions_submaps.back()' is new.
 
-    // 这种情况下，要给新的submap分配id，并把它加到OptimizationProblem的submap_data_这个容器中
+    // 这种情况下, 要给新的submap分配id, 并把它加到OptimizationProblem的submap_data_这个容器中
 
     const auto& first_submap_pose = submap_data.at(last_submap_id).global_pose;
     // 解算新的submap的global pose, 插入到OptimizationProblem2D::submap_data_中
@@ -148,7 +148,7 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
             SubmapId{trajectory_id, last_submap_id.submap_index + 1}};
   }
 
-  // 如果是等于insertion_submaps的第二个元素，
+  // 如果是等于insertion_submaps的第二个元素, 
   // 说明insertion_submaps的第二个元素已经分配了id, 并加入到了OptimizationProblem的submap_data_中了
   CHECK(data_.submap_data.at(last_submap_id).submap ==
         insertion_submaps.back());
@@ -231,7 +231,7 @@ NodeId PoseGraph2D::AddNode(
 
   // We have to check this here, because it might have changed by the time we
   // execute the lambda.
-  // 我们必须在这里检查这一点，因为在我们执行 lambda 时它可能已经改变了
+  // 我们必须在这里检查这一点, 因为在我们执行 lambda 时它可能已经改变了
   const bool newly_finished_submap =
       insertion_submaps.front()->insertion_finished();
 
@@ -379,7 +379,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
         data_.trajectory_connectivity_state.LastConnectionTime(
             node_id.trajectory_id, submap_id.trajectory_id);
 
-    // 如果节点和子图属于同一轨迹，或者如果最近有一个全局约束将该节点的轨迹与子图的轨迹联系起来
+    // 如果节点和子图属于同一轨迹, 或者如果最近有一个全局约束将该节点的轨迹与子图的轨迹联系起来
     // 则只需进行 局部搜索窗口 的匹配。 
     if (node_id.trajectory_id == submap_id.trajectory_id ||
         node_time <
@@ -428,7 +428,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
 
 
 // 四步：
-//1.把该节点的信息加入到OptimizationProblem中，方便进行优化
+//1.把该节点的信息加入到OptimizationProblem中, 方便进行优化
 //2.计算节点和新加入的submap之间的约束
 //3.计算其它submap与节点之间约束
 //4.计算新的submap和旧的节点的约束
@@ -473,7 +473,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
         constraints::ComputeSubmapPose(*insertion_submaps.front()).inverse() *
         local_pose_2d;
     
-    // 把该节点的信息加入到OptimizationProblem中，方便进行优化
+    // 把该节点的信息加入到OptimizationProblem中, 方便进行优化
     optimization_problem_->AddTrajectoryNode(
         matching_id.trajectory_id,
         optimization::NodeSpec2D{constant_data->time, local_pose_2d,
@@ -528,7 +528,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     }
   } // end {}
 
-  // 遍历历史中所有submap，计算新的Node与每个submap的约束
+  // 遍历历史中所有submap, 计算新的Node与每个submap的约束
   // 对于所有的完成的子图都计算约束---实际上就是回环检测.
   // 当前帧激光数据和以往所有的子图进行匹配
   for (const auto& submap_id : finished_submap_ids) {
@@ -1071,7 +1071,7 @@ void PoseGraph2D::RunFinalOptimization() {
   WaitForAllComputations();
 }
 
-// 进行优化处理，并将优化结果进行更新
+// 进行优化处理, 并将优化结果进行更新
 void PoseGraph2D::RunOptimization() {
   // 如果submap为空直接退出
   if (optimization_problem_->submap_data().empty()) {
@@ -1082,7 +1082,7 @@ void PoseGraph2D::RunOptimization() {
   // data_.constraints, data_.frozen_trajectories and data_.landmark_nodes
   // when executing the Solve. Solve is time consuming, so not taking the mutex
   // before Solve to avoid blocking foreground processing.
-  // Solve 比较耗时，所以在执行 Solve 之前不要加互斥锁，以免阻塞其他的任务处理
+  // Solve 比较耗时, 所以在执行 Solve 之前不要加互斥锁, 以免阻塞其他的任务处理
   // landmark直接参与优化问题
   optimization_problem_->Solve(data_.constraints, GetTrajectoryStates(),
                                data_.landmark_nodes);

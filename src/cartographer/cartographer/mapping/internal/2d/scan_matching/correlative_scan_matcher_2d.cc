@@ -45,7 +45,7 @@ SearchParameters::SearchParameters(const double linear_search_window,
       kSafetyMargin * std::acos(1. - common::Pow2(resolution) /
                                          (2. * common::Pow2(max_scan_range)));
 
-  // 求得角度搜索空间的个数 num_scans，将 num_angular_perturbations 扩大了2倍
+  // 求得角度搜索空间的个数 num_scans, 将 num_angular_perturbations 扩大了2倍
   num_angular_perturbations =
       std::ceil(angular_search_window / angular_perturbation_step_size);
   num_scans = 2 * num_angular_perturbations + 1;
@@ -89,7 +89,7 @@ void SearchParameters::ShrinkToFit(const std::vector<DiscreteScan2D>& scans,
     Eigen::Array2i min_bound = Eigen::Array2i::Zero();
     Eigen::Array2i max_bound = Eigen::Array2i::Zero();
 
-    // 对每一帧scan进行遍历，确定每一帧的最大最小的坐标索引
+    // 对每一帧scan进行遍历, 确定每一帧的最大最小的坐标索引
     for (const Eigen::Array2i& xy_index : scans[i]) {
       min_bound = min_bound.min(-xy_index);
       max_bound = max_bound.max(Eigen::Array2i(cell_limits.num_x_cells - 1,
@@ -112,7 +112,7 @@ std::vector<sensor::PointCloud> GenerateRotatedScans(
   std::vector<sensor::PointCloud> rotated_scans;
   rotated_scans.reserve(search_parameters.num_scans);
 
-  // 在 MatchFullSubmap 情况下，大约等于 -3.14186
+  // 在 MatchFullSubmap 情况下, 大约等于 -3.14186
   double delta_theta = -search_parameters.num_angular_perturbations *
                        search_parameters.angular_perturbation_step_size;
 
@@ -122,7 +122,7 @@ std::vector<sensor::PointCloud> GenerateRotatedScans(
            delta_theta += search_parameters.angular_perturbation_step_size) {
     
     // 将 point_cloud 绕Z轴旋转 delta_theta 
-    // 在 MatchFullSubmap 情况下，生成360度的 point_cloud
+    // 在 MatchFullSubmap 情况下, 生成360度的 point_cloud
     rotated_scans.push_back(sensor::TransformPointCloud(
         point_cloud, transform::Rigid3f::Rotation(Eigen::AngleAxisf(
                          delta_theta, Eigen::Vector3f::UnitZ()))));

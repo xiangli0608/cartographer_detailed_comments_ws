@@ -218,7 +218,7 @@ const ConstraintBuilder2D::SubmapScanMatcher*
 ConstraintBuilder2D::DispatchScanMatcherConstruction(const SubmapId& submap_id,
                                                      const Grid2D* const grid) {
   CHECK(grid);
-  // 如果匹配器里已经存在，则直接返回对应id的匹配器
+  // 如果匹配器里已经存在, 则直接返回对应id的匹配器
   if (submap_scan_matchers_.count(submap_id) != 0) {
     return &submap_scan_matchers_.at(submap_id);
   }

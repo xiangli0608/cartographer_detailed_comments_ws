@@ -76,7 +76,7 @@ std::unique_ptr<transform::Rigid3d> Interpolate(
 // translation in x and y, followed by the rotation angle representing the
 // orientation.
 // 将姿势转换为用于 Ceres 的 3 优化变量格式
-// x 和 y 的平移，然后是表示方向的旋转角度。
+// x 和 y 的平移, 然后是表示方向的旋转角度。
 std::array<double, 3> FromPose(const transform::Rigid2d& pose) {
   return {{pose.translation().x(), pose.translation().y(),
            pose.normalized_angle()}};
@@ -186,7 +186,7 @@ OptimizationProblem2D::OptimizationProblem2D(
 
 OptimizationProblem2D::~OptimizationProblem2D() {}
 
-// 2D优化中不使用IMU数据，所以我们忽略这部分接口
+// 2D优化中不使用IMU数据, 所以我们忽略这部分接口
 void OptimizationProblem2D::AddImuData(const int trajectory_id,
                                        const sensor::ImuData& imu_data) {
   // IMU data is not used in 2D optimization, so we ignore this part of the
@@ -308,7 +308,7 @@ void OptimizationProblem2D::Solve(
     // todo: std::array::data()
     problem.AddParameterBlock(C_submaps.at(submap_id_data.id).data(), 3);
 
-    // 如果是第一幅子图，或者是已经冻结的轨迹中的子图, Ceres在迭代求解的过程中将不会改变这些参数
+    // 如果是第一幅子图, 或者是已经冻结的轨迹中的子图, Ceres在迭代求解的过程中将不会改变这些参数
     if (first_submap || frozen) {
       first_submap = false;
       // Fix the pose of the first submap or all submaps of a frozen
@@ -336,7 +336,7 @@ void OptimizationProblem2D::Solve(
         // 函数CreateAutoDiffSpaCostFunction用于提供对应约束的SPA代价计算
         CreateAutoDiffSpaCostFunction(constraint.pose),
         // Loop closure constraints should have a loss function.
-        // 如果是通过闭环检测构建的约束，则为之提供一个Huber的核函数
+        // 如果是通过闭环检测构建的约束, 则为之提供一个Huber的核函数
         // 用于降低错误的闭环检测对最终的优化结果带来的负面影响
         constraint.tag == Constraint::INTER_SUBMAP
             ? new ceres::HuberLoss(options_.huber_scale())
@@ -352,7 +352,7 @@ void OptimizationProblem2D::Solve(
   
   // Add penalties for violating odometry or changes between consecutive nodes
   // if odometry is not available.
-  // 如果里程计不可用，则添加违反里程计的处罚或连续节点之间的更改
+  // 如果里程计不可用, 则添加违反里程计的处罚或连续节点之间的更改
 
   // 遍历多个轨迹
   for (auto node_it = node_data_.begin(); node_it != node_data_.end();) {
@@ -360,7 +360,7 @@ void OptimizationProblem2D::Solve(
     const int trajectory_id = node_it->id.trajectory_id;
     // 获取这trajectoryid的最后一个node
     const auto trajectory_end = node_data_.EndOfTrajectory(trajectory_id);
-    // 如果本轨迹是锁定的，则无需处理跳过
+    // 如果本轨迹是锁定的, 则无需处理跳过
     if (frozen_trajectories.count(trajectory_id) != 0) {
       node_it = trajectory_end;
       continue;
@@ -550,8 +550,8 @@ OptimizationProblem2D::CalculateOdometryBetweenNodes(
 
     if (first_node_odometry != nullptr && second_node_odometry != nullptr) {
       // 两个节点间的相对坐标变化
-      // 需要注意的是，实际上在optimization_problem中，node的位姿都是不带重力对齐的，
-      // 而odometry的pose是带重力对齐的，因此，需要将轮速计插值出来的位姿减掉重力对齐
+      // 需要注意的是, 实际上在optimization_problem中, node的位姿都是不带重力对齐的, 
+      // 而odometry的pose是带重力对齐的, 因此, 需要将轮速计插值出来的位姿减掉重力对齐
       transform::Rigid3d relative_odometry =
           transform::Rigid3d::Rotation(first_node_data.gravity_alignment) *
           first_node_odometry->inverse() * (*second_node_odometry) *

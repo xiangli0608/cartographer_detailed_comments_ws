@@ -36,7 +36,7 @@ class Task {
   enum State { NEW, DISPATCHED, DEPENDENCIES_COMPLETED, RUNNING, COMPLETED };
 
   /**
-    NEW：新建任务，还未schedule到线程池
+    NEW：新建任务, 还未schedule到线程池
     DISPATCHED： 任务已经schedule 到线程池
     DEPENDENCIES_COMPLETED： 任务依赖已经执行完成
     RUNNING： 任务执行中

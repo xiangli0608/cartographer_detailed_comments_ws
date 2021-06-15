@@ -39,12 +39,12 @@ void Task::SetWorkItem(const WorkItem& work_item) {
   work_item_ = work_item;
 }
 
-// c++11: std::weak_ptr weak_ptr被设计为与shared_ptr共同工作，
-// 可以从一个shared_ptr或者另一个weak_ptr对象构造，获得资源的观测权
-// 但weak_ptr没有共享资源，它的构造不会引起指针引用计数的增加。
-// 同样，在weak_ptr析构时也不会导致引用计数的减少，它只是一个静静地观察者。
-// weak_ptr没有重载operator*和->，这是特意的，因为它不共享指针，不能操作资源，这是它弱的原因
-// 但它可以使用一个非常重要的成员函数lock()从被观测的shared_ptr获得一个可用的shared_ptr对象，从而操作资源。
+// c++11: std::weak_ptr weak_ptr被设计为与shared_ptr共同工作, 
+// 可以从一个shared_ptr或者另一个weak_ptr对象构造, 获得资源的观测权
+// 但weak_ptr没有共享资源, 它的构造不会引起指针引用计数的增加。
+// 同样, 在weak_ptr析构时也不会导致引用计数的减少, 它只是一个静静地观察者。
+// weak_ptr没有重载operator*和->, 这是特意的, 因为它不共享指针, 不能操作资源, 这是它弱的原因
+// 但它可以使用一个非常重要的成员函数lock()从被观测的shared_ptr获得一个可用的shared_ptr对象, 从而操作资源。
 
 // 为本任务添加依赖
 void Task::AddDependency(std::weak_ptr<Task> dependency) {

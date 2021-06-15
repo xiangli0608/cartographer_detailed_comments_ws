@@ -36,11 +36,6 @@
     <remap from="imu" to="imu" />
   </node>
 
-
-  <!-- 生成ros格式的地图 -->
-  <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
-      type="cartographer_occupancy_grid_node" args="-resolution 0.05" />
-
   <!-- 启动rviz -->
   <node name="rviz" pkg="rviz" type="rviz" required="true"
       args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />

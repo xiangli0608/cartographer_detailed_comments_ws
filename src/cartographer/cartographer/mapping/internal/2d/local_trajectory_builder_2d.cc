@@ -129,7 +129,7 @@ std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
 LocalTrajectoryBuilder2D::AddRangeData(
     const std::string& sensor_id,
     const sensor::TimedPointCloudData& unsynchronized_data) {
-  // Step: 1 进行多个传感器的数据同步，只有一个传感器的时候，可以直接忽略
+  // Step: 1 进行多个传感器的数据同步, 只有一个传感器的时候, 可以直接忽略
   auto synchronized_data =
       range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);
   if (synchronized_data.ranges.empty()) {
@@ -192,7 +192,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   // Drop any returns below the minimum range and convert returns beyond the
   // maximum range into misses.
   // Step: 3 无效数据的处理
-  // 得到所有的累计数据，对范围的数据进行滤除
+  // 得到所有的累计数据, 对范围的数据进行滤除
   for (size_t i = 0; i < synchronized_data.ranges.size(); ++i) {
     const sensor::TimedRangefinderPoint& hit =
         synchronized_data.ranges[i].point_time;

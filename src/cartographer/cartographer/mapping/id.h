@@ -40,7 +40,7 @@ namespace internal {
 // c++11: decltype 可以从一个变量或表达式中得到类型
 // 在 C++11 中, auto可以和decltype一起用, 将auto放置在返回值类型上当做占位符, 不表达实际意思
 // 在参数列表后添加 -> decltype( ), 这是后置返回类型, 代表返回的类型是 () 中的类型
-// 在 C++14 中，则可以不用 decltype
+// 在 C++14 中, 则可以不用 decltype
 
 template <class T>
 auto GetTimeImpl(const T& t, int) -> decltype(t.time()) {
@@ -60,7 +60,7 @@ common::Time GetTime(const T& t) {
 // Uniquely identifies a trajectory node using a combination of a unique
 // trajectory ID and a zero-based index of the node inside that trajectory.
 // 使用唯一的轨迹ID和该轨迹内节点的从零开始的索引的组合来唯一地标识轨迹节点。
-// 一个是轨迹ID，一个是节点的序号
+// 一个是轨迹ID, 一个是节点的序号
 struct NodeId {
   NodeId(int trajectory_id, int node_index)
       : trajectory_id(trajectory_id), node_index(node_index) {}
@@ -93,7 +93,7 @@ inline std::ostream& operator<<(std::ostream& os, const NodeId& v) {
 // Uniquely identifies a submap using a combination of a unique trajectory ID
 // and a zero-based index of the submap inside that trajectory.
 // 使用唯一的轨迹ID和该轨迹内子图的从零开始的索引的组合来唯一地标识子图。
-// 一个是轨迹ID，一个是子图的序号
+// 一个是轨迹ID, 一个是子图的序号
 struct SubmapId {
   SubmapId(int trajectory_id, int submap_index)
       : trajectory_id(trajectory_id), submap_index(submap_index) {}
@@ -165,7 +165,7 @@ class MapById {
 
     // c++11: explicit关键字 的作用就是防止类构造函数的隐式自动转换
 
-    // 通过表和轨迹id（trajectory_id）获得索引，current_data_为该轨迹的第一个validData值
+    // 通过表和轨迹id（trajectory_id）获得索引, current_data_为该轨迹的第一个validData值
     explicit ConstIterator(const MapById& map_by_id, const int trajectory_id)
         : current_trajectory_(
               map_by_id.trajectories_.lower_bound(trajectory_id)),
@@ -229,7 +229,7 @@ class MapById {
     bool operator!=(const ConstIterator& it) const { return !operator==(it); }
 
    private:
-    // 如果数据到了current_trajectory_末尾，那么移动到下一个trajectory_的begin()
+    // 如果数据到了current_trajectory_末尾, 那么移动到下一个trajectory_的begin()
     void AdvanceToValidDataIterator() {
       CHECK(current_trajectory_ != end_trajectory_);
       while (current_data_ == current_trajectory_->second.data_.end()) {
@@ -302,7 +302,7 @@ class MapById {
 
   // Returns an iterator to the element at 'id' or the end iterator if it does
   // not exist.
-  // 返回 本表（map）中，id对应索引（ConstIterator形式）
+  // 返回 本表（map）中, id对应索引（ConstIterator形式）
   ConstIterator find(const IdType& id) const {
     return ConstIterator(*this, id);
   }
