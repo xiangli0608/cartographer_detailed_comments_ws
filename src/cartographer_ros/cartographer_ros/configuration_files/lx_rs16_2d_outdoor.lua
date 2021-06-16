@@ -16,28 +16,31 @@ include "map_builder.lua"
 include "trajectory_builder.lua"
 
 options = {
-  map_builder = MAP_BUILDER,
-  trajectory_builder = TRAJECTORY_BUILDER,
-  map_frame = "map",
-  tracking_frame = "imu_link",
-  published_frame = "footprint",
-  odom_frame = "odom",
-  provide_odom_frame = false,
-  publish_frame_projected_to_2d = false,
-
-  use_odometry = false,
-  use_nav_sat = false,
-  use_landmarks = false,
-  num_laser_scans = 0,
-  num_multi_echo_laser_scans = 0,
-  num_subdivisions_per_laser_scan = 1,
-  num_point_clouds = 1,
+  map_builder = MAP_BUILDER,                -- map_builder.lua的配置信息
+  trajectory_builder = TRAJECTORY_BUILDER,  -- trajectory_builder.lua的配置信息
   
-  lookup_transform_timeout_sec = 0.2,
-  submap_publish_period_sec = 0.3,
+  map_frame = "map",                        -- 地图坐标系的名字
+  tracking_frame = "imu_link",              -- 将所有传感器数据转换到这个坐标系下
+  published_frame = "footprint",            -- tf: map -> footprint
+  odom_frame = "odom",                      -- 里程计的坐标系名字
+  provide_odom_frame = false,               -- 是否提供odom的tf, 如果为true,则tf树为map->odom->footprint
+                                            -- 如果为false tf树为map->footprint
+  publish_frame_projected_to_2d = false,    -- 是否将坐标系投影到平面上
+
+  use_odometry = false,                     -- 是否使用里程计,如果使用要求一定要有odom的tf
+  use_nav_sat = false,                      -- 是否使用gps
+  use_landmarks = false,                    -- 是否使用landmark
+  num_laser_scans = 0,                      -- 是否使用单线激光数据
+  num_multi_echo_laser_scans = 0,           -- 是否使用multi_echo_laser_scans数据
+  num_subdivisions_per_laser_scan = 1,      -- 1帧数据被分成几次发出,一般为1
+  num_point_clouds = 1,                     -- 是否使用点云数据
+  
+  lookup_transform_timeout_sec = 0.2,       -- 查找tf时的超时时间
+  submap_publish_period_sec = 0.3,          -- 发布数据的时间间隔
   pose_publish_period_sec = 5e-3,
   trajectory_publish_period_sec = 30e-3,
-  rangefinder_sampling_ratio = 1.,
+
+  rangefinder_sampling_ratio = 1.,          -- 传感器数据的采样频率
   odometry_sampling_ratio = 1.,
   fixed_frame_pose_sampling_ratio = 1.,
   imu_sampling_ratio = 1.,

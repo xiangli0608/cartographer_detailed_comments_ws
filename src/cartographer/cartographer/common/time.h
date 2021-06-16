@@ -40,7 +40,7 @@ struct UniversalTimeScaleClock {
 // Represents Universal Time Scale durations and timestamps which are 64-bit
 // integers representing the 100 nanosecond ticks since the Epoch which is
 // January 1, 1 at the start of day in UTC.
-// 表示通用时间标度的持续时间和时间戳, 它们是64位整数, 表示自世界标准时间1月1日1月1日开始的纪元以来的100纳秒刻度。
+// 表示通用时间标度的持续时间和时间戳, 它们是64位整数, 表示自世界标准时间1月1日1月1日开始的纪元以来的100纳秒刻度.
 using Duration = UniversalTimeScaleClock::duration;
 using Time = UniversalTimeScaleClock::time_point;
 

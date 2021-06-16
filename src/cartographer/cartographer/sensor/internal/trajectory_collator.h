@@ -36,8 +36,8 @@ namespace sensor {
 // which data is dispatched is not sorted, so non-deterministic input sequences
 // will result in non-deterministic output.
 
-// 等待查看所有传感器ID的至少一个数据项, 并以合并排序的顺序调度数据。 
-// 与“ Collator”相反, 它不等待其他轨迹。
+// 等待查看所有传感器ID的至少一个数据项, 并以合并排序的顺序调度数据. 
+// 与“ Collator”相反, 它不等待其他轨迹.
 // 与“ Collator”（其输出是确定性的）相反, 未对数据分派的顺序进行排序, 
 // 因此非确定性的输入序列将导致非确定性的输出
 

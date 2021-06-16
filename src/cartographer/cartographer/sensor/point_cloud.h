@@ -101,9 +101,9 @@ class PointCloud {
 // the last point was acquired. So, the fourth entry for the last point is 0.f.
 // If timing is not available, all fourth entries are 0.f. For 2D points, the
 // third entry is 0.f (and the fourth entry is time).
-// 将点的3D位置及其相对测量时间存储在第四项中。
-// 时间以秒为单位, 相对于获取最后一点的时间增加。 因此, 最后一点的第四个条目是0.f。
-// 如果计时不可用, 则所有第四项均为0.f。 对于2D点, z坐标是0.f（第四项是时间）。
+// 将点的3D位置及其相对测量时间存储在第四项中.
+// 时间以秒为单位, 相对于获取最后一点的时间增加. 因此, 最后一点的第四个条目是0.f.
+// 如果计时不可用, 则所有第四项均为0.f. 对于2D点, z坐标是0.f（第四项是时间）.
 using TimedPointCloud = std::vector<TimedRangefinderPoint>;
 
 // TODO(wohe): Retained for cartographer_ros. To be removed once it is no

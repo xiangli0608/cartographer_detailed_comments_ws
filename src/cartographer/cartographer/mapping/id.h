@@ -59,7 +59,7 @@ common::Time GetTime(const T& t) {
 
 // Uniquely identifies a trajectory node using a combination of a unique
 // trajectory ID and a zero-based index of the node inside that trajectory.
-// 使用唯一的轨迹ID和该轨迹内节点的从零开始的索引的组合来唯一地标识轨迹节点。
+// 使用唯一的轨迹ID和该轨迹内节点的从零开始的索引的组合来唯一地标识轨迹节点.
 // 一个是轨迹ID, 一个是节点的序号
 struct NodeId {
   NodeId(int trajectory_id, int node_index)
@@ -92,7 +92,7 @@ inline std::ostream& operator<<(std::ostream& os, const NodeId& v) {
 
 // Uniquely identifies a submap using a combination of a unique trajectory ID
 // and a zero-based index of the submap inside that trajectory.
-// 使用唯一的轨迹ID和该轨迹内子图的从零开始的索引的组合来唯一地标识子图。
+// 使用唯一的轨迹ID和该轨迹内子图的从零开始的索引的组合来唯一地标识子图.
 // 一个是轨迹ID, 一个是子图的序号
 struct SubmapId {
   SubmapId(int trajectory_id, int submap_index)

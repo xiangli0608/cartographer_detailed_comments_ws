@@ -66,7 +66,7 @@ class TrajectoryBuilderInterface {
 
   // c++11: std::function 通用多态函数封装器
   // std::function 的实例能存储、复制及调用任何可调用 (Callable) 目标: 
-  // 如函数、 lambda表达式、 bind表达式或其他函数对象, 还有指向成员函数指针和指向数据成员指针。
+  // 如函数、 lambda表达式、 bind表达式或其他函数对象, 还有指向成员函数指针和指向数据成员指针.
   // 它也是对 C++ 中现有的可调用实体的一种类型安全的包裹（相对来说, 函数指针的调用不是类型安全的）
 
   // c++11: using in c++11: c++11 的using可以用于模板部分具体化

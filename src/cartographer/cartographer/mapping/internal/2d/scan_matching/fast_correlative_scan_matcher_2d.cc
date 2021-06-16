@@ -42,7 +42,7 @@ namespace {
 // All of it in (amortized) O(1).
 class SlidingWindowMaximum {
  public:
-  // 添加值, 会将小于填入值的其他值删掉, 并将这个值放到最后。
+  // 添加值, 会将小于填入值的其他值删掉, 并将这个值放到最后.
   void AddValue(const float value) {
     while (!non_ascending_maxima_.empty() &&
            value > non_ascending_maxima_.back()) {
@@ -51,7 +51,7 @@ class SlidingWindowMaximum {
     non_ascending_maxima_.push_back(value);
   }
 
-  // 删除值, 如果第一个值等于要删除的这个值, 则将这个值删掉。
+  // 删除值, 如果第一个值等于要删除的这个值, 则将这个值删掉.
   void RemoveValue(const float value) {
     // DCHECK for performance, since this is done for every value in the
     // precomputation grid.
@@ -62,7 +62,7 @@ class SlidingWindowMaximum {
     }
   }
 
-  // 获取最大值, 因为是按照顺序存储的, 第一个值是最大的。
+  // 获取最大值, 因为是按照顺序存储的, 第一个值是最大的.
   float GetMaximum() const {
     // DCHECK for performance, since this is done for every value in the
     // precomputation grid.
@@ -277,8 +277,8 @@ bool FastCorrelativeScanMatcher2D::MatchFullSubmap(
 }
 
 // 扫描匹配器的实际实现, 由Match（）和MatchFullSubmap（）调用, 
-// 并带有适当的“ initial_pose_estimate”和“ search_parameters”。
-// 根据搜索窗口和初始位置进行scan-match来进行位姿的优化。
+// 并带有适当的“ initial_pose_estimate”和“ search_parameters”.
+// 根据搜索窗口和初始位置进行scan-match来进行位姿的优化.
 bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
     SearchParameters search_parameters,
     const transform::Rigid2d& initial_pose_estimate,
@@ -305,22 +305,22 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
       Eigen::Translation2f(initial_pose_estimate.translation().x(),
                            initial_pose_estimate.translation().y()));
   
-  // 尽可能的缩小搜索窗口的大小, 以减小搜索空间, 提高搜索效率。
+  // 尽可能的缩小搜索窗口的大小, 以减小搜索空间, 提高搜索效率.
   search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits());
 
-  // 计算最低分辨率中的所有的候选解 最低分辨率是通过搜索树的层数、地图的分辨率计算出来的。
+  // 计算最低分辨率中的所有的候选解 最低分辨率是通过搜索树的层数、地图的分辨率计算出来的.
   // 对于地图坐标系来说 最低分辨率=1<<h h表示搜索树的总的层数
   // 这里不但对最低分辨率的所有候选解的得分进行了计算　同时还按照从大到小排列
   const std::vector<Candidate2D> lowest_resolution_candidates =
       ComputeLowestResolutionCandidates(discrete_scans, search_parameters);
   
-  // 调用函数BranchAndBound完成分支定界搜索, 搜索的结果将被保存在best_candidate中。
+  // 调用函数BranchAndBound完成分支定界搜索, 搜索的结果将被保存在best_candidate中.
   const Candidate2D best_candidate = BranchAndBound(
       discrete_scans, search_parameters, lowest_resolution_candidates,
       precomputation_grid_stack_->max_depth(), min_score);
   
-  // 检查最优解的值, 如果大于指定阈值min_score就认为匹配成功,  修改输入参数指针score和pose_estimate所指的对象。
-  // 否则认为不匹配, 不存在闭环, 直接返回。
+  // 检查最优解的值, 如果大于指定阈值min_score就认为匹配成功,  修改输入参数指针score和pose_estimate所指的对象.
+  // 否则认为不匹配, 不存在闭环, 直接返回.
   if (best_candidate.score > min_score) {
     *score = best_candidate.score;
     *pose_estimate = transform::Rigid2d(
@@ -450,20 +450,20 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
     const std::vector<Candidate2D>& candidates, const int candidate_depth,
     float min_score) const {
 
-  // 这个函数是以递归调用的方式求解的。首先给出了递归终止的条件, 就是如果搜索树高为0
-  // 意味着我们搜索到了一个叶子节点。同时由于每次迭代过程我们都是对新扩展的候选点进行降序排列
-  // 所以可以认为队首的这个叶子节点就是我们想要的最优解, 直接返回即可。
+  // 这个函数是以递归调用的方式求解的.首先给出了递归终止的条件, 就是如果搜索树高为0
+  // 意味着我们搜索到了一个叶子节点.同时由于每次迭代过程我们都是对新扩展的候选点进行降序排列
+  // 所以可以认为队首的这个叶子节点就是我们想要的最优解, 直接返回即可.
   if (candidate_depth == 0) {
     // Return the best candidate.
     return *candidates.begin();
   }
 
-  // 然后创建一个临时的候选点对象best_high_resolution_candidate, 为之赋予最小的评分。 
+  // 然后创建一个临时的候选点对象best_high_resolution_candidate, 为之赋予最小的评分. 
   Candidate2D best_high_resolution_candidate(0, 0, 0, search_parameters);
   best_high_resolution_candidate.score = min_score;
 
-  // 遍历所有的候选点, 如果遇到一个候选点的评分很低, 意味着以后的候选点中也没有合适的解。
-  // 可以直接跳出循环退出了, 说明没有构成闭环。
+  // 遍历所有的候选点, 如果遇到一个候选点的评分很低, 意味着以后的候选点中也没有合适的解.
+  // 可以直接跳出循环退出了, 说明没有构成闭环.
   for (const Candidate2D& candidate : candidates) {
 
     // 低于设置的阈值 或者 低于 上一层的可行解的最高分　的可行解不进行继续分枝（剪枝）
@@ -471,7 +471,7 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
       break;
     }
 
-    // 如果for循环能够继续运行, 说明当前候选点是一个更优的选择, 需要对其进行分支。
+    // 如果for循环能够继续运行, 说明当前候选点是一个更优的选择, 需要对其进行分支.
     // 一个容器, 盛放这个节点candidate引出的四个下一层的候选者
     std::vector<Candidate2D> higher_resolution_candidates;
 
@@ -499,16 +499,16 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
       }
     }
 
-    // 调用ScoreCandidates对新扩展的候选点定界并排序。
+    // 调用ScoreCandidates对新扩展的候选点定界并排序.
     ScoreCandidates(precomputation_grid_stack_->Get(candidate_depth - 1),
                     discrete_scans, search_parameters,
                     &higher_resolution_candidates);
 
-    // 递归调用BranchAndBound对新扩展的higher_resolution_candidates进行搜索。 
+    // 递归调用BranchAndBound对新扩展的higher_resolution_candidates进行搜索. 
     // 从此处开始迭代, 对分数最高的节点继续进行分支, 直到最底层, 然后再返回倒数第二层再进行迭代
     // 如果倒数第二层的最高分没有上一个的最底层（叶子层）的分数高, 则跳过, 否则继续向下进行评分
  
-    // 以后通过递归调用发现了更优的解都将通过std::max函数来更新已知的最优解。
+    // 以后通过递归调用发现了更优的解都将通过std::max函数来更新已知的最优解.
     best_high_resolution_candidate = std::max(
         best_high_resolution_candidate,
         BranchAndBound(discrete_scans, search_parameters,

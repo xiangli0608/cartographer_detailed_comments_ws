@@ -21,6 +21,7 @@ TRAJECTORY_BUILDER_3D = {
   num_accumulated_range_data = 1,
   voxel_filter_size = 0.15,
 
+  -- 在3d slam 时会有2个自适应体素滤波，一个生成高分辨率点云，一个生成低分辨率点云
   high_resolution_adaptive_voxel_filter = {
     max_length = 2.,
     min_num_points = 150,
@@ -42,6 +43,7 @@ TRAJECTORY_BUILDER_3D = {
   },
 
   ceres_scan_matcher = {
+    -- 在3D中,occupied_space_weight_0和occupied_space_weight_1参数分别与高分辨率和低分辨率滤波点云相关
     occupied_space_weight_0 = 1.,
     occupied_space_weight_1 = 6.,
     intensity_cost_function_options_0 = {
@@ -94,10 +96,11 @@ TRAJECTORY_BUILDER_3D = {
   },
 
   submaps = {
-    high_resolution = 0.10,
-    high_resolution_max_range = 20.,
+    -- 2种分辨率的地图
+    high_resolution = 0.10,           -- 用于近距离测量的高分辨率hybrid网格 for local SLAM and loop closure，用来与小尺寸voxel进行精匹配
+    high_resolution_max_range = 20.,  -- 在插入 high_resolution map 之前过滤点云的最大范围
     low_resolution = 0.45,
-    num_range_data = 160,
+    num_range_data = 160,             -- 用于远距离测量的低分辨率hybrid网格 for local SLAM only，用来与大尺寸voxel进行粗匹配
     range_data_inserter = {
       hit_probability = 0.55,
       miss_probability = 0.49,

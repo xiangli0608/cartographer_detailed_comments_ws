@@ -33,8 +33,8 @@ namespace mapping {
 // Keep poses for a certain duration to estimate linear and angular velocity.
 // Uses the velocities to extrapolate motion. Uses IMU and/or odometry data if
 // available to improve the extrapolation.
-// 保持poses一定持续时间, 以估计线速度和角速度。
-// 使用速度预测运动。 使用IMU和/或里程计数据（如果有）来改善预测
+// 保持poses一定持续时间, 以估计线速度和角速度.
+// 使用速度预测运动. 使用IMU和/或里程计数据（如果有）来改善预测
 class PoseExtrapolator : public PoseExtrapolatorInterface {
  public:
   explicit PoseExtrapolator(common::Duration pose_queue_duration,
@@ -47,7 +47,7 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
       common::Duration pose_queue_duration, double imu_gravity_time_constant,
       const sensor::ImuData& imu_data);
 
-  // c++11: override 关键字告诉编译器, 该函数应覆盖基类中的函数。
+  // c++11: override 关键字告诉编译器, 该函数应覆盖基类中的函数.
   // 如果该函数实际上没有覆盖任何函数, 则会导致编译器错误
   // 如果没加这个关键字 也没什么严重的error 只是少了编译器检查的安全性
 

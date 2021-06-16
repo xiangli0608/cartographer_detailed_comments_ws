@@ -59,8 +59,8 @@ class MapBuilderBridge {
  * 其每一帧位姿间的坐标变换不会改变
  * 
  * global map frame
- * 是表达被回环检测与位姿图优化所更改后的坐标系, 当有新的优化结果可用时, 此坐标系与任何其他坐标系之间的转换都会跳变。
- * 它的z轴指向上方, 即重力加速度矢量指向-z方向, 即由加速度计测得的重力分量沿+z方向。
+ * 是表达被回环检测与位姿图优化所更改后的坐标系, 当有新的优化结果可用时, 此坐标系与任何其他坐标系之间的转换都会跳变.
+ * 它的z轴指向上方, 即重力加速度矢量指向-z方向, 即由加速度计测得的重力分量沿+z方向.
  */
 
   // tag: MapBuilderBridge::LocalTrajectoryData
@@ -79,7 +79,7 @@ class MapBuilderBridge {
     cartographer::transform::Rigid3d local_to_map;  // local frame 到 global frame间的坐标变换
 
     // c++11: std::shared_ptr 主要的用途就是方便资源的管理, 自动释放没有指针引用的资源
-    // 使用引用计数来标识是否有其余指针指向该资源。(注意, shart_ptr本身指针会占1个引用)
+    // 使用引用计数来标识是否有其余指针指向该资源.(注意, shart_ptr本身指针会占1个引用)
     // 引用计数是分配在动态分配的, std::shared_ptr支持拷贝, 新的指针获可以获取前引用计数个数
 
     // published_frame 到 tracking_frame 间的坐标变换

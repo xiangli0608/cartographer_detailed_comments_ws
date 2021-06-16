@@ -92,8 +92,8 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
   auto it = rate_timers_.find(sensor_id);
   if (it == rate_timers_.end()) {
 
-    // c++11: map::emplace() 用于通过在容器中插入新元素来扩展map容器。
-    // 元素是直接构建的（既不复制也不移动）。仅当键不存在时才进行插入
+    // c++11: map::emplace() 用于通过在容器中插入新元素来扩展map容器.
+    // 元素是直接构建的（既不复制也不移动）.仅当键不存在时才进行插入
     // 它返回一个布尔对, emplace().first表示新插入元素或者原始位置的迭代器, emplace().second表示是否发生插入
 
     it = rate_timers_

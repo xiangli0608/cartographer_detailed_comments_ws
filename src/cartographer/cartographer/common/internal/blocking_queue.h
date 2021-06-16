@@ -31,7 +31,7 @@ namespace common {
 
 // A thread-safe blocking queue that is useful for producer/consumer patterns.
 // 'T' must be movable.
-// 一个线程安全的阻塞队列, 对 生产者/消费者模式 很有用。
+// 一个线程安全的阻塞队列, 对 生产者/消费者模式 很有用.
 
 // todo: BlockingQueue
 template <typename T>

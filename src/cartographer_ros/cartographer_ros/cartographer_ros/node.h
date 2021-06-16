@@ -188,8 +188,8 @@ class Node {
   std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
 
   // c++11: GUARDED_BY 是在Clang Thread Safety Analysis（线程安全分析）中定义的属性
-  // GUARDED_BY是数据成员的属性, 该属性声明数据成员受给定功能保护。
-  // 对数据的读操作需要共享访问, 而写操作则需要互斥访问。
+  // GUARDED_BY是数据成员的属性, 该属性声明数据成员受给定功能保护.
+  // 对数据的读操作需要共享访问, 而写操作则需要互斥访问.
   // 官方介绍文档: https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
   MapBuilderBridge map_builder_bridge_ GUARDED_BY(mutex_);
 

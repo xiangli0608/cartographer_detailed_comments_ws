@@ -416,7 +416,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
       }
       // Work around the 16384 point limit in RViz by splitting the
       // trajectory into multiple markers.
-      // 通过将轨迹分成多个标记来解决RViz中16384点的限制。
+      // 通过将轨迹分成多个标记来解决RViz中16384点的限制.
       if (marker.points.size() == 16384) {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
         // Push back the last point, so the two markers appear connected.
@@ -485,7 +485,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   // This and other markers which are less numerous are set to be slightly
   // above the intra constraints marker in order to ensure that they are
   // visible.
-  // 将该标记和其他数量较少的标记设置z为略高于帧内约束标记, 以确保它们可见。
+  // 将该标记和其他数量较少的标记设置z为略高于帧内约束标记, 以确保它们可见.
   residual_intra_marker.pose.position.z = 0.1;
 
   // 外部子图约束, 回环约束, 全局约束
@@ -538,7 +538,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
       // Color mapping for submaps of various trajectories - add trajectory id
       // to ensure different starting colors. Also add a fixed offset of 25
       // to avoid having identical colors as trajectories.
-      // 各种轨迹的子图的颜色映射-添加轨迹ID以确保不同的起始颜色 还要添加25的固定偏移量, 以避免与轨迹具有相同的颜色。 
+      // 各种轨迹的子图的颜色映射-添加轨迹ID以确保不同的起始颜色 还要添加25的固定偏移量, 以避免与轨迹具有相同的颜色. 
       color_constraint = ToMessage(
           cartographer::io::GetColor(constraint.submap_id.submap_index +
                                      constraint.submap_id.trajectory_id + 25));

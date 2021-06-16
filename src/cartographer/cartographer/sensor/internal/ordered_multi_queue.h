@@ -46,7 +46,7 @@ struct QueueKey {
 // sorted order. It will wait to see at least one value for each unfinished
 // queue before dispatching the next time ordered value across all queues.
 // 维护排序后的传感器数据的多个队列, 并按合并排序的顺序进行调度
-// 它将等待为每个未完成的队列查看至少一个值, 然后再在所有队列中分派下一个按时间排序的值。
+// 它将等待为每个未完成的队列查看至少一个值, 然后再在所有队列中分派下一个按时间排序的值.
 
 // This class is thread-compatible. 此类是线程兼容的
 

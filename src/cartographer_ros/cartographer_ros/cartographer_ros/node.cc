@@ -295,7 +295,7 @@ void Node::AddExtrapolator(const int trajectory_id,
 
   // c++11: std::forward_as_tuple(): 用于接收右值引用数据生成tuple
   // c++11: std::piecewise_construct: 分段构造常量, 将此常量值作为构造对象的第一个参数传递
-  // 以选择构造函数形式, 该形式通过将两个元组对象的元素转发到其各自的构造函数来就地构造其成员。
+  // 以选择构造函数形式, 该形式通过将两个元组对象的元素转发到其各自的构造函数来就地构造其成员.
 
   // 以1ms, 以及重力常数10, 作为参数构造PoseExtrapolator
   extrapolators_.emplace(
@@ -978,8 +978,8 @@ bool Node::HandleFinishTrajectory(
 
 /**
  * @brief
- * 当前状态序列化为proto流文件。如果将'include_unfinished_submaps'设置为true, 
- * 则未完成的子图（即尚未接收到所有测距仪数据插入的子图）将包含在序列化状态中。
+ * 当前状态序列化为proto流文件.如果将'include_unfinished_submaps'设置为true, 
+ * 则未完成的子图（即尚未接收到所有测距仪数据插入的子图）将包含在序列化状态中.
  *
  * @param[in] request 要生成的文件名,以及是否包含未完成的submap
  * @param[out] response

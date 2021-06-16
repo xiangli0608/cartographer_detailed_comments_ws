@@ -29,7 +29,7 @@
  * 定义参数通过DEFINE_type宏实现, 该宏的三个参数含义分别为命令行参数名, 参数默认值, 以及参数的帮助信息
  * 当参数被定义后, 通过FLAGS_name就可访问到对应的参数
  */
-// collect_metrics ：激活运行时度量的集合。如果激活, 可以通过ROS服务访问度量
+// collect_metrics ：激活运行时度量的集合.如果激活, 可以通过ROS服务访问度量
 DEFINE_bool(collect_metrics, false,
             "Activates the collection of runtime metrics. If activated, the "
             "metrics can be accessed via a ROS service.");
@@ -75,10 +75,10 @@ void Run() {
   auto map_builder =
       cartographer::mapping::CreateMapBuilder(node_options.map_builder_options);
   
-  // c++11: std::move 是将对象的状态或者所有权从一个对象转移到另一个对象, 只是转移, 没有内存的搬迁或者内存拷贝所以可以提高利用效率,改善性能.。
-  // 右值引用是用来支持转移语义的。转移语义可以将资源 ( 堆, 系统对象等 ) 从一个对象转移到另一个对象, 
-  // 这样能够减少不必要的临时对象的创建、拷贝以及销毁, 能够大幅度提高 C++ 应用程序的性能。
-  // 临时对象的维护 ( 创建和销毁 ) 对性能有严重影响。
+  // c++11: std::move 是将对象的状态或者所有权从一个对象转移到另一个对象, 只是转移, 没有内存的搬迁或者内存拷贝所以可以提高利用效率,改善性能..
+  // 右值引用是用来支持转移语义的.转移语义可以将资源 ( 堆, 系统对象等 ) 从一个对象转移到另一个对象, 
+  // 这样能够减少不必要的临时对象的创建、拷贝以及销毁, 能够大幅度提高 C++ 应用程序的性能.
+  // 临时对象的维护 ( 创建和销毁 ) 对性能有严重影响.
 
   // Node类的初始化, 将ROS的topic传入SLAM, 也就是MapBuilder
   Node node(node_options, std::move(map_builder), &tf_buffer,
@@ -117,13 +117,13 @@ int main(int argc, char** argv) {
   // note: 初始化glog库
   google::InitGoogleLogging(argv[0]);
   
-  // 使用gflags进行参数的初始化. 其中第三个参数为remove_flag, 如果为true, gflags会移除parse过的参数, 否则gflags就会保留这些参数, 但可能会对参数顺序进行调整。
+  // 使用gflags进行参数的初始化. 其中第三个参数为remove_flag, 如果为true, gflags会移除parse过的参数, 否则gflags就会保留这些参数, 但可能会对参数顺序进行调整.
   google::ParseCommandLineFlags(&argc, &argv, true);
 
   /**
    * @brief glog里提供的CHECK系列的宏, 检测某个表达式是否为真
    * 检测expression如果不为真, 则打印后面的description和栈上的信息
-   * 然后退出程序, 出错后的处理过程和FATAL比较像。
+   * 然后退出程序, 出错后的处理过程和FATAL比较像.
    */
   CHECK(!FLAGS_configuration_directory.empty())
       << "-configuration_directory is missing.";
@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
   ::ros::init(argc, argv, "cartographer_node");
 
   // 一般不需要在自己的代码中显式调用
-  // 但是若想在创建任何NodeHandle实例之前启动ROS相关的线程, 网络等, 可以显式调用该函数。
+  // 但是若想在创建任何NodeHandle实例之前启动ROS相关的线程, 网络等, 可以显式调用该函数.
   ::ros::start();
 
   // 使用ROS_INFO进行glog消息的输出

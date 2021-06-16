@@ -113,7 +113,7 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
 
     // 因为是第一个submap, 所以该submap的ID是(trajectory_id,0), 其中0是submap的index, 从0开始
     const SubmapId submap_id{trajectory_id, 0};
-    // 检查这个SubmapId下的submap是否等于insertion_submaps的第一个元素。因为我们初始化第一个submap肯定是要被插入的那个submap
+    // 检查这个SubmapId下的submap是否等于insertion_submaps的第一个元素.因为我们初始化第一个submap肯定是要被插入的那个submap
     CHECK(data_.submap_data.at(submap_id).submap == insertion_submaps.front());
     // 因为是第一个submap, 那就把刚刚建立的submap的id返回
     return {submap_id};
@@ -380,7 +380,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
             node_id.trajectory_id, submap_id.trajectory_id);
 
     // 如果节点和子图属于同一轨迹, 或者如果最近有一个全局约束将该节点的轨迹与子图的轨迹联系起来
-    // 则只需进行 局部搜索窗口 的匹配。 
+    // 则只需进行 局部搜索窗口 的匹配. 
     if (node_id.trajectory_id == submap_id.trajectory_id ||
         node_time <
             last_connection_time +
@@ -395,7 +395,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
     }
     // 如果两个不属于同一条轨迹 并且 最近也没有什么连接, 同时采样器为true
     // 才进行全局搜索, 也就是回环检测
-    // ?: 什么情况下才能 不是一条轨迹．．．
+    // ?: 什么情况下才能 不是一条轨迹...
     else if (global_localization_samplers_[node_id.trajectory_id]->Pulse()) {
       // 进行回环检测
       maybe_add_global_constraint = true;
@@ -573,7 +573,7 @@ common::Time PoseGraph2D::GetLatestNodeTime(const NodeId& node_id,
   common::Time time = data_.trajectory_nodes.at(node_id).constant_data->time;
   // 获取指定 id 的 submap 的数据
   const InternalSubmapData& submap_data = data_.submap_data.at(submap_id);
-  // 如果该 submap 中的 node_ids 不为空。
+  // 如果该 submap 中的 node_ids 不为空.
   if (!submap_data.node_ids.empty()) {
     // 获取node_ids 列表中的最后一个元素
     const NodeId last_submap_node_id =
@@ -626,7 +626,7 @@ void PoseGraph2D::HandleWorkQueue(
   // 执行优化
   RunOptimization();
 
-  // 如果已经设置了全局优化的回调函数。进行一些参数设置后调用该函数。
+  // 如果已经设置了全局优化的回调函数.进行一些参数设置后调用该函数.
   if (global_slam_optimization_callback_) {
     std::map<int, NodeId> trajectory_id_to_last_optimized_node_id;
     std::map<int, SubmapId> trajectory_id_to_last_optimized_submap_id;

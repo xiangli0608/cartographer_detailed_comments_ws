@@ -14,7 +14,7 @@
             "stopAtEntry": false,           // 是否停在程序入口点（停在main函数开始）
             "cwd": "${workspaceFolder}",    // 调试程序时的工作目录
             "environment": [],              // 针对调试的程序, 要添加到环境中的环境变量. 例如: [ { "name": "squid", "value": "clam" } ]
-            "externalConsole": false,       // 如果设置为true, 则为应用程序启动外部控制台。 如果为false, 则不会启动控制台, 并使用VS Code的内置调试控制台。
+            "externalConsole": false,       // 如果设置为true, 则为应用程序启动外部控制台. 如果为false, 则不会启动控制台, 并使用VS Code的内置调试控制台.
             "MIMode": "gdb",                // VSCode要使用的调试工具
             "setupCommands": [
                 {

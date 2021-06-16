@@ -24,8 +24,8 @@ void TrajectoryConnectivityState::Add(const int trajectory_id) {
   connected_components_.Add(trajectory_id);
 }
 
-// 连接两条轨迹。 如果任一轨迹未跟踪, 则将对其进行跟踪。 
-// 此函数对其参数的顺序是不变的。 重复调用 Connect 会增加连接计数并更新上次连接时间
+// 连接两条轨迹. 如果任一轨迹未跟踪, 则将对其进行跟踪. 
+// 此函数对其参数的顺序是不变的. 重复调用 Connect 会增加连接计数并更新上次连接时间
 void TrajectoryConnectivityState::Connect(const int trajectory_id_a,
                                           const int trajectory_id_b,
                                           const common::Time time) {
@@ -43,8 +43,8 @@ void TrajectoryConnectivityState::Connect(const int trajectory_id_a,
     // the two connected components with the connection time. This is to quickly
     // change to a more efficient loop closure search (by constraining the
     // search window) when connected components are joined.
-    // 这两条轨迹之间的连接即将加入连接的组件。在这里, 我们使用连接时间更新两个连接组件的所有二分轨迹对
-    // 这是为了在连接组件连接时快速更改为更有效的回环搜索（通过约束搜索窗口）。
+    // 这两条轨迹之间的连接即将加入连接的组件.在这里, 我们使用连接时间更新两个连接组件的所有二分轨迹对
+    // 这是为了在连接组件连接时快速更改为更有效的回环搜索（通过约束搜索窗口）.
     std::vector<int> component_a =
         connected_components_.GetComponent(trajectory_id_a);
     std::vector<int> component_b =
@@ -59,8 +59,8 @@ void TrajectoryConnectivityState::Connect(const int trajectory_id_a,
   connected_components_.Connect(trajectory_id_a, trajectory_id_b);
 }
 
-// 确定两个轨迹是否已经（传递）连接。 如果没有跟踪任一轨迹, 则返回 false, 除非它是相同的轨迹, 
-// 否则返回 true。 此函数对其参数的顺序是不变的。 
+// 确定两个轨迹是否已经（传递）连接. 如果没有跟踪任一轨迹, 则返回 false, 除非它是相同的轨迹, 
+// 否则返回 true. 此函数对其参数的顺序是不变的. 
 bool TrajectoryConnectivityState::TransitivelyConnected(
     const int trajectory_id_a, const int trajectory_id_b) const {
   return connected_components_.TransitivelyConnected(trajectory_id_a,
@@ -72,7 +72,7 @@ std::vector<std::vector<int>> TrajectoryConnectivityState::Components() const {
   return connected_components_.Components();
 }
 
-// 返回两个轨迹之间的最后一个连接计数。 如果任一轨迹未跟踪或它们从未连接过, 则返回时间的开始
+// 返回两个轨迹之间的最后一个连接计数. 如果任一轨迹未跟踪或它们从未连接过, 则返回时间的开始
 common::Time TrajectoryConnectivityState::LastConnectionTime(
     const int trajectory_id_a, const int trajectory_id_b) {
   const auto sorted_pair = std::minmax(trajectory_id_a, trajectory_id_b);

@@ -76,7 +76,7 @@ std::unique_ptr<transform::Rigid3d> Interpolate(
 // translation in x and y, followed by the rotation angle representing the
 // orientation.
 // 将姿势转换为用于 Ceres 的 3 优化变量格式
-// x 和 y 的平移, 然后是表示方向的旋转角度。
+// x 和 y 的平移, 然后是表示方向的旋转角度.
 std::array<double, 3> FromPose(const transform::Rigid2d& pose) {
   return {{pose.translation().x(), pose.translation().y(),
            pose.normalized_angle()}};

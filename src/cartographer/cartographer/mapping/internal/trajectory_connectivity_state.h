@@ -73,9 +73,9 @@ class TrajectoryConnectivityState {
   // connects two formerly unconnected connected components. In this case all
   // bipartite trajectories entries for these components are updated with the
   // new connection time.
-  // / 跟踪上次添加两条轨迹之间的直接连接的时间。 
-  // 例外情况是两条轨迹之间的连接连接了两个以前未连接的连接组件。 
-  // 在这种情况下, 这些组件的所有二分轨迹条目都用新的连接时间更新。 
+  // / 跟踪上次添加两条轨迹之间的直接连接的时间. 
+  // 例外情况是两条轨迹之间的连接连接了两个以前未连接的连接组件. 
+  // 在这种情况下, 这些组件的所有二分轨迹条目都用新的连接时间更新. 
   std::map<std::pair<int, int>, common::Time> last_connection_time_map_;
 };
 

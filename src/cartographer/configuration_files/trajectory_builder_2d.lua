@@ -16,7 +16,7 @@ TRAJECTORY_BUILDER_2D = {
   use_imu_data = true,            -- 是否使用imu数据
   min_range = 0.,                 -- 雷达数据的最远最近滤波, 保存中间值
   max_range = 30.,
-  min_z = -0.8,                   -- 雷达数据的最高值与最低值的过滤, 保存中间值
+  min_z = -0.8,                   -- 雷达数据的最高与最低的过滤, 保存中间值
   max_z = 2.,
   missing_data_ray_length = 5.,   -- 没有击中的数据点用这个距离代替
   num_accumulated_range_data = 1, -- 一帧雷达数据被分成了几次发送, 一般就是1
@@ -38,7 +38,7 @@ TRAJECTORY_BUILDER_2D = {
   },
 
   -- 是否使用 real_time_correlative_scan_matcher 为ceres提供先验信息
-  -- 计算复杂度高，但是很鲁棒，在odom或者imu不准时依然能达到很好的效果
+  -- 计算复杂度高 , 但是很鲁棒 , 在odom或者imu不准时依然能达到很好的效果
   use_online_correlative_scan_matching = false,
   real_time_correlative_scan_matcher = {
     linear_search_window = 0.1,             -- 线性搜索窗口的大小
@@ -47,6 +47,7 @@ TRAJECTORY_BUILDER_2D = {
     rotation_delta_cost_weight = 1e-1,
   },
 
+  -- ceres匹配的一些配置参数
   ceres_scan_matcher = {
     occupied_space_weight = 1.,
     translation_weight = 10.,
@@ -58,6 +59,7 @@ TRAJECTORY_BUILDER_2D = {
     },
   },
 
+  -- 为了防止子图里插入太多数据, 在插入子图之前之前对数据进行过滤
   motion_filter = {
     max_time_seconds = 5.,
     max_distance_meters = 0.2,
@@ -66,6 +68,8 @@ TRAJECTORY_BUILDER_2D = {
 
   -- TODO(schwoere,wohe): Remove this constant. This is only kept for ROS.
   imu_gravity_time_constant = 10.,
+
+  -- 位姿预测器
   pose_extrapolator = {
     use_imu_based = false,
     constant_velocity = {
@@ -89,19 +93,22 @@ TRAJECTORY_BUILDER_2D = {
     },
   },
 
+  -- 子图相关的一些配置
   submaps = {
-    num_range_data = 90,
+    num_range_data = 90,          -- 一个子图里插入雷达数据的个数的一半
     grid_options_2d = {
-      grid_type = "PROBABILITY_GRID",
+      grid_type = "PROBABILITY_GRID", -- 地图的种类, 还可以是tsdf格式
       resolution = 0.05,
     },
     range_data_inserter = {
       range_data_inserter_type = "PROBABILITY_GRID_INSERTER_2D",
+      -- 概率占用栅格地图的一些配置
       probability_grid_range_data_inserter = {
         insert_free_space = true,
         hit_probability = 0.55,
         miss_probability = 0.49,
       },
+      -- tsdf地图的一些配置
       tsdf_range_data_inserter = {
         truncation_distance = 0.3,
         maximum_weight = 10.,
