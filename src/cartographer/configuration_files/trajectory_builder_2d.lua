@@ -18,8 +18,8 @@ TRAJECTORY_BUILDER_2D = {
   max_range = 30.,
   min_z = -0.8,                   -- 雷达数据的最高与最低的过滤, 保存中间值
   max_z = 2.,
-  missing_data_ray_length = 5.,   -- 没有击中的数据点用这个距离代替
-  num_accumulated_range_data = 1, -- 一帧雷达数据被分成了几次发送, 一般就是1
+  missing_data_ray_length = 5.,   -- 超过最大距离范围的数据点用这个距离代替
+  num_accumulated_range_data = 1, -- 
   voxel_filter_size = 0.025,      -- 体素滤波的立方体的边长
 
   -- 使用固定的voxel滤波之后, 再使用自适应体素滤波器
