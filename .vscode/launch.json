@@ -7,7 +7,7 @@
 
         {
             "name": "(gdb) Launch test_code",         // 配置名称, 将会在调试配置下拉列表中显示
-            "type": "cppdbg",               // 调试器类型 该值自动生成 test_grid2d_lx
+            "type": "cppdbg",               // 调试器类型 该值自动生成 
             "request": "launch",            // 调试方式,还可以选择attach 
             "program": "${workspaceRoot}/devel/lib/beginner_tutorials/test_node",     //要调试的程序（完整路径, 支持相对路径）
             "args": [],                     // 传递给上面程序的参数, 没有参数留空即可
