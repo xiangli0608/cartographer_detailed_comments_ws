@@ -26,14 +26,14 @@ POSE_GRAPH = {
     loop_closure_rotation_weight = 1e5,
     log_matches = true,                   -- 打印约束计算的log
     
-    -- 基于分支定界算法的2d匹配器
+    -- 基于分支定界算法的2d粗匹配器
     fast_correlative_scan_matcher = {
       linear_search_window = 7.,
       angular_search_window = math.rad(30.),
       branch_and_bound_depth = 7,
     },
 
-    -- 基于ceres的2d匹配器
+    -- 基于ceres的2d精匹配器
     ceres_scan_matcher = {
       occupied_space_weight = 20.,
       translation_weight = 10.,
@@ -45,7 +45,7 @@ POSE_GRAPH = {
       },
     },
 
-    -- 基于分支定界算法的3d匹配器
+    -- 基于分支定界算法的3d粗匹配器
     fast_correlative_scan_matcher_3d = {
       branch_and_bound_depth = 8,
       full_resolution_depth = 3,
@@ -56,7 +56,7 @@ POSE_GRAPH = {
       angular_search_window = math.rad(15.),
     },
 
-    -- 基于ceres的3d匹配器
+    -- 基于ceres的3d精匹配器
     ceres_scan_matcher_3d = {
       occupied_space_weight_0 = 5.,
       occupied_space_weight_1 = 30.,

@@ -36,6 +36,12 @@
     <remap from="imu" to="imu" />
   </node>
 
+  <!-- 启动map_server -->
+  <!-- 
+  <node name="map_server" pkg="map_server" type="map_server"
+      args="/home/lx/carto_ws/map/2d-1.yaml" /> 
+  -->
+
   <!-- 启动rviz -->
   <node name="rviz" pkg="rviz" type="rviz" required="true"
       args="-d $(find cartographer_ros)/configuration_files/demo_2d.rviz" />
