@@ -101,7 +101,11 @@ if (NOT ${BUILD_GRPC})
   list(REMOVE_ITEM ALL_TESTS ${ALL_GRPC_FILES})
   list(REMOVE_ITEM ALL_EXECUTABLES ${ALL_GRPC_FILES})
 endif()
+
+# 生成library
 add_library(${PROJECT_NAME} STATIC ${ALL_SRCS})
+
+# 添加子目录,生成可执行文件
 add_subdirectory("cartographer_ros")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
@@ -112,6 +116,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
 # PCL
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${PCL_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PCL_LIBRARIES})
+
 set(BLACKLISTED_PCL_DEFINITIONS " -march=native -msse4.2 -mfpmath=sse ")
 foreach(DEFINITION ${PCL_DEFINITIONS})
   list (FIND BLACKLISTED_PCL_DEFINITIONS "${DEFINITION}" DEFINITIONS_INDEX)

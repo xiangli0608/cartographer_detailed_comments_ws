@@ -86,6 +86,7 @@ file(GLOB_RECURSE ALL_TESTS "cartographer/*_test.cc")
 file(GLOB_RECURSE ALL_EXECUTABLES "cartographer/*_main.cc")
 
 # Remove dotfiles/-folders that could potentially pollute the build.
+# 移除所有以.开头的文件
 file(GLOB_RECURSE ALL_DOTFILES ".*/*")
 if (ALL_DOTFILES)
   list(REMOVE_ITEM ALL_LIBRARY_HDRS ${ALL_DOTFILES})
@@ -95,6 +96,7 @@ if (ALL_DOTFILES)
   list(REMOVE_ITEM ALL_TESTS ${ALL_DOTFILES})
   list(REMOVE_ITEM ALL_EXECUTABLES ${ALL_DOTFILES})
 endif()
+
 list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_EXECUTABLES})
 list(REMOVE_ITEM ALL_LIBRARY_SRCS ${ALL_TESTS})
 list(REMOVE_ITEM ALL_LIBRARY_HDRS ${TEST_LIBRARY_HDRS})
@@ -118,7 +120,10 @@ if (NOT ${BUILD_PROMETHEUS})
   list(REMOVE_ITEM ALL_TESTS ${ALL_PROMETHEUS_FILES})
   list(REMOVE_ITEM ALL_EXECUTABLES ${ALL_PROMETHEUS_FILES})
 endif()
+
 set(INSTALL_SOURCE_HDRS ${ALL_LIBRARY_HDRS} ${TEST_LIBRARY_HDRS})
+
+# 移除internal文件夹内的头文件,不进行安装
 file(GLOB_RECURSE INTERNAL_HDRS "cartographer/*/internal/*.h")
 list(REMOVE_ITEM INSTALL_SOURCE_HDRS ${INTERNAL_HDRS})
 
@@ -350,6 +355,7 @@ install(
   RUNTIME DESTINATION bin
 )
 
+# 安装头文件
 foreach(HDR ${INSTALL_SOURCE_HDRS})
   file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${HDR})
   get_filename_component(DIR ${REL_FIL} DIRECTORY)
