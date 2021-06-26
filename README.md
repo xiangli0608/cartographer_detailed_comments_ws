@@ -26,7 +26,7 @@
 ### 课程购买链接
 扫描大纲图片上的二维码即可查看课程购买地址, 图片刷不出来也可以通过下面这个链接进行更详细的了解与购买
 
-[购买链接](https://mp.weixin.qq.com/s?__biz=MzIxOTczOTM4NA==&mid=2247519351&idx=1&sn=870a6b1eddf74e51506d2e3af87e2ed1&chksm=97d469e0a0a3e0f6c568686ffa44d52edeee171c751c87b4fca2066d42ed31def2dd1e992698&mpshare=1&scene=1&srcid=06138WbGlINKf3uMM9KaVDi8&sharer_sharetime=1623575086288&sharer_shareid=e0bf4e1cc54f09628a44697dfe50325e&exportkey=AR7RZxSncUsVlZg4gSHEVPw%3D&pass_ticket=eslcXL6f%2BHecxgumHaP%2BPfhvfGtlNNZfPvtBZvQmODNPJP5LT2Stt5%2FM07etmy1a&wx_header=0#rd)
+[购买链接](https://mp.weixin.qq.com/s/5RV3ZWFiFykIBjSllFQcAQ)
 
 ## 推荐编译环境
 - ubuntu 16.04/18.04 版本
