@@ -19,9 +19,8 @@
 namespace cartographer {
 namespace sensor {
 
-// todo: Collator
 /**
- * @brief 每个topic设置一个回调函数
+ * @brief 添加轨迹以生成排序的传感器输出, 每个topic设置一个回调函数
  * 
  * @param[in] trajectory_id 
  * @param[in] expected_sensor_ids 
@@ -42,20 +41,25 @@ void Collator::AddTrajectory(
   }
 }
 
+// 将 trajectory_id 标记为完成
 void Collator::FinishTrajectory(const int trajectory_id) {
   for (const auto& queue_key : queue_keys_[trajectory_id]) {
     queue_.MarkQueueAsFinished(queue_key);
   }
 }
 
+// 向trajectory_id中添加 data 
 void Collator::AddSensorData(const int trajectory_id,
                              std::unique_ptr<Data> data) {
   QueueKey queue_key{trajectory_id, data->GetSensorId()};
   queue_.Add(std::move(queue_key), std::move(data));
 }
 
+// 分派所有排队的传感器数据包 只能调用一次, 在 Flush 之后不能再调用 AddSensorData()
 void Collator::Flush() { queue_.Flush(); }
 
+// 返回在 CollatorInterface 解锁之前需要更多数据的轨迹的 ID
+// 对于不等待特定轨迹的实现，返回 'nullopt'
 absl::optional<int> Collator::GetBlockingTrajectoryId() const {
   return absl::optional<int>(queue_.GetBlocker().trajectory_id);
 }

@@ -97,7 +97,7 @@ class OrderedMultiQueue {
   common::Time last_dispatched_time_ = common::Time::min();
 
   std::map<int, common::Time> common_start_time_per_trajectory_;
-  std::map<QueueKey, Queue> queues_;
+  std::map<QueueKey, Queue> queues_;   //多队列主体,本类最大的内存占用量
   QueueKey blocker_;
 };
 

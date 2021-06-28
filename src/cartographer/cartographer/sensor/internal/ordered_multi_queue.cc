@@ -58,17 +58,19 @@ void OrderedMultiQueue::AddQueue(const QueueKey& queue_key, Callback callback) {
   queues_[queue_key].callback = std::move(callback);
 }
 
-// 将queue_key对应的queues_设置成 finished=true
+// 将queue_key对应的Queue的finished设置成true
 void OrderedMultiQueue::MarkQueueAsFinished(const QueueKey& queue_key) {
   auto it = queues_.find(queue_key);
   CHECK(it != queues_.end()) << "Did not find '" << queue_key << "'.";
+
   auto& queue = it->second;
   CHECK(!queue.finished);
+
   queue.finished = true;
   Dispatch();
 }
 
-// 
+// 向数据队列中添加数据
 void OrderedMultiQueue::Add(const QueueKey& queue_key,
                             std::unique_ptr<Data> data) {
   auto it = queues_.find(queue_key);
@@ -79,7 +81,7 @@ void OrderedMultiQueue::Add(const QueueKey& queue_key,
     return;
   }
 
-  // 
+  // 向数据队列中添加数据
   it->second.queue.Push(std::move(data));
 
   // 
@@ -101,6 +103,7 @@ void OrderedMultiQueue::Flush() {
   }
 }
 
+// 返回阻塞的队列的QueueKey
 QueueKey OrderedMultiQueue::GetBlocker() const {
   CHECK(!queues_.empty());
   return blocker_;
@@ -196,6 +199,7 @@ void OrderedMultiQueue::CannotMakeProgress(const QueueKey& queue_key) {
   }
 }
 
+// 
 common::Time OrderedMultiQueue::GetCommonStartTime(const int trajectory_id) {
   auto emplace_result = common_start_time_per_trajectory_.emplace(
       trajectory_id, common::Time::min());

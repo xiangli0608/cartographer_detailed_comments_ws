@@ -33,7 +33,6 @@ namespace common {
 // 'T' must be movable.
 // 一个线程安全的阻塞队列, 对 生产者/消费者模式 很有用.
 
-// todo: BlockingQueue
 template <typename T>
 class BlockingQueue {
  public:
@@ -47,23 +46,30 @@ class BlockingQueue {
   BlockingQueue& operator=(const BlockingQueue&) = delete;
 
   // Constructs a blocking queue with a size of 'queue_size'.
+  // 构造一个大小为 queue_size 的阻塞队列
   explicit BlockingQueue(const size_t queue_size) : queue_size_(queue_size) {}
 
   // Pushes a value onto the queue. Blocks if the queue is full.
   // 将值压入队列. 如果队列已满, 则阻塞
   void Push(T t) {
+    // 首先定义判断函数
     const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
       return QueueNotFullCondition();
     };
+
+    // absl::Mutex的更多信息可看: https://www.jianshu.com/p/d2834abd6796
+    // absl官网: https://abseil.io/about/
+
+    // 如果数据满了, 就进行等待
     absl::MutexLock lock(&mutex_);
-
-    // ?: absl::Mutex::Await
-
     mutex_.Await(absl::Condition(&predicate));
+
+    // 将数据加入队列, 移动而非拷贝
     deque_.push_back(std::move(t));
   }
 
   // Like push, but returns false if 'timeout' is reached.
+  // 与Push()类似, 但是超时后返回false
   bool PushWithTimeout(T t, const common::Duration timeout) {
     const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
       return QueueNotFullCondition();
@@ -78,10 +84,12 @@ class BlockingQueue {
   }
 
   // Pops the next value from the queue. Blocks until a value is available.
+  // 取出数据, 如果数据队列为空则进行等待
   T Pop() {
     const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
       return !QueueEmptyCondition();
     };
+    // 等待直到数据队列中至少有一个数据
     absl::MutexLock lock(&mutex_);
     mutex_.Await(absl::Condition(&predicate));
 
@@ -91,6 +99,7 @@ class BlockingQueue {
   }
 
   // Like Pop, but can timeout. Returns nullptr in this case.
+  // 与Pop()类似, 但是超时后返回nullptr
   T PopWithTimeout(const common::Duration timeout) {
     const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
       return !QueueEmptyCondition();
@@ -106,6 +115,7 @@ class BlockingQueue {
   }
 
   // Like Peek, but can timeout. Returns nullptr in this case.
+  // 与Peek()类似, 但是超时后返回nullptr
   template <typename R>
   R* PeekWithTimeout(const common::Duration timeout) {
     const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
@@ -122,6 +132,7 @@ class BlockingQueue {
   // Returns the next value in the queue or nullptr if the queue is empty.
   // Maintains ownership. This assumes a member function get() that returns
   // a pointer to the given type R.
+  // 返回第一个数据的指针, 如果队列为空则返回nullptr
   template <typename R>
   const R* Peek() {
     absl::MutexLock lock(&mutex_);
@@ -132,12 +143,14 @@ class BlockingQueue {
   }
 
   // Returns the number of items currently in the queue.
+  // 返回当前队列中的项目数
   size_t Size() {
     absl::MutexLock lock(&mutex_);
     return deque_.size();
   }
 
   // Blocks until the queue is empty.
+  // 等待直到队列为空
   void WaitUntilEmpty() {
     const auto predicate = [this]() EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
       return QueueEmptyCondition();
