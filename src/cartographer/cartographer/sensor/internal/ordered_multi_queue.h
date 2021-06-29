@@ -36,6 +36,7 @@ struct QueueKey {
   int trajectory_id;      // 轨迹id
   std::string sensor_id;  // topic名字
 
+  // 作为key时要对 < 进行重载
   bool operator<(const QueueKey& other) const {
     return std::forward_as_tuple(trajectory_id, sensor_id) <
            std::forward_as_tuple(other.trajectory_id, other.sensor_id);
@@ -50,7 +51,6 @@ struct QueueKey {
 
 // This class is thread-compatible. 此类是线程兼容的
 
-// todo: OrderedMultiQueue
 class OrderedMultiQueue {
  public:
   // note: OrderedMultiQueue::Callback 1个参数
