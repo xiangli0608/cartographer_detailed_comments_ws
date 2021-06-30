@@ -21,6 +21,6 @@ TRAJECTORY_BUILDER = {
 --  pure_localization_trimmer = {
 --    max_submaps_to_keep = 3,
 --  },
-  collate_fixed_frame = true,
-  collate_landmarks = false,
+  collate_fixed_frame = true, -- 是否将数据放入阻塞队列中
+  collate_landmarks = false,  -- 是否将数据放入阻塞队列中
 }

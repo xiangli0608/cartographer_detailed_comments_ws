@@ -115,7 +115,7 @@ QueueKey OrderedMultiQueue::GetBlocker() const {
  * 3种退出情况:
  * 退出条件1 某个话题的数据队列为空同时又不是完成状态, 就退出
  * 退出条件2 所有话题的数据队列都为空或者都处于完成状态, 就退出
- * 退出条件3 数据队列中数据的个数少,又不是完成状态, 不能确定状态, 就先退出
+ * 退出条件3 数据队列中数据的个数只有1个,又不是完成状态, 不能确定状态, 就先退出
  */
 void OrderedMultiQueue::Dispatch() {
   while (true) {
@@ -179,15 +179,18 @@ void OrderedMultiQueue::Dispatch() {
     const common::Time common_start_time =
         GetCommonStartTime(next_queue_key.trajectory_id);
 
+    // 开始处理 next_data 这一个数据
+
+    // 正常情况, 数据时间都超过common_start_time
     if (next_data->GetTime() >= common_start_time) {
       // Happy case, we are beyond the 'common_start_time' already.
-      // 正常情况, 数据时间都超过common_start_time
-      last_dispatched_time_ = next_data->GetTime();
 
+      // 更新分发数据的时间
+      last_dispatched_time_ = next_data->GetTime();
       // 将数据传入 callback() 函数进行处理,并将这个数据从数据队列中删除
       next_queue->callback(next_queue->queue.Pop());
     } 
-    // 数据队列数据的个数小于2,只有1个数据, 罕见
+    // 数据时间小于common_start_time,同时数据队列数据的个数小于2,只有1个数据的情况 罕见
     else if (next_queue->queue.Size() < 2) {
 
       // 退出条件3: 数据队列数据的个数少,又不是完成状态, 不能确定现在到底是啥情况, 就先退出稍后再处理
@@ -198,10 +201,11 @@ void OrderedMultiQueue::Dispatch() {
       } 
 
       // 处于完成状态了, 将数据传入 callback() 函数进行最后几个数据的处理
-      // 并将这个数据从数据队列中删除
+      // 更新分发数据的时间,将数据传入 callback() 进行处理,并将这个数据从数据队列中删除
       last_dispatched_time_ = next_data->GetTime();
       next_queue->callback(next_queue->queue.Pop());
     } 
+    // 数据时间小于common_start_time,同时数据队列数据的个数多于1个
     else {
       // We take a peek at the time after next data. If it also is not beyond
       // 'common_start_time' we drop 'next_data', otherwise we just found the
@@ -210,6 +214,7 @@ void OrderedMultiQueue::Dispatch() {
       // 只处理数据在common_start_time的前一个数据, 其他更早的数据会被丢弃掉
       std::unique_ptr<Data> next_data_owner = next_queue->queue.Pop();
       if (next_queue->queue.Peek<Data>()->GetTime() > common_start_time) {
+        // 更新分发数据的时间,将数据传入 callback() 进行处理
         last_dispatched_time_ = next_data->GetTime();
         next_queue->callback(std::move(next_data_owner));
       }
@@ -232,20 +237,22 @@ void OrderedMultiQueue::CannotMakeProgress(const QueueKey& queue_key) {
 
 /**
  * @brief 找到数据队列所有第一帧的最大时间(共同时间)
+ * 对于某个id的轨迹的 common_start_time 只会计算一次
  * 
  * @param[in] trajectory_id 轨迹id
  * @return common::Time 返回数据队列所有第一帧的最大时间
  */
 common::Time OrderedMultiQueue::GetCommonStartTime(const int trajectory_id) {
 
-  // c++11: map::emplace() 返回的 pair 对象提供的指示相同
+  // c++11: map::emplace() 返回的 pair 对象
   // pair 的成员变量 first 是一个指向插入元素或阻止插入的元素的迭代器
-  // 成员变量 second 是个布尔值, 表示是否插入成功, 如果这个元素的索引已经存在就插入不成功
+  // 成员变量 second 是个布尔值, 表示是否插入成功, 如果这个元素的索引已经存在插入会失败,返回false
   auto emplace_result = common_start_time_per_trajectory_.emplace(
       trajectory_id, common::Time::min());
   common::Time& common_start_time = emplace_result.first->second;
 
   // 如果插入成功了就找到时间戳最大的对common_start_time进行更新, 失败了就不更新
+  // 只会在轨迹开始时插入成功一次
   if (emplace_result.second) {
     // 找到这个轨迹下,所有数据队列中数据的时间戳最大 的时间戳
     for (auto& entry : queues_) {
@@ -254,7 +261,6 @@ common::Time OrderedMultiQueue::GetCommonStartTime(const int trajectory_id) {
             common_start_time, entry.second.queue.Peek<Data>()->GetTime());
       }
     }
-    // tag: 将报错信息放这里
     LOG(INFO) << "All sensor data for trajectory " << trajectory_id
               << " is available starting at '" << common_start_time << "'.";
   }

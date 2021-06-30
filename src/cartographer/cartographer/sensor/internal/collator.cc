@@ -55,7 +55,8 @@ void Collator::AddSensorData(const int trajectory_id,
   queue_.Add(std::move(queue_key), std::move(data));
 }
 
-// 分派所有排队的传感器数据包 只能调用一次, 在 Flush 之后不能再调用 AddSensorData()
+// 将所有数据队列标记为已完成,分派所有剩下的传感器数据
+// 只能调用一次, 在 Flush 之后不能再调用 AddSensorData()
 void Collator::Flush() { queue_.Flush(); }
 
 // 返回在 CollatorInterface 解锁之前需要更多数据的轨迹的 ID

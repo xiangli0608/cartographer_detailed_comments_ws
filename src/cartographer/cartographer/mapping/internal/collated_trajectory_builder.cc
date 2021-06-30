@@ -45,9 +45,9 @@ CollatedTrajectoryBuilder::CollatedTrajectoryBuilder(
     : sensor_collator_(sensor_collator),
       
       // 以下两个参数在 configuration_files/trajectory_builder.lua 中
-      // collate_landmarks 为 false,
+      // collate_landmarks 为 false, 不要将landmark数据放入到阻塞队列中
       collate_landmarks_(trajectory_options.collate_landmarks()),
-      // collate_fixed_frame 为 true
+      // collate_fixed_frame 为 true, 将gps数据放入阻塞队列中
       collate_fixed_frame_(trajectory_options.collate_fixed_frame()),
       
       trajectory_id_(trajectory_id),
@@ -82,7 +82,7 @@ void CollatedTrajectoryBuilder::AddData(std::unique_ptr<sensor::Data> data) {
 }
 
 /**
- * @brief 进行传感器数据处理的回调函数
+ * @brief 处理 按照时间顺序分发出来的传感器数据
  * 
  * @param[in] sensor_id 传感器的topic的名字
  * @param[in] data 需要处理的数据(Data是个类模板,可处理多种不同数据类型的数据)
@@ -96,9 +96,14 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
     // 元素是直接构建的（既不复制也不移动）.仅当键不存在时才进行插入
     // 它返回一个布尔对, emplace().first表示新插入元素或者原始位置的迭代器, emplace().second表示是否发生插入
 
+    // c++11: std::piecewise_construct 分次生成tuple的标志常量, 不加就报错
+    // c++11: std::forward_as_tuple tuple的完美转发
+    // 该 tuple 在以右值为参数时拥有右值引用数据成员, 否则拥有左值引用数据成员
+
     it = rate_timers_
              .emplace(
-                 std::piecewise_construct, std::forward_as_tuple(sensor_id),
+                 std::piecewise_construct, 
+                 std::forward_as_tuple(sensor_id),
                  std::forward_as_tuple(
                      common::FromSeconds(kSensorDataRatesLoggingPeriodSeconds)))
              .first;
