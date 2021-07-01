@@ -62,7 +62,6 @@ CeresScanMatcher2D::~CeresScanMatcher2D() {}
 
 /**
  * @brief 
- * todo: CeresScanMatcher2D::Match
  * 
  * @param[in] target_translation 
  * @param[in] initial_pose_estimate 

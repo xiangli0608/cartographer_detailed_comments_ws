@@ -76,6 +76,11 @@ class Submap2D : public Submap {
 // considered initialized: the old submap is no longer changed, the "new" submap
 // is now the "old" submap and is used for scan-to-map matching. Moreover, a
 // "new" submap gets created. The "old" submap is forgotten by this object.
+
+/**
+ * @brief 2个活跃的子图,旧的用于匹配,新的用于初始化,当新子图变成旧子图时候再进行匹配
+ * 只有初始化时才只有1个子图.
+ */
 class ActiveSubmaps2D {
  public:
   explicit ActiveSubmaps2D(const proto::SubmapsOptions2D& options);

@@ -14,12 +14,11 @@
     "?",
     "!",
     "Step",
-    "todo",
     "c++11",
     "note",
-
     "done",
     "tag",
+    "todo",
   ],
   "todo-tree.highlights.customHighlight": {
     "Step": {

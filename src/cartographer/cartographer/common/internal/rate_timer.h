@@ -32,8 +32,6 @@
 namespace cartographer {
 namespace common {
 
-// todo: RateTimer
-
 // Computes the rate at which pulses come in.
 template <typename ClockType = std::chrono::steady_clock>
 class RateTimer {
@@ -48,6 +46,7 @@ class RateTimer {
   RateTimer& operator=(const RateTimer&) = delete;
 
   // Returns the pulse rate in Hz.
+  // 计算平均频率,数据的个数 - 1 除以 开始与结束的数据间隔
   double ComputeRate() const {
     if (events_.empty()) {
       return 0.;
@@ -69,6 +68,7 @@ class RateTimer {
   }
 
   // Records an event that will contribute to the computed rate.
+  // 等待一段时间,删除队列头部数据,直到队列中最后与最前间的时间间隔小于window_duration_
   void Pulse(common::Time time) {
     events_.push_back(Event{time, ClockType::now()});
     while (events_.size() > 2 &&
@@ -83,6 +83,9 @@ class RateTimer {
     if (events_.size() < 2) {
       return "unknown";
     }
+
+    // c++11: std::fixed 与 std::setprecision(2) 一起使用, 表示输出2位小数点的数据
+
     std::ostringstream out;
     out << std::fixed << std::setprecision(2) << ComputeRate() << " Hz "
         << DeltasDebugString() << " (pulsed at "
@@ -97,6 +100,7 @@ class RateTimer {
   };
 
   // Computes all differences in seconds between consecutive pulses.
+  // 返回每2个数据间的时间间隔
   std::vector<double> ComputeDeltasInSeconds() const {
     CHECK_GT(events_.size(), 1);
     const size_t count = events_.size() - 1;
@@ -110,15 +114,18 @@ class RateTimer {
   }
 
   // Returns the average and standard deviation of the deltas.
+  // 计算数据时间间隔的均值与标准差
   std::string DeltasDebugString() const {
     const auto deltas = ComputeDeltasInSeconds();
     const double sum = std::accumulate(deltas.begin(), deltas.end(), 0.);
+    // 计算均值
     const double mean = sum / deltas.size();
 
     double squared_sum = 0.;
     for (const double x : deltas) {
       squared_sum += common::Pow2(x - mean);
     }
+    // 计算标准差
     const double sigma = std::sqrt(squared_sum / (deltas.size() - 1));
 
     std::ostringstream out;

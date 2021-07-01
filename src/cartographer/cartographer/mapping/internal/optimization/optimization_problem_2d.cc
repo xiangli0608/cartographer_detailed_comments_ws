@@ -305,7 +305,7 @@ void OptimizationProblem2D::Solve(
     C_submaps.Insert(submap_id_data.id,
                      FromPose(submap_id_data.data.global_pose));
     // 向优化器中插入需要优化的数据
-    // todo: std::array::data()
+    // c++11: std::array::data() 返回指向数组对象中第一个元素的指针
     problem.AddParameterBlock(C_submaps.at(submap_id_data.id).data(), 3);
 
     // 如果是第一幅子图, 或者是已经冻结的轨迹中的子图, Ceres在迭代求解的过程中将不会改变这些参数

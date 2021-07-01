@@ -35,6 +35,7 @@ static auto* kCeresScanMatcherCostMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualDistanceMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualAngleMetric = metrics::Histogram::Null();
 
+// 构造函数
 LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
     const proto::LocalTrajectoryBuilderOptions2D& options,
     const std::vector<std::string>& expected_range_sensor_ids)
@@ -71,7 +72,6 @@ LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
 
 /**
  * @brief 
- * todo: LocalTrajectoryBuilder2D::ScanMatch
  * 
  * @param[in] time 
  * @param[in] pose_prediction 
