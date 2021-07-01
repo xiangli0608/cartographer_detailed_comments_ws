@@ -157,6 +157,8 @@ foreach(ABS_FIL ${ALL_PROTOS})
   )
 endforeach()
 set_source_files_properties(${ALL_PROTO_SRCS} ${ALL_PROTO_HDRS} PROPERTIES GENERATED TRUE)
+
+# 添加.pb.h与.pb.cc到头文件源文件列表
 list(APPEND ALL_LIBRARY_HDRS ${ALL_PROTO_HDRS})
 list(APPEND ALL_LIBRARY_SRCS ${ALL_PROTO_SRCS})
 
@@ -189,6 +191,7 @@ if(${BUILD_GRPC})
 endif()
 set(INSTALL_GENERATED_HDRS ${ALL_PROTO_HDRS} ${ALL_GRPC_SERVICE_HDRS})
 
+# 生成cartographer库文件
 add_library(${PROJECT_NAME} STATIC ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
 
 configure_file(
@@ -347,6 +350,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+# 安装cartographer库
 install(
   TARGETS ${PROJECT_NAME}
   EXPORT CartographerExport

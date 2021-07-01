@@ -245,7 +245,6 @@ void PoseExtrapolator::TrimOdometryData() {
 }
 
 /*
- * todo: 将这几个check的含义放入ppt中
   #define CHECK_EQ(val1, val2) CHECK_OP(_EQ, ==, val1, val2)
   #define CHECK_NE(val1, val2) CHECK_OP(_NE, !=, val1, val2)
   #define CHECK_LE(val1, val2) CHECK_OP(_LE, <=, val1, val2)

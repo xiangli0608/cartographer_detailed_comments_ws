@@ -11,12 +11,9 @@
     - ceres的options的设置
     - rate timer
   - proto: ceres匹配的设置的proto
-
-
 2. io
   - internal:
   - code:
-
 3. mapping
   - code: 
     - 整体建图的外部接口
@@ -28,7 +25,6 @@
     - 2d与3d共用的地图存储值转换相关的功能实现
     - 2d与3d共用的位姿预测(pose_extrapolator)的接口类与功能实现
     - 前端后端共用的数据结构
-
   - 2d: 2d栅格地图相关的数据结构
   - 3d: 3d网格地图相关的数据结构
   - internal:
@@ -68,22 +64,45 @@
       - code: 构建2d与3d优化问题的功能函数
       - cost_functions: 2d与3d的残差方程
     - testing: 测试某些功能
-
   - proto:
     - pose_graph: 位姿图的配置的proto格式的数据类型
     - scan_matching: ceres匹配器与分枝定界匹配器的配置的proto格式的数据类型
     - code: 地图相关的数据结构的proto格式的数据类型
-
-
 4. sensor
  - code: 自定义的传感器相关的数据结构
  - internal: 处理传感器数据的相关功能函数
  - proto: 传感器相关的数据结构的proto格式的数据类型
-
 5. transform
  - code: 坐标变换相关的数据类型,与坐标变换相关函数
  - proto: 坐标变换相关数据结构的proto格式的数据类型
-
 6. ground_truth
 7. metrics
 8. cloud
+
+### 第2讲 node_main.cc文件讲解
+
+#### Todo Tree说明
+
+- ?: 目前我不理解的地方的标注
+- note: 重点库, 重点概念, 重点功能的语句的标注
+- c++11: c++11新标准与c++不常用语法的标注
+- Step: 代码步骤说明
+
+#### glog简介
+
+更灵活输出log的库
+
+glog比较语句的源码
+
+```c++
+  #define CHECK_EQ(val1, val2) CHECK_OP(_EQ, ==, val1, val2)
+  #define CHECK_NE(val1, val2) CHECK_OP(_NE, !=, val1, val2)
+  #define CHECK_LE(val1, val2) CHECK_OP(_LE, <=, val1, val2)
+  #define CHECK_LT(val1, val2) CHECK_OP(_LT, < , val1, val2)
+  #define CHECK_GE(val1, val2) CHECK_OP(_GE, >=, val1, val2)
+  #define CHECK_GT(val1, val2) CHECK_OP(_GT, > , val1, val2)
+```
+
+#### gflag简介
+
+定义些变量的库

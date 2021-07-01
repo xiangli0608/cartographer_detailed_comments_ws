@@ -44,6 +44,7 @@ function(google_test NAME ARG_SRC)
   add_test(${NAME} ${NAME})
 endfunction()
 
+# 生成可执行文件
 function(google_binary NAME)
   _parse_arguments("${ARGN}")
 

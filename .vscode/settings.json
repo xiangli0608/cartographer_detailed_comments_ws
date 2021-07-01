@@ -21,13 +21,6 @@
     "todo",
   ],
   "todo-tree.highlights.customHighlight": {
-    "Step": {
-      "foreground": "#7CFC00",
-      "icon": "question",
-      "iconColour": "green",
-      "type": "text-and-comment",
-      "hideFromTree": true
-    },
     "?": {
       "icon": "question",
       "foreground": "yellow",
@@ -40,11 +33,12 @@
       "iconColour": "red",
       "type": "text-and-comment"
     },
-    "todo": {
-      "foreground": "#f90",
-      "rulerColour": "#f90",
-      "iconColour": "#f90",
+    "Step": {
+      "foreground": "#7CFC00",
+      "icon": "question",
+      "iconColour": "green",
       "type": "text-and-comment",
+      "hideFromTree": true
     },
     "c++11": {
       "icon": "tag",
@@ -60,7 +54,6 @@
       "iconColour": "orange",
       "type": "text-and-comment",
     },
-    
     "done": {
       "icon": "issue-closed",
       "foreground": "#FF00FF",
@@ -76,7 +69,13 @@
       "rulerLane": "full",
       "type": "text-and-comment",
     },
-
+    "todo": {
+      "foreground": "#f90",
+      "rulerColour": "#f90",
+      "iconColour": "#f90",
+      "type": "text-and-comment",
+    },
+    
   },
   "python.autoComplete.extraPaths": [
     "/opt/ros/kinetic/lib/python2.7/dist-packages"

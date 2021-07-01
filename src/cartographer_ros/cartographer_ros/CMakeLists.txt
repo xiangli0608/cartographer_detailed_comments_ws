@@ -108,6 +108,7 @@ add_library(${PROJECT_NAME} STATIC ${ALL_SRCS})
 # 添加子目录,生成可执行文件
 add_subdirectory("cartographer_ros")
 
+# 连接到cartographer
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
 
 # Lua

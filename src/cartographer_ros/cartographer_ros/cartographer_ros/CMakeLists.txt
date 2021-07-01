@@ -25,6 +25,7 @@ install(TARGETS cartographer_assets_writer
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+# 生成建图节点
 google_binary(cartographer_node
   SRCS
     node_main.cc
