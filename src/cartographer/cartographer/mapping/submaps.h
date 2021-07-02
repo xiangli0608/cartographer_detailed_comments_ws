@@ -80,6 +80,7 @@ class Submap {
   }
 
   bool insertion_finished() const { return insertion_finished_; }
+  // 将子图标记为完成状态
   void set_insertion_finished(bool insertion_finished) {
     insertion_finished_ = insertion_finished;
   }

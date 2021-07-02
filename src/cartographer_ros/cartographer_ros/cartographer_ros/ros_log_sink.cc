@@ -32,7 +32,7 @@ namespace {
  * @brief 根据给定的文件全路径名, 获取文件名
  * 
  * @param[in] filepath 
- * @return const char* : 返回文件名
+ * @return const char* 返回文件名
  */
 const char* GetBasename(const char* filepath) {
   // 找到 '/' 最后一次在filepath中出现的位置
@@ -63,7 +63,8 @@ ScopedRosLogSink::~ScopedRosLogSink() { RemoveLogSink(this); }
  */
 void ScopedRosLogSink::send(const ::google::LogSeverity severity,
                             const char* const filename,
-                            const char* const base_filename, const int line,
+                            const char* const base_filename, 
+                            const int line,
                             const struct std::tm* const tm_time,
                             const char* const message,
                             const size_t message_len) {

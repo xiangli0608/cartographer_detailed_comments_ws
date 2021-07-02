@@ -58,7 +58,7 @@ namespace {
 void Run() {
   constexpr double kTfBufferCacheTimeInSeconds = 10.;
   tf2_ros::Buffer tf_buffer{::ros::Duration(kTfBufferCacheTimeInSeconds)};
-  // 对tf_buffer进行初始化
+  // 开启监听tf的独立线程
   tf2_ros::TransformListener tf(tf_buffer);
 
   NodeOptions node_options;
@@ -118,7 +118,8 @@ int main(int argc, char** argv) {
   // note: 初始化glog库
   google::InitGoogleLogging(argv[0]);
   
-  // 使用gflags进行参数的初始化. 其中第三个参数为remove_flag, 如果为true, gflags会移除parse过的参数, 否则gflags就会保留这些参数, 但可能会对参数顺序进行调整.
+  // 使用gflags进行参数的初始化. 其中第三个参数为remove_flag
+  // 如果为true, gflags会移除parse过的参数, 否则gflags就会保留这些参数, 但可能会对参数顺序进行调整.
   google::ParseCommandLineFlags(&argc, &argv, true);
 
   /**

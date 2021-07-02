@@ -37,6 +37,20 @@ namespace mapping {
 
 // Defines the limits of a grid map. This class must remain inlined for
 // performance reasons.
+
+/**
+ * note: 坐标系可视化展示
+ * ros的地图坐标系       cartographer的地图坐标系 
+ * 
+ * ^ y                            ^ x
+ * |                              |    
+ * |                              |
+ * 0 ----> x           y <--------0
+ * 
+ * ros的地图坐标系: 左下角为原点, 角度正方向以x轴正向为0度
+ * cartographer的地图坐标系 坐标系右下角为原点,xy与ros地图相反
+ *             角度正方向以x轴正向为0度
+ */
 class MapLimits {
  public:
   MapLimits(const double resolution, const Eigen::Vector2d& max,
@@ -91,7 +105,7 @@ class MapLimits {
 
  private:
   double resolution_;
-  Eigen::Vector2d max_;
+  Eigen::Vector2d max_;    // cartographer地图坐标系左上角为坐标最大值
   CellLimits cell_limits_;
 };
 
