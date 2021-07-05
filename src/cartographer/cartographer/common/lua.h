@@ -17,6 +17,7 @@
 #ifndef CARTOGRAPHER_COMMON_LUA_H_
 #define CARTOGRAPHER_COMMON_LUA_H_
 
+// 这个头文件包含了使用lua所需的所有头文件
 #include <lua.hpp>
 
 #endif  // CARTOGRAPHER_COMMON_LUA_H_

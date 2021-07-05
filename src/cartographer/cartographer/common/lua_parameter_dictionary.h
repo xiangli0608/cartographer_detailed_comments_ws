@@ -140,6 +140,7 @@ class LuaParameterDictionary {
 
   // List of all included files in order of inclusion. Used to prevent double
   // inclusion.
+  // 按包含顺序列出所有包含的文件。 用于防止双重包含
   std::vector<std::string> included_files_;
 };
 

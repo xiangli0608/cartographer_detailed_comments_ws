@@ -48,12 +48,13 @@ std::string ConfigurationFileResolver::GetFullPathOrDie(
   for (const auto& path : configuration_files_directories_) {
     const std::string filename = path + "/" + basename;
     std::ifstream stream(filename.c_str());
+    // 只要找到就退出
     if (stream.good()) {
       LOG(INFO) << "Found '" << filename << "' for '" << basename << "'.";
       return filename;
     }
   }
-  // 如果找不到配置文件就退出程序
+  // 如果找不到配置文件就退出整个程序
   LOG(FATAL) << "File '" << basename << "' was not found.";
 }
 

@@ -146,6 +146,7 @@ void GetArrayValues(lua_State* L, const std::function<void()>& pop_value) {
 
 }  // namespace
 
+// 更多Lua的学习可以参考 https://www.cnblogs.com/chevin/p/5884657.html
 
 std::unique_ptr<LuaParameterDictionary>
 LuaParameterDictionary::NonReferenceCounted(
@@ -186,6 +187,7 @@ LuaParameterDictionary::LuaParameterDictionary(
   luaL_openlibs(L_);
 
   lua_register(L_, "choose", LuaChoose);
+  // 将LuaInclude注册为Lua的全局函数变量,使得Lua可以调用C函数
   lua_register(L_, "include", LuaInclude);
   lua_register(L_, "read", LuaRead);
 
@@ -241,6 +243,7 @@ bool LuaParameterDictionary::HasKey(const std::string& key) const {
   return HasKeyOfType(L_, key);
 }
 
+// 获取key对应的string值
 std::string LuaParameterDictionary::GetString(const std::string& key) {
   CheckHasKeyAndReference(key);
   GetValueFromLuaTable(L_, key);
@@ -258,6 +261,7 @@ std::string LuaParameterDictionary::PopString(Quoted quoted) const {
   return value;
 }
 
+// 获取key对应的double值
 double LuaParameterDictionary::GetDouble(const std::string& key) {
   CheckHasKeyAndReference(key);
   GetValueFromLuaTable(L_, key);
@@ -271,6 +275,7 @@ double LuaParameterDictionary::PopDouble() const {
   return value;
 }
 
+// 获取key对应的int值
 int LuaParameterDictionary::GetInt(const std::string& key) {
   CheckHasKeyAndReference(key);
   GetValueFromLuaTable(L_, key);
@@ -284,6 +289,7 @@ int LuaParameterDictionary::PopInt() const {
   return value;
 }
 
+// 获取key对应的bool值
 bool LuaParameterDictionary::GetBool(const std::string& key) {
   CheckHasKeyAndReference(key);
   GetValueFromLuaTable(L_, key);
@@ -440,6 +446,7 @@ int LuaParameterDictionary::GetNonNegativeInt(const std::string& key) {
 
 // Lua function to run a script in the current Lua context. Takes the filename
 // as its only argument.
+// 读取.lua文件中的所有 include 的文件
 int LuaParameterDictionary::LuaInclude(lua_State* L) {
   CHECK_EQ(lua_gettop(L), 1);
   CHECK(lua_isstring(L, -1)) << "include takes a filename.";
@@ -448,6 +455,7 @@ int LuaParameterDictionary::LuaInclude(lua_State* L) {
   const std::string basename = lua_tostring(L, -1);
   const std::string filename =
       parameter_dictionary->file_resolver_->GetFullPathOrDie(basename);
+  // 防止双重包含
   if (std::find(parameter_dictionary->included_files_.begin(),
                 parameter_dictionary->included_files_.end(),
                 filename) != parameter_dictionary->included_files_.end()) {
@@ -464,6 +472,7 @@ int LuaParameterDictionary::LuaInclude(lua_State* L) {
   lua_pop(L, 1);
   CHECK_EQ(lua_gettop(L), 0);
 
+  // 判断了2次文件是否存在
   const std::string content =
       parameter_dictionary->file_resolver_->GetFileContentOrDie(basename);
   CheckForLuaErrors(
