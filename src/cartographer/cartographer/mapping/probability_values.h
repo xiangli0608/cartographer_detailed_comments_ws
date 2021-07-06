@@ -45,14 +45,17 @@ inline uint16 BoundedFloatToValue(const float float_value,
 
 }  // namespace
 
+// 论文里的 odds(p)函数
 inline float Odds(float probability) {
   return probability / (1.f - probability);
 }
 
+// 论文里的 odds^-1 函数
 inline float ProbabilityFromOdds(const float odds) {
   return odds / (odds + 1.f);
 }
 
+// probability与CorrespondenceCost的关系
 inline float ProbabilityToCorrespondenceCost(const float probability) {
   return 1.f - probability;
 }
@@ -70,6 +73,7 @@ constexpr float kMaxCorrespondenceCost = 1.f - kMinProbability;
 inline float ClampProbability(const float probability) {
   return common::Clamp(probability, kMinProbability, kMaxProbability);
 }
+
 // Clamps correspondece cost to be in the range [kMinCorrespondenceCost,
 // kMaxCorrespondenceCost].
 inline float ClampCorrespondenceCost(const float correspondence_cost) {
@@ -92,6 +96,8 @@ inline uint16 ProbabilityToValue(const float probability) {
   return BoundedFloatToValue(probability, kMinProbability, kMaxProbability);
 }
 
+
+// c++11: extern c风格
 extern const std::vector<float>* const kValueToProbability;
 extern const std::vector<float>* const kValueToCorrespondenceCost;
 

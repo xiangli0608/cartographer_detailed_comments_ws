@@ -34,6 +34,7 @@ namespace cartographer {
 namespace mapping {
 
 // Converts the given probability to log odds.
+// 对论文里的 odds(p)函数 又取了 log
 inline float Logit(float probability) {
   return std::log(probability / (1.f - probability));
 }
@@ -56,6 +57,14 @@ inline uint8 ProbabilityToLogOddsInteger(const float probability) {
 // track of how many range data were inserted into it, and sets
 // 'insertion_finished' when the map no longer changes and is ready for loop
 // closing.
+
+/**
+ * @brief 独立的子地图, 3个功能
+ * 
+ * 保存在local坐标系下的子图的坐标
+ * 记录插入到子图中雷达数据的个数
+ * 标记这个子图是否是完成状态
+ */
 class Submap {
  public:
   Submap(const transform::Rigid3d& local_submap_pose)
@@ -71,9 +80,11 @@ class Submap {
       proto::SubmapQuery::Response* response) const = 0;
 
   // Pose of this submap in the local map frame.
+  // 在local坐标系的子图的坐标
   transform::Rigid3d local_pose() const { return local_pose_; }
 
   // Number of RangeData inserted.
+  // 插入到子图中雷达数据的个数
   int num_range_data() const { return num_range_data_; }
   void set_num_range_data(const int num_range_data) {
     num_range_data_ = num_range_data;

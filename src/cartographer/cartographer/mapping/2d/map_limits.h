@@ -53,6 +53,13 @@ namespace mapping {
  */
 class MapLimits {
  public:
+  /**
+   * @brief 构造函数
+   * 
+   * @param[in] resolution 地图分辨率
+   * @param[in] max 左上角的坐标为地图坐标的最大值
+   * @param[in] cell_limits 地图x方向与y方向的格子数
+   */
   MapLimits(const double resolution, const Eigen::Vector2d& max,
             const CellLimits& cell_limits)
       : resolution_(resolution), max_(max), cell_limits_(cell_limits) {
@@ -80,22 +87,26 @@ class MapLimits {
   // Returns the index of the cell containing the 'point' which may be outside
   // the map, i.e., negative or too large indices that will return false for
   // Contains().
+  // 计算物理坐标点的像素索引
   Eigen::Array2i GetCellIndex(const Eigen::Vector2f& point) const {
     // Index values are row major and the top left has Eigen::Array2i::Zero()
     // and contains (centered_max_x, centered_max_y). We need to flip and
     // rotate.
+    // 因为在求max时对坐标加了0.5,所以这里要减去
     return Eigen::Array2i(
         common::RoundToInt((max_.y() - point.y()) / resolution_ - 0.5),
         common::RoundToInt((max_.x() - point.x()) / resolution_ - 0.5));
   }
 
   // Returns the center of the cell at 'cell_index'.
+  // 根据索引算物理坐标
   Eigen::Vector2f GetCellCenter(const Eigen::Array2i cell_index) const {
     return {max_.x() - resolution() * (cell_index[1] + 0.5),
             max_.y() - resolution() * (cell_index[0] + 0.5)};
   }
 
   // Returns true if the ProbabilityGrid contains 'cell_index'.
+  // 判断给定像素索引是否在栅格地图内部
   bool Contains(const Eigen::Array2i& cell_index) const {
     return (Eigen::Array2i(0, 0) <= cell_index).all() &&
            (cell_index <
@@ -105,7 +116,7 @@ class MapLimits {
 
  private:
   double resolution_;
-  Eigen::Vector2d max_;    // cartographer地图坐标系左上角为坐标最大值
+  Eigen::Vector2d max_;    // cartographer地图坐标系左上角为坐标系的坐标的最大值
   CellLimits cell_limits_;
 };
 

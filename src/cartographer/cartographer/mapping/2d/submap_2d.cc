@@ -33,6 +33,7 @@
 namespace cartographer {
 namespace mapping {
 
+// submap2d的参数配置配置
 proto::SubmapsOptions2D CreateSubmapsOptions2D(
     common::LuaParameterDictionary* const parameter_dictionary) {
   proto::SubmapsOptions2D options;
@@ -45,8 +46,10 @@ proto::SubmapsOptions2D CreateSubmapsOptions2D(
           parameter_dictionary->GetDictionary("range_data_inserter").get());
 
   bool valid_range_data_inserter_grid_combination = false;
+  // 地图类型
   const proto::GridOptions2D_GridType& grid_type =
       options.grid_options_2d().grid_type();
+  // 将scan写成地图的方式
   const proto::RangeDataInserterOptions_RangeDataInserterType&
       range_data_inserter_type =
           options.range_data_inserter_options().range_data_inserter_type();
@@ -67,6 +70,13 @@ proto::SubmapsOptions2D CreateSubmapsOptions2D(
   return options;
 }
 
+/**
+ * @brief 构造函数
+ * 
+ * @param[in] origin Submap2D的原点,保存在Submap类里
+ * @param[in] grid 地图数据的指针
+ * @param[in] conversion_tables 地图数据的转换表
+ */
 Submap2D::Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
                    ValueConversionTables* conversion_tables)
     : Submap(transform::Rigid3d::Translation(
@@ -75,6 +85,7 @@ Submap2D::Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
   grid_ = std::move(grid);
 }
 
+// 根据proto::Submap格式的数据生成Submap2D
 Submap2D::Submap2D(const proto::Submap2D& proto,
                    ValueConversionTables* conversion_tables)
     : Submap(transform::ToRigid3(proto.local_pose())),
@@ -93,6 +104,7 @@ Submap2D::Submap2D(const proto::Submap2D& proto,
   set_insertion_finished(proto.finished());
 }
 
+// 根据mapping::Submap2D生成proto::Submap格式的数据
 proto::Submap Submap2D::ToProto(const bool include_grid_data) const {
   proto::Submap proto;
   auto* const submap_2d = proto.mutable_submap_2d();
@@ -106,6 +118,7 @@ proto::Submap Submap2D::ToProto(const bool include_grid_data) const {
   return proto;
 }
 
+// 根据proto::Submap格式的数据更新地图
 void Submap2D::UpdateFromProto(const proto::Submap& proto) {
   CHECK(proto.has_submap_2d());
   const auto& submap_2d = proto.submap_2d();
@@ -124,6 +137,7 @@ void Submap2D::UpdateFromProto(const proto::Submap& proto) {
   }
 }
 
+// 生成proto::SubmapQuery::Response格式的数据
 void Submap2D::ToResponseProto(
     const transform::Rigid3d&,
     proto::SubmapQuery::Response* const response) const {
@@ -134,12 +148,15 @@ void Submap2D::ToResponseProto(
   grid()->DrawToSubmapTexture(texture, local_pose());
 }
 
+// 将雷达数据写到栅格地图中
 void Submap2D::InsertRangeData(
     const sensor::RangeData& range_data,
     const RangeDataInserterInterface* range_data_inserter) {
   CHECK(grid_);
   CHECK(!insertion_finished());
+  // 将雷达数据写到栅格地图中
   range_data_inserter->Insert(range_data, grid_.get());
+  // 插入到地图中的雷达数据的个数加1
   set_num_range_data(num_range_data() + 1);
 }
 

@@ -163,8 +163,6 @@ class MapById {
     using pointer = std::unique_ptr<const IdDataReference>;
     using reference = const IdDataReference&;
 
-    // c++11: explicit关键字 的作用就是防止类构造函数的隐式自动转换
-
     // 通过表和轨迹id（trajectory_id）获得索引, current_data_为该轨迹的第一个validData值
     explicit ConstIterator(const MapById& map_by_id, const int trajectory_id)
         : current_trajectory_(

@@ -33,6 +33,8 @@ namespace common {
 // provide a good starting ground for new platforms.
 class ConfigurationFileResolver : public FileResolver {
  public:
+
+  // c++11: explicit关键字 的作用就是防止类构造函数的隐式自动转换
   explicit ConfigurationFileResolver(
       const std::vector<std::string>& configuration_files_directories);
 

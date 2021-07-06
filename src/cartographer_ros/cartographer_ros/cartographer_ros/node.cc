@@ -86,7 +86,16 @@ const Rigid3d tracking_to_local = [&] {
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
 // calls 'handler' on the 'node' to handle messages. Returns the subscriber.
 
-// ?: 不清楚 Node::*handler 从哪里来
+// ?: 不清楚 Node::*handler 的用法, 大致是句柄的功能
+// *handler可能来自于 /usr/include/x11/Xlibint.h
+// Bool (*handler)(
+//     Display*	/* dpy */,
+//     xReply*	/* rep */,
+//     char*	/* buf */,
+//     int		/* len */,
+//     XPointer	/* data */
+//     );
+
 // 目的就是在node_handle中订阅topic,并注册回调函数
 template <typename MessageType>
 ::ros::Subscriber SubscribeWithHandler(
@@ -187,7 +196,7 @@ Node::Node(
   service_servers_.push_back(node_handle_.advertiseService(
       kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
-  // Step: 3 匹配之后的点云的发布器
+  // Step: 3 处理之后的点云的发布器
   scan_matched_point_cloud_publisher_ =
       node_handle_.advertise<sensor_msgs::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
