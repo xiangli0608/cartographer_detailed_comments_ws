@@ -157,7 +157,7 @@ Node::Node(
 
   // Step: 1 声明需要发布的topic
 
-  // 发布submap
+  // 发布SubmapList
   submap_list_publisher_ =
       node_handle_.advertise<::cartographer_ros_msgs::SubmapList>(
           kSubmapListTopic, kLatestOnlyPublisherQueueSize);
@@ -201,7 +201,7 @@ Node::Node(
       node_handle_.advertise<sensor_msgs::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
 
-  // Step: 4 对一些需要定时执行的函数进行定时器的绑定
+  // Step: 4 进行定时器与函数的绑定, 定时发布数据
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(node_options_.submap_publish_period_sec),  // 0.3s
       &Node::PublishSubmapList, this));
@@ -534,8 +534,8 @@ Node::ComputeExpectedSensorIds(const TrajectoryOptions& options) const {
       SensorType type;  // 传感器的种类
       std::string id;   // topic的名字
     };
-
   */
+ 
   using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
   using SensorType = SensorId::SensorType;
   std::set<SensorId> expected_topics;
