@@ -62,11 +62,11 @@ class Node {
        tf2_ros::Buffer* tf_buffer, bool collect_metrics);
   ~Node();
 
-  // c++11: =delete: 禁止使用编译器默认生成的函数; =default: 要求编译器生成一个默认函数
+  // c++11: =delete: 禁止编译器自动生成默认函数; =default: 要求编译器生成一个默认函数
 
-  // 禁止使用 默认拷贝构造函数(复制构造函数)
+  // 禁止编译器自动生成 默认拷贝构造函数(复制构造函数)
   Node(const Node&) = delete;
-  // 禁止使用 默认赋值函数
+  // 禁止编译器自动生成 默认赋值函数
   Node& operator=(const Node&) = delete;
 
   // Finishes all yet active trajectories.

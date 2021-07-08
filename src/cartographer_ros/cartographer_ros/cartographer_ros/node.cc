@@ -57,57 +57,8 @@ using TrajectoryState =
     ::cartographer::mapping::PoseGraphInterface::TrajectoryState;
 
 namespace {
-
-// c++11: lambda表达式 
-/*
- * tag: 这块放课件里
-[外部变量访问方式说明符 = & ] (参数表) -> 返回值类型
-{
-  语句块
-}
-
-eg1
-[node, handler, trajectory_id, topic](const typename MessageType::ConstPtr& msg)
-{
-  (node->*handler)(trajectory_id, topic, msg);
-}
-
-eg2
-const Rigid3d tracking_to_local = [&] {
-  // 是否将变换投影到平面上
-  if (trajectory_data.trajectory_options.publish_frame_projected_to_2d) {
-    return carto::transform::Embed3D(
-        carto::transform::Project2D(tracking_to_local_3d));
-  }
-  return tracking_to_local_3d;
-}();
-
-*/
-
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
 // calls 'handler' on the 'node' to handle messages. Returns the subscriber.
-
-/*
- * tag: 这块放课件里
-int function(int a, int b)
-{
-  // 执行代码
-}
- 
-int main(void)
-{
-  int (*FP)(int, int); // 函数指针的声明方式
-  FP= function;        // 第一种赋值方法
-  // FP = &function;   // 第二种赋值方法
-  FP(1,2);             // 第一种调用方法
-  // (*FP)(1,2);       // 第二种调用方法
-
-  student stu(12, "guyanhun");
-  void (student::*p)(); // 外部声明类内函数的函数指针
-  (stu.*p)();           // 外部调用该函数指针
-  return 0;
-}
-*/
 
 /**
  * @brief 在node_handle中订阅topic,并与传入的回调函数进行注册
