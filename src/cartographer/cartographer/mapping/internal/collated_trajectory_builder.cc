@@ -91,15 +91,9 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
     const std::string& sensor_id, std::unique_ptr<sensor::Data> data) {
   auto it = rate_timers_.find(sensor_id);
   if (it == rate_timers_.end()) {
-
-    // c++11: map::emplace() 用于通过在容器中插入新元素来扩展map容器.
-    // 元素是直接构建的（既不复制也不移动）.仅当键不存在时才进行插入
-    // 它返回一个布尔对, emplace().first表示新插入元素或者原始位置的迭代器, emplace().second表示是否发生插入
-
-    // c++11: std::piecewise_construct 分次生成tuple的标志常量, 不加就报错
-    // c++11: std::forward_as_tuple tuple的完美转发
-    // 该 tuple 在以右值为参数时拥有右值引用数据成员, 否则拥有左值引用数据成员
-
+    // map::emplace()返回一个pair
+    // emplace().first表示新插入元素或者原始位置的迭代器
+    // emplace().second表示插入成功,只有在key在map中不存在时才插入成功
     it = rate_timers_
              .emplace(
                  std::piecewise_construct, 

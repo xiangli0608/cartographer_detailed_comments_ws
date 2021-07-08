@@ -20,8 +20,6 @@
 
 namespace cartographer_ros {
 
-// 
-
 /**
  * @brief 如果只有一个传感器, 那订阅的topic就是topic, 
  *        如果是多个传感器, 那订阅的topic就是topic_1,topic_2
@@ -41,6 +39,7 @@ std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic,
   for (int i = 0; i < num_topics; ++i) {
     topics.emplace_back(topic + "_" + std::to_string(i + 1));
   }
+  // num_topics要是0就返回空的vector
   return topics;
 }
 

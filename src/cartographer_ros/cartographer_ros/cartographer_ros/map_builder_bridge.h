@@ -78,13 +78,13 @@ class MapBuilderBridge {
     std::shared_ptr<const LocalSlamData> local_slam_data;
     cartographer::transform::Rigid3d local_to_map;  // local frame 到 global frame间的坐标变换
 
-    // c++11: std::shared_ptr 主要的用途就是方便资源的管理, 自动释放没有指针引用的资源
-    // 使用引用计数来标识是否有其余指针指向该资源.(注意, shart_ptr本身指针会占1个引用)
-    // 引用计数是分配在动态分配的, std::shared_ptr支持拷贝, 新的指针获可以获取前引用计数个数
-
     // published_frame 到 tracking_frame 间的坐标变换
     std::unique_ptr<cartographer::transform::Rigid3d> published_to_tracking;
     TrajectoryOptions trajectory_options;
+
+    // c++11: std::shared_ptr 主要的用途就是方便资源的管理, 自动释放没有指针引用的资源
+    // 使用引用计数来标识是否有其余指针指向该资源.(注意, shart_ptr本身指针会占1个引用)
+    // 引用计数是分配在动态分配的, std::shared_ptr支持拷贝, 新的指针获可以获取前引用计数个数
   };
 
   MapBuilderBridge(

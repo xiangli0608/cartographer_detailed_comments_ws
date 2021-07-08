@@ -36,6 +36,7 @@ bool FixedRatioSampler::Pulse() {
     ++num_samples_;
     return true;
   }
+  // 返回false时代表数据可以不用,可以跳过计算
   return false;
 }
 

@@ -23,7 +23,7 @@
 namespace cartographer_ros {
 
 // Default topic names; expected to be remapped as needed.
-// 固定的topic与service的名字, 可以通过launch里的remap来更改
+// 固定的topic与service的名字, Topic名字可以通过launch里的remap来更改
 constexpr char kLaserScanTopic[] = "scan";
 constexpr char kMultiEchoLaserScanTopic[] = "echoes";
 constexpr char kPointCloud2Topic[] = "points2";

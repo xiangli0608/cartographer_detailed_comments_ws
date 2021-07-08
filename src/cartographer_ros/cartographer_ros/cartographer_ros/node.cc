@@ -60,6 +60,7 @@ namespace {
 
 // c++11: lambda表达式 
 /*
+ * tag: 这块放课件里
 [外部变量访问方式说明符 = & ] (参数表) -> 返回值类型
 {
   语句块
@@ -86,17 +87,39 @@ const Rigid3d tracking_to_local = [&] {
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
 // calls 'handler' on the 'node' to handle messages. Returns the subscriber.
 
-// ?: 不清楚 Node::*handler 的用法, 大致是句柄的功能
-// *handler可能来自于 /usr/include/x11/Xlibint.h
-// Bool (*handler)(
-//     Display*	/* dpy */,
-//     xReply*	/* rep */,
-//     char*	/* buf */,
-//     int		/* len */,
-//     XPointer	/* data */
-//     );
+/*
+ * tag: 这块放课件里
+int function(int a, int b)
+{
+  // 执行代码
+}
+ 
+int main(void)
+{
+  int (*FP)(int, int); // 函数指针的声明方式
+  FP= function;        // 第一种赋值方法
+  // FP = &function;   // 第二种赋值方法
+  FP(1,2);             // 第一种调用方法
+  // (*FP)(1,2);       // 第二种调用方法
 
-// 目的就是在node_handle中订阅topic,并注册回调函数
+  student stu(12, "guyanhun");
+  void (student::*p)(); // 外部声明类内函数的函数指针
+  (stu.*p)();           // 外部调用该函数指针
+  return 0;
+}
+*/
+
+/**
+ * @brief 在node_handle中订阅topic,并与传入的回调函数进行注册
+ * 
+ * @tparam MessageType 模板参数,消息的数据类型
+ * @param[in] handler 函数指针, 接受传入的函数的地址
+ * @param[in] trajectory_id 轨迹id
+ * @param[in] topic 订阅的topic名字
+ * @param[in] node_handle ros的node_handle
+ * @param[in] node node类的指针
+ * @return ::ros::Subscriber 订阅者
+ */
 template <typename MessageType>
 ::ros::Subscriber SubscribeWithHandler(
     void (Node::*handler)(int, const std::string&,
@@ -108,8 +131,8 @@ template <typename MessageType>
       topic, kInfiniteSubscriberQueueSize,  // kInfiniteSubscriberQueueSize = 0
       // 使用boost::function构造回调函数,被subscribe注册
       boost::function<void(const typename MessageType::ConstPtr&)>(
-          [node, handler, trajectory_id,
-           topic](const typename MessageType::ConstPtr& msg) {
+          // c++11: lambda表达式
+          [node, handler, trajectory_id, topic](const typename MessageType::ConstPtr& msg) {
             (node->*handler)(trajectory_id, topic, msg);
           }));
 }
@@ -302,13 +325,18 @@ void Node::AddExtrapolator(const int trajectory_id,
           : options.trajectory_builder_options.trajectory_builder_2d_options()
                 .imu_gravity_time_constant();
 
-  // c++11: std::forward_as_tuple(): 用于接收右值引用数据生成tuple
-  // c++11: std::piecewise_construct: 分段构造常量, 将此常量值作为构造对象的第一个参数传递
-  // 以选择构造函数形式, 该形式通过将两个元组对象的元素转发到其各自的构造函数来就地构造其成员.
+  // c++11: map::emplace() 用于通过在容器中插入新元素来扩展map容器
+  // 元素是直接构建的（既不复制也不移动）.仅当键不存在时才进行插入
+  // c++11: std::forward_as_tuple tuple的完美转发
+  // 该 tuple 在以右值为参数时拥有右值引用数据成员, 否则拥有左值引用数据成员
+  // c++11: std::piecewise_construct 分次生成tuple的标志常量
+  // 在map::emplace()中使用forward_as_tuple时必须要加piecewise_construct,不加就报错
+  // https://www.cnblogs.com/guxuanqing/p/11396511.html
 
   // 以1ms, 以及重力常数10, 作为参数构造PoseExtrapolator
   extrapolators_.emplace(
-      std::piecewise_construct, std::forward_as_tuple(trajectory_id),
+      std::piecewise_construct, 
+      std::forward_as_tuple(trajectory_id),
       std::forward_as_tuple(
           ::cartographer::common::FromSeconds(kExtrapolationEstimationTimeSec),
           gravity_time_constant));
@@ -324,15 +352,18 @@ void Node::AddSensorSamplers(const int trajectory_id,
                              const TrajectoryOptions& options) {
   CHECK(sensor_samplers_.count(trajectory_id) == 0);
   sensor_samplers_.emplace(
-      std::piecewise_construct, std::forward_as_tuple(trajectory_id),
+      std::piecewise_construct, 
+      std::forward_as_tuple(trajectory_id),
       std::forward_as_tuple(
-          options.rangefinder_sampling_ratio, options.odometry_sampling_ratio,
-          options.fixed_frame_pose_sampling_ratio, options.imu_sampling_ratio,
+          options.rangefinder_sampling_ratio, 
+          options.odometry_sampling_ratio,
+          options.fixed_frame_pose_sampling_ratio, 
+          options.imu_sampling_ratio,
           options.landmarks_sampling_ratio));
 }
 
 /**
- * @brief 每5e-3s发布一次轨迹数据以及tf
+ * @brief 每5e-3s发布一次tf与tracked_pose
  *
  * @param[in] timer_event
  */
@@ -649,6 +680,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
              &node_handle_, this),
          topic});
   }
+  
   // point_clouds 的订阅与注册回调函数
   for (const std::string& topic :
        ComputeRepeatedTopicNames(kPointCloud2Topic, options.num_point_clouds)) {
@@ -695,8 +727,11 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
   if (options.use_landmarks) {
     subscribers_[trajectory_id].push_back(
         {SubscribeWithHandler<cartographer_ros_msgs::LandmarkList>(
-             &Node::HandleLandmarkMessage, trajectory_id, kLandmarkTopic,
-             &node_handle_, this),
+             &Node::HandleLandmarkMessage, 
+             trajectory_id, 
+             kLandmarkTopic,
+             &node_handle_, 
+             this),
          kLandmarkTopic});
   }
 }
@@ -1224,7 +1259,7 @@ void Node::MaybeWarnAboutTopicMismatch(
     int trajectory_id = entry.first;
     for (const auto& subscriber : entry.second) {
 
-      // 获取设置的topic名字
+      // 获取实际订阅的topic名字
       std::string resolved_topic = node_handle_.resolveName(subscriber.topic);
 
       // 如果设置的topic名字,在ros中不存在,则报错
@@ -1234,6 +1269,18 @@ void Node::MaybeWarnAboutTopicMismatch(
                      << " (resolved topic \"" << resolved_topic << "\")"
                      << " but no publisher is currently active.";
         print_topics = true;
+
+        // tag: 把报错信息放课件里
+        /*
+        [ INFO] [1625724722.715674522]: I0708 14:12:02.000000 20138 map_builder_bridge.cc:153] Added trajectory with ID '0'.
+        [ WARN] [1625724725.726943013]: W0708 14:12:05.000000 20138 node.cc:1267] Expected topic "points2" (trajectory 0) (resolved topic "/points2") but no publisher is currently active.
+        [ WARN] [1625724725.727046746]: W0708 14:12:05.000000 20138 node.cc:1267] Expected topic "imu" (trajectory 0) (resolved topic "/imu") but no publisher is currently active.
+        [ WARN] [1625724725.727145643]: W0708 14:12:05.000000 20138 node.cc:1280] Currently available topics are: /constraint_list,/submap_list,/scan_matched_points2,/rosout,/tf,/clock,/rosout_agg,/map,/trajectory_node_list,/landmark_poses_list,
+        [ WARN] [1625724739.386545399, 1606808654.481099623]: W0708 14:12:19.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
+        [ WARN] [1625724739.994835822, 1606808655.086546848]: W0708 14:12:19.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
+        [ WARN] [1625724740.588885518, 1606808655.682104741]: W0708 14:12:20.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
+        [ WARN] [1625724741.195557158, 1606808656.288400347]: W0708 14:12:21.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
+        */
       }
     }
   }
