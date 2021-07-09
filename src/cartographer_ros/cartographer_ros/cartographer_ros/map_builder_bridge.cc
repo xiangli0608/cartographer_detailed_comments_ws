@@ -450,7 +450,6 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
              trajectory_to_highest_marker_id_[trajectory_id]) {
         trajectory_node_list.markers.push_back(marker);
         ++marker.id;
-        LOG(WARN) << "lx : DELETE";
       }
       // 更新last_marker_id
       trajectory_to_highest_marker_id_[trajectory_id] = current_last_marker_id;

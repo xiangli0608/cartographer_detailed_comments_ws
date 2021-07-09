@@ -26,8 +26,7 @@ options = {
   provide_odom_frame = false,               -- 是否提供odom的tf, 如果为true,则tf树为map->odom->footprint
                                             -- 如果为false tf树为map->footprint
   publish_frame_projected_to_2d = false,    -- 是否将坐标系投影到平面上
-
-  use_pose_extrapolator = false,            -- 发布tf时是使用pose_extrapolator的位姿还是前端计算出来的位姿
+  --use_pose_extrapolator = false,            -- 发布tf时是使用pose_extrapolator的位姿还是前端计算出来的位姿
 
   use_odometry = false,                     -- 是否使用里程计,如果使用要求一定要有odom的tf
   use_nav_sat = false,                      -- 是否使用gps

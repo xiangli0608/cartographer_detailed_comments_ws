@@ -24,7 +24,7 @@ options = {
   odom_frame = "odom",
   provide_odom_frame = false,
   publish_frame_projected_to_2d = false,
-  use_pose_extrapolator = false,
+  --use_pose_extrapolator = false,
   
   use_odometry = false,
   use_nav_sat = false,
