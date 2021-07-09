@@ -88,6 +88,7 @@ visualization_msgs::Marker CreateLandmarkMarker(int landmark_index,
   return marker;
 }
 
+// 将marker添加到markers后边,并清空marker
 void PushAndResetLineMarker(visualization_msgs::Marker* marker,
                             std::vector<visualization_msgs::Marker>* markers) {
   markers->push_back(*marker);
@@ -315,7 +316,7 @@ void MapBuilderBridge::HandleTrajectoryQuery(
     pose_stamped.header.frame_id = node_options_.map_frame;
     pose_stamped.header.stamp =
         ToRos(node_id_data.data.constant_pose_data.value().time);
-    // map坐标系下的坐标
+    // 使用的是global坐标系下的坐标
     pose_stamped.pose = ToGeometryMsgPose(node_id_data.data.global_pose);
     response.trajectory.push_back(pose_stamped);
   }
@@ -331,27 +332,31 @@ void MapBuilderBridge::HandleTrajectoryQuery(
  */
 visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
   visualization_msgs::MarkerArray trajectory_node_list;
+
+  // 获取节点位姿信息
   const auto node_poses = map_builder_->pose_graph()->GetTrajectoryNodePoses();
   // Find the last node indices for each trajectory that have either
   // inter-submap or inter-trajectory constraints.
-  // 轨迹的最后一个子图间约束的节点
+
+  // 同一条轨迹内 最后一个子图间约束的 节点的索引
   std::map<int, int /* node_index */>
       trajectory_to_last_inter_submap_constrained_node;
-  // 轨迹的最后一个轨迹间约束的节点
+  // 不同轨迹 最后一个子图间约束的 节点的索引
   std::map<int, int /* node_index */>
       trajectory_to_last_inter_trajectory_constrained_node;
+  // 初始化为0
   for (const int trajectory_id : node_poses.trajectory_ids()) {
     trajectory_to_last_inter_submap_constrained_node[trajectory_id] = 0;
     trajectory_to_last_inter_trajectory_constrained_node[trajectory_id] = 0;
   }
 
   const auto constraints = map_builder_->pose_graph()->constraints();
-  // 找到所有轨迹的最后一个inter_submap的node_index
+  // 找到所有轨迹的最后一个INTER_SUBMAP约束的node_index
   for (const auto& constraint : constraints) {
     // 是外部子图关系才往下走
     if (constraint.tag ==
         cartographer::mapping::PoseGraphInterface::Constraint::INTER_SUBMAP) {
-      // 如果二者是同一轨迹的
+      // 找到同一轨迹下的最后一个inter_submap的node_index
       if (constraint.node_id.trajectory_id ==
           constraint.submap_id.trajectory_id) {
         trajectory_to_last_inter_submap_constrained_node[constraint.node_id
@@ -370,21 +375,25 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     }
   }
 
+  // 生成marker
   for (const int trajectory_id : node_poses.trajectory_ids()) {
     visualization_msgs::Marker marker =
         CreateTrajectoryMarker(trajectory_id, node_options_.map_frame);
 
+    // 将刚才找到的最后一个节点的索引取出来
     int last_inter_submap_constrained_node = std::max(
         node_poses.trajectory(trajectory_id).begin()->id.node_index,
         trajectory_to_last_inter_submap_constrained_node.at(trajectory_id));
     int last_inter_trajectory_constrained_node = std::max(
         node_poses.trajectory(trajectory_id).begin()->id.node_index,
         trajectory_to_last_inter_trajectory_constrained_node.at(trajectory_id));
-    // 找到节点最大值
+    
+    // 用节点索引与最大值
     last_inter_submap_constrained_node =
         std::max(last_inter_submap_constrained_node,
                  last_inter_trajectory_constrained_node);
 
+    // 如果轨迹结束了, 更新节点的索引到轨迹的最后一个节点的索引
     if (map_builder_->pose_graph()->IsTrajectoryFrozen(trajectory_id)) {
       last_inter_submap_constrained_node =
           (--node_poses.trajectory(trajectory_id).end())->id.node_index;
@@ -393,16 +402,20 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     }
 
     marker.color.a = 1.0;
+    // 遍历所有节点
     for (const auto& node_id_data : node_poses.trajectory(trajectory_id)) {
+      // 如果没有位姿数据就先跳过
       if (!node_id_data.data.constant_pose_data.has_value()) {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
         continue;
       }
+
       // 获取节点在global map 下的坐标
       const ::geometry_msgs::Point node_point =
           ToGeometryMsgPoint(node_id_data.data.global_pose.translation());
       marker.points.push_back(node_point);
 
+      // 如果是最后一个节点, 更改透明度
       if (node_id_data.id.node_index ==
           last_inter_trajectory_constrained_node) {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
@@ -422,9 +435,11 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
         // Push back the last point, so the two markers appear connected.
         marker.points.push_back(node_point);
       }
-    }
+    } // end for
     
+    // 将剩余marker放入trajectory_node_list.markers中
     PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
+    
     size_t current_last_marker_id = static_cast<size_t>(marker.id - 1);
     // 如果该轨迹id不在trajectory_to_highest_marker_id_中, 将current_last_marker_id保存
     if (trajectory_to_highest_marker_id_.count(trajectory_id) == 0) {
@@ -435,11 +450,13 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
              trajectory_to_highest_marker_id_[trajectory_id]) {
         trajectory_node_list.markers.push_back(marker);
         ++marker.id;
+        LOG(WARN) << "lx : DELETE";
       }
       // 更新last_marker_id
       trajectory_to_highest_marker_id_[trajectory_id] = current_last_marker_id;
     }
-  }
+
+  } // end for
   return trajectory_node_list;
 }
 

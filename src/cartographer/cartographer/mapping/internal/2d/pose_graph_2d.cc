@@ -428,10 +428,10 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
 
 
 // 四步：
-//1.把该节点的信息加入到OptimizationProblem中, 方便进行优化
-//2.计算节点和新加入的submap之间的约束
-//3.计算其它submap与节点之间约束
-//4.计算新的submap和旧的节点的约束
+// 1 把该节点的信息加入到OptimizationProblem中, 方便进行优化
+// 2 计算节点和新加入的submap之间的约束
+// 3 计算其它submap与节点之间约束
+// 4 计算新的submap和旧的节点的约束
 
 /**
  * @brief 
@@ -1095,12 +1095,13 @@ void PoseGraph2D::RunOptimization() {
   const auto& submap_data = optimization_problem_->submap_data();
 
   // node_data的类型是 MapById<NodeId, NodeSpec2D> node_data_
+  // node_data是优化后的所有节点的新位姿
   const auto& node_data = optimization_problem_->node_data();
 
   // 更新轨迹内的节点位置
   for (const int trajectory_id : node_data.trajectory_ids()) {
 
-    // 根据 优化后的结果 对data_.trajectory_nodes进行更新
+    // note: 根据优化后的结果对data_.trajectory_nodes的global_pose进行更新
     for (const auto& node : node_data.trajectory(trajectory_id)) {
       // node 是 IdDataReference 类型
       // mutable_trajectory_node是TrajectoryNode类型
