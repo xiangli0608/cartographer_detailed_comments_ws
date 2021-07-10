@@ -1220,18 +1220,6 @@ void Node::MaybeWarnAboutTopicMismatch(
                      << " (resolved topic \"" << resolved_topic << "\")"
                      << " but no publisher is currently active.";
         print_topics = true;
-
-        // tag: 把报错信息放课件里
-        /*
-        [ INFO] [1625724722.715674522]: I0708 14:12:02.000000 20138 map_builder_bridge.cc:153] Added trajectory with ID '0'.
-        [ WARN] [1625724725.726943013]: W0708 14:12:05.000000 20138 node.cc:1267] Expected topic "points2" (trajectory 0) (resolved topic "/points2") but no publisher is currently active.
-        [ WARN] [1625724725.727046746]: W0708 14:12:05.000000 20138 node.cc:1267] Expected topic "imu" (trajectory 0) (resolved topic "/imu") but no publisher is currently active.
-        [ WARN] [1625724725.727145643]: W0708 14:12:05.000000 20138 node.cc:1280] Currently available topics are: /constraint_list,/submap_list,/scan_matched_points2,/rosout,/tf,/clock,/rosout_agg,/map,/trajectory_node_list,/landmark_poses_list,
-        [ WARN] [1625724739.386545399, 1606808654.481099623]: W0708 14:12:19.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
-        [ WARN] [1625724739.994835822, 1606808655.086546848]: W0708 14:12:19.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
-        [ WARN] [1625724740.588885518, 1606808655.682104741]: W0708 14:12:20.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
-        [ WARN] [1625724741.195557158, 1606808656.288400347]: W0708 14:12:21.000000 20138 ordered_multi_queue.cc:232] Queue waiting for data: (0, points2)
-        */
       }
     }
   }
