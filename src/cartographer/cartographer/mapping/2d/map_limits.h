@@ -40,16 +40,17 @@ namespace mapping {
 
 /**
  * note: 坐标系可视化展示
- * ros的地图坐标系       cartographer的地图坐标系 
+ * ros的地图坐标系    cartographer的地图坐标系     cartographer地图的像素坐标系 
  * 
- * ^ y                            ^ x
- * |                              |    
- * |                              |
- * 0 ----> x           y <--------0
+ * ^ y                            ^ x              0------> x
+ * |                              |                |
+ * |                              |                |
+ * 0 ------> x           y <------0                y       
  * 
- * ros的地图坐标系: 左下角为原点, 角度正方向以x轴正向为0度
- * cartographer的地图坐标系 坐标系右下角为原点,xy与ros地图相反
- *             角度正方向以x轴正向为0度
+ * ros的地图坐标系: 左下角为原点, 向右为x正方向, 向上为y正方向, 角度以x轴正向为0度, 逆时针为正
+ * cartographer的地图坐标系 坐标系右下角为原点, 向上为x正方向, 向左为y正方向
+ *             角度正方向以x轴正向为0度, 逆时针为正
+ * cartographer地图的像素坐标系 左上角为原点, 向右为x正方向, 向下为y正方向
  */
 class MapLimits {
  public:
@@ -79,6 +80,7 @@ class MapLimits {
 
   // Returns the corner of the limits, i.e., all pixels have positions with
   // smaller coordinates.
+  // 返回左上角坐标, 左上角坐标为整个坐标系坐标的最大值
   const Eigen::Vector2d& max() const { return max_; }
 
   // Returns the limits of the grid in number of cells.
@@ -99,7 +101,7 @@ class MapLimits {
   }
 
   // Returns the center of the cell at 'cell_index'.
-  // 根据索引算物理坐标
+  // 根据像素索引算物理坐标
   Eigen::Vector2f GetCellCenter(const Eigen::Array2i cell_index) const {
     return {max_.x() - resolution() * (cell_index[1] + 0.5),
             max_.y() - resolution() * (cell_index[0] + 0.5)};

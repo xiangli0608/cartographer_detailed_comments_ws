@@ -37,6 +37,8 @@ using uint64 = uint64_t;
 
 namespace common {
 
+// c++11: std::lround 返回最接近x的long int整数 eg: lround(15.2) -> 15, lround(15.8) -> 16
+// 返回最接近x的整数
 inline int RoundToInt(const float x) { return std::lround(x); }
 
 inline int RoundToInt(const double x) { return std::lround(x); }

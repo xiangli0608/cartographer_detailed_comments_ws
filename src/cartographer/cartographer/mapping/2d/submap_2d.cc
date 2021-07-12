@@ -169,6 +169,7 @@ void Submap2D::Finish() {
   set_insertion_finished(true);
 }
 
+/********** ActiveSubmaps2D *****************/
 
 // ActiveSubmaps2D构造函数
 ActiveSubmaps2D::ActiveSubmaps2D(const proto::SubmapsOptions2D& options)
