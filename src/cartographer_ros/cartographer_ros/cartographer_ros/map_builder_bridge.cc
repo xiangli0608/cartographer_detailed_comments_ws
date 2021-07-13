@@ -159,8 +159,9 @@ int MapBuilderBridge::AddTrajectory(
   sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(
       trajectory_options.num_subdivisions_per_laser_scan,
       trajectory_options.tracking_frame,
-      node_options_.lookup_transform_timeout_sec, tf_buffer_,
-      map_builder_->GetTrajectoryBuilder(trajectory_id));
+      node_options_.lookup_transform_timeout_sec, 
+      tf_buffer_,
+      map_builder_->GetTrajectoryBuilder(trajectory_id)); // CollatedTrajectoryBuilder
   
   auto emplace_result =
       trajectory_options_.emplace(trajectory_id, trajectory_options);
@@ -234,7 +235,7 @@ MapBuilderBridge::GetTrajectoryStates() {
   auto trajectory_states = map_builder_->pose_graph()->GetTrajectoryStates();
   // Add active trajectories that are not yet in the pose graph, but are e.g.
   // waiting for input sensor data and thus already have a sensor bridge.
-  // 向pose graph中添加新的active状态的轨迹, 如果这个轨迹id已经存在则会被忽略不会被添加进去
+  // 为活跃的轨迹添加active状态, 如果trajectory_states中存在这个轨迹id,则会被忽略不会被添加进去
   for (const auto& sensor_bridge : sensor_bridges_) {
     trajectory_states.insert(std::make_pair(
         sensor_bridge.first,

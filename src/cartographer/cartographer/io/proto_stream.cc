@@ -26,6 +26,7 @@ namespace {
 // First eight bytes to identify our proto stream format.
 const uint64 kMagic = 0x7b1d1f7b5bf501db;
 
+// 写入前8个字节的值, 作为读取时的校验
 void WriteSizeAsLittleEndian(uint64 size, std::ostream* out) {
   for (int i = 0; i != 8; ++i) {
     out->put(size & 0xff);
@@ -33,6 +34,7 @@ void WriteSizeAsLittleEndian(uint64 size, std::ostream* out) {
   }
 }
 
+// 读取前8个字节的值, 进行校验
 bool ReadSizeAsLittleEndian(std::istream* in, uint64* size) {
   *size = 0;
   for (int i = 0; i != 8; ++i) {
@@ -71,6 +73,7 @@ bool ProtoStreamWriter::Close() {
 ProtoStreamReader::ProtoStreamReader(const std::string& filename)
     : in_(filename, std::ios::in | std::ios::binary) {
   uint64 magic;
+  // 对字节数进行检查
   if (!ReadSizeAsLittleEndian(&in_, &magic) || magic != kMagic) {
     in_.setstate(std::ios::failbit);
   }
