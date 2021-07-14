@@ -34,7 +34,7 @@ void WriteSizeAsLittleEndian(uint64 size, std::ostream* out) {
   }
 }
 
-// 读取前8个字节的值, 进行校验
+// 读取前8个字节的值, 进行累加
 bool ReadSizeAsLittleEndian(std::istream* in, uint64* size) {
   *size = 0;
   for (int i = 0; i != 8; ++i) {
@@ -73,7 +73,7 @@ bool ProtoStreamWriter::Close() {
 ProtoStreamReader::ProtoStreamReader(const std::string& filename)
     : in_(filename, std::ios::in | std::ios::binary) {
   uint64 magic;
-  // 对字节数进行检查
+  // 对前8个字节的数据进行检查
   if (!ReadSizeAsLittleEndian(&in_, &magic) || magic != kMagic) {
     in_.setstate(std::ios::failbit);
   }

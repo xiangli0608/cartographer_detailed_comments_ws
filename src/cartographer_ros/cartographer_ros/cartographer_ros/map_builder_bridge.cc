@@ -136,7 +136,7 @@ int MapBuilderBridge::AddTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>&
         expected_sensor_ids,
     const TrajectoryOptions& trajectory_options) {
-  // 开始一条新的轨迹, 返回新轨迹的id,需要传入一个函数
+  // Step: 1 开始一条新的轨迹, 返回新轨迹的id,需要传入一个函数
   const int trajectory_id = map_builder_->AddTrajectoryBuilder(
       expected_sensor_ids, trajectory_options.trajectory_builder_options,
       // lambda表达式 local_slam_result_callback_
@@ -155,7 +155,7 @@ int MapBuilderBridge::AddTrajectory(
 
   // Make sure there is no trajectory with 'trajectory_id' yet.
   CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
-  // 为这个新轨迹 添加一个SensorBridge
+  // Step: 2 为这个新轨迹 添加一个SensorBridge
   sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(
       trajectory_options.num_subdivisions_per_laser_scan,
       trajectory_options.tracking_frame,
@@ -163,6 +163,7 @@ int MapBuilderBridge::AddTrajectory(
       tf_buffer_,
       map_builder_->GetTrajectoryBuilder(trajectory_id)); // CollatedTrajectoryBuilder
   
+  // Step: 3 保存轨迹的参数配置
   auto emplace_result =
       trajectory_options_.emplace(trajectory_id, trajectory_options);
   CHECK(emplace_result.second == true);
