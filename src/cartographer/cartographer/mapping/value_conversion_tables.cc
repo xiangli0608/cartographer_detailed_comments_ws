@@ -25,8 +25,18 @@ namespace {
 
 constexpr uint16 kUpdateMarker = 1u << 15;
 
-// 0 is unknown, [1, 32767] maps to [lower_bound, upper_bound].
-float SlowValueToBoundedFloat(const uint16 value, const uint16 unknown_value,
+/**
+ * @brief 将[1, 32767] 映射到 [lower_bound, upper_bound].
+ * 
+ * @param[in] value [1, 32767]的值
+ * @param[in] unknown_value 0 对应0.9
+ * @param[in] unknown_result 0.9 
+ * @param[in] lower_bound 0.1 下界
+ * @param[in] upper_bound 0.9 上界
+ * @return float 
+ */
+float SlowValueToBoundedFloat(const uint16 value, 
+                              const uint16 unknown_value,
                               const float unknown_result,
                               const float lower_bound,
                               const float upper_bound) {
@@ -36,32 +46,58 @@ float SlowValueToBoundedFloat(const uint16 value, const uint16 unknown_value,
   return value * kScale + (lower_bound - kScale);
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] unknown_value 0 
+ * @param[in] unknown_result 0.9 
+ * @param[in] lower_bound 0.1 
+ * @param[in] upper_bound 0.9 
+ * @return std::unique_ptr<std::vector<float>> 
+ */
 std::unique_ptr<std::vector<float>> PrecomputeValueToBoundedFloat(
     const uint16 unknown_value, const float unknown_result,
     const float lower_bound, const float upper_bound) {
   auto result = absl::make_unique<std::vector<float>>();
-  size_t num_values = std::numeric_limits<uint16>::max() + 1;
+  size_t num_values = std::numeric_limits<uint16>::max() + 1; // 65536
+  // 申请空间
   result->reserve(num_values);
+
   for (size_t value = 0; value != num_values; ++value) {
     result->push_back(SlowValueToBoundedFloat(
-        static_cast<uint16>(value) & ~kUpdateMarker, unknown_value,
+        static_cast<uint16>(value) & ~kUpdateMarker, // 取右边15位的数据
+        unknown_value,
         unknown_result, lower_bound, upper_bound));
   }
   return result;
 }
 }  // namespace
 
+/**
+ * @brief 生成转换表, 这个函数只会调用1次
+ * 
+ * @param[in] unknown_result 0.9 未知时的值
+ * @param[in] lower_bound 0.1 最小correspondence_cost
+ * @param[in] upper_bound 0.9 最大correspondence_cost
+ * @return const std::vector<float>* 
+ */
 const std::vector<float>* ValueConversionTables::GetConversionTable(
     float unknown_result, float lower_bound, float upper_bound) {
+  // 将bounds作为key
   std::tuple<float, float, float> bounds =
       std::make_tuple(unknown_result, lower_bound, upper_bound);
   auto lookup_table_iterator = bounds_to_lookup_table_.find(bounds);
+
+  // 如果没有bounds这个key就新建
   if (lookup_table_iterator == bounds_to_lookup_table_.end()) {
+    // 保存转换表
     auto insertion_result = bounds_to_lookup_table_.emplace(
         bounds, PrecomputeValueToBoundedFloat(0, unknown_result, lower_bound,
                                               upper_bound));
     return insertion_result.first->second.get();
-  } else {
+  } 
+  // 如果存在就返回指针
+  else {
     return lookup_table_iterator->second.get();
   }
 }

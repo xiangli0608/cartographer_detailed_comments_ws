@@ -110,20 +110,22 @@ class Grid2D : public GridInterface {
   Eigen::AlignedBox2i* mutable_known_cells_box() { return &known_cells_box_; }
 
   // Converts a 'cell_index' into an index into 'cells_'.
+  // 二维像素坐标转为一维索引坐标
   int ToFlatIndex(const Eigen::Array2i& cell_index) const {
     CHECK(limits_.Contains(cell_index)) << cell_index;
     return limits_.cell_limits().num_x_cells * cell_index.y() + cell_index.x();
   }
 
  private:
-  MapLimits limits_;
-  std::vector<uint16> correspondence_cost_cells_;
+  MapLimits limits_;  // 地图大小边界，包括x和y最大值， 分辨率， x和yu方向栅格数
+  std::vector<uint16> correspondence_cost_cells_; // grid 地图存储值，采用uint16类型
   float min_correspondence_cost_;
   float max_correspondence_cost_;
-  std::vector<int> update_indices_;
+  std::vector<int> update_indices_;               // 记录已经更新过的索引
 
   // Bounding box of known cells to efficiently compute cropping limits.
-  Eigen::AlignedBox2i known_cells_box_;
+  Eigen::AlignedBox2i known_cells_box_;           // 栅格的bounding box
+  // 将[1, 32767] 映射到 [0.1, 0.9] 的查找表
   const std::vector<float>* value_to_correspondence_cost_table_;
 };
 

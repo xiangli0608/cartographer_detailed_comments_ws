@@ -24,6 +24,12 @@
 namespace cartographer {
 namespace mapping {
 
+/**
+ * @brief Construct a new Probability Grid:: Probability Grid object
+ * 
+ * @param[in] limits 地图坐标信息
+ * @param[in] conversion_tables 转换表
+ */
 ProbabilityGrid::ProbabilityGrid(const MapLimits& limits,
                                  ValueConversionTables* conversion_tables)
     : Grid2D(limits, kMinCorrespondenceCost, kMaxCorrespondenceCost,
@@ -38,8 +44,10 @@ ProbabilityGrid::ProbabilityGrid(const proto::Grid2D& proto,
 
 // Sets the probability of the cell at 'cell_index' to the given
 // 'probability'. Only allowed if the cell was unknown before.
+// 将“ 索引 处单元格的概率设置为给定的概率, 仅当单元格之前处于未知状态时才允许
 void ProbabilityGrid::SetProbability(const Eigen::Array2i& cell_index,
                                      const float probability) {
+  // 通过转换表获取对应栅格的引用
   uint16& cell =
       (*mutable_correspondence_cost_cells())[ToFlatIndex(cell_index)];
   CHECK_EQ(cell, kUnknownProbabilityValue);

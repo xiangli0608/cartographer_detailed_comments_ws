@@ -40,7 +40,15 @@ const std::string& CheckNoLeadingSlash(const std::string& frame_id) {
 
 }  // namespace
 
-// 构造函数, 并且初始化TfBridge
+/**
+ * @brief 构造函数, 并且初始化TfBridge
+ * 
+ * @param[in] num_subdivisions_per_laser_scan 一帧数据分成几次发送
+ * @param[in] tracking_frame 数据都转换到tracking_frame
+ * @param[in] lookup_transform_timeout_sec 查找tf的超时时间
+ * @param[in] tf_buffer tf_buffer
+ * @param[in] trajectory_builder 轨迹构建器
+ */
 SensorBridge::SensorBridge(
     const int num_subdivisions_per_laser_scan,
     const std::string& tracking_frame,

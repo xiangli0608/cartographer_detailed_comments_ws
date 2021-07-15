@@ -37,6 +37,7 @@ namespace cartographer_ros {
 ::cartographer::common::Time FromRos(const ::ros::Time& time) {
   // The epoch of the ICU Universal Time Scale is "0001-01-01 00:00:00.0 +0000",
   // exactly 719162 days before the Unix epoch.
+  // ICU世界时标的纪元是“0001-01-01 00:00:00.0+0000”,正好比Unix纪元早719162天 
   return ::cartographer::common::FromUniversal(
       (time.sec +
        ::cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds) *

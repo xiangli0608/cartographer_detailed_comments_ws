@@ -57,15 +57,23 @@ proto::GridOptions2D CreateGridOptions2D(
   return options;
 }
 
+/**
+ * @brief Construct a new Grid 2 D:: Grid 2 D object
+ * 
+ * @param[in] limits 地图坐标信息
+ * @param[in] min_correspondence_cost 最小correspondence_cost
+ * @param[in] max_correspondence_cost 最大correspondence_cost
+ * @param[in] conversion_tables 传入的转换表指针
+ */
 Grid2D::Grid2D(const MapLimits& limits, float min_correspondence_cost,
                float max_correspondence_cost,
                ValueConversionTables* conversion_tables)
     : limits_(limits),
       correspondence_cost_cells_(
           limits_.cell_limits().num_x_cells * limits_.cell_limits().num_y_cells,
-          kUnknownCorrespondenceValue),
-      min_correspondence_cost_(min_correspondence_cost),
-      max_correspondence_cost_(max_correspondence_cost),
+          kUnknownCorrespondenceValue),  // 0
+      min_correspondence_cost_(min_correspondence_cost),  // 0.1
+      max_correspondence_cost_(max_correspondence_cost),  // 0.9
       value_to_correspondence_cost_table_(conversion_tables->GetConversionTable(
           max_correspondence_cost, min_correspondence_cost,
           max_correspondence_cost)) {

@@ -39,7 +39,7 @@ namespace mapping {
 // performance reasons.
 
 /**
- * note: 坐标系可视化展示
+ * note: 地图坐标系可视化展示
  * ros的地图坐标系    cartographer的地图坐标系     cartographer地图的像素坐标系 
  * 
  * ^ y                            ^ x              0------> x

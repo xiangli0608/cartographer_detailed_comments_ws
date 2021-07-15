@@ -43,11 +43,13 @@ constexpr double kConstraintMarkerScale = 0.025;
   return result;
 }
 
+// 轨迹的Marker的声明与初始化
 visualization_msgs::Marker CreateTrajectoryMarker(const int trajectory_id,
                                                   const std::string& frame_id) {
   visualization_msgs::Marker marker;
   marker.ns = absl::StrCat("Trajectory ", trajectory_id);
   marker.id = 0;
+  // note: Marker::LINE_STRIP 它会在每两个连续的点之间画一条线 eg: 0-1，1-2，2-3
   marker.type = visualization_msgs::Marker::LINE_STRIP;
   marker.header.stamp = ::ros::Time::now();
   marker.header.frame_id = frame_id;
@@ -71,6 +73,7 @@ int GetLandmarkIndex(
   return it->second;
 }
 
+// landmark的Marker的声明与初始化
 visualization_msgs::Marker CreateLandmarkMarker(int landmark_index,
                                                 const Rigid3d& landmark_pose,
                                                 const std::string& frame_id) {
@@ -194,7 +197,7 @@ bool MapBuilderBridge::SerializeState(const std::string& filename,
 }
 
 /**
- * @brief 获取对应id轨迹的 索引为submap_index 的submap
+ * @brief 获取对应id轨迹的 索引为 submap_index 的地图的栅格值及其他信息
  * 
  * @param[in] request 轨迹id与submap的index
  * @param[in] response 是否成功
@@ -215,9 +218,13 @@ void MapBuilderBridge::HandleSubmapQuery(
   }
 
   response.submap_version = response_proto.submap_version();
+
+  // 将response_proto中的地图栅格值存入到response中
   for (const auto& texture_proto : response_proto.textures()) {
     response.textures.emplace_back();
+    // 获取response中存储地图变量的引用
     auto& texture = response.textures.back();
+    // 对引用的变量进行赋值
     texture.cells.insert(texture.cells.begin(), texture_proto.cells().begin(),
                          texture_proto.cells().end());
     texture.width = texture_proto.width();
@@ -279,6 +286,7 @@ MapBuilderBridge::GetLocalTrajectoryData() {
       if (local_slam_data_.count(trajectory_id) == 0) {
         continue;
       }
+      // 读取local_slam_data_要上锁
       local_slam_data = local_slam_data_.at(trajectory_id);
     }
 
@@ -298,7 +306,7 @@ MapBuilderBridge::GetLocalTrajectoryData() {
             trajectory_options_[trajectory_id].published_frame),
 
         trajectory_options_[trajectory_id]};
-  }
+  } // end for
   return local_trajectory_data;
 }
 
@@ -358,7 +366,8 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     // 是外部子图关系才往下走
     if (constraint.tag ==
         cartographer::mapping::PoseGraphInterface::Constraint::INTER_SUBMAP) {
-      // 找到同一轨迹下的最后一个inter_submap的node_index
+      
+      // 找到当前时刻 同一轨迹下的最后一个inter_submap约束的node_index
       if (constraint.node_id.trajectory_id ==
           constraint.submap_id.trajectory_id) {
         trajectory_to_last_inter_submap_constrained_node[constraint.node_id
@@ -366,8 +375,9 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
             std::max(trajectory_to_last_inter_submap_constrained_node.at(
                          constraint.node_id.trajectory_id),
                      constraint.node_id.node_index);
-      } else {
-        // 不同轨迹下的最后一个inter_submap的node_index
+      } 
+      // 不同轨迹下的最后一个inter_submap的node_index
+      else {
         trajectory_to_last_inter_trajectory_constrained_node
             [constraint.node_id.trajectory_id] =
                 std::max(trajectory_to_last_inter_submap_constrained_node.at(
@@ -377,12 +387,12 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     }
   }
 
-  // 生成marker
+  // 遍历不同的轨迹来生成marker
   for (const int trajectory_id : node_poses.trajectory_ids()) {
     visualization_msgs::Marker marker =
         CreateTrajectoryMarker(trajectory_id, node_options_.map_frame);
 
-    // 将刚才找到的最后一个节点的索引取出来
+    // 将刚才找到的当前时刻的最后一个inter_submap约束的节点索引 取出来
     int last_inter_submap_constrained_node = std::max(
         node_poses.trajectory(trajectory_id).begin()->id.node_index,
         trajectory_to_last_inter_submap_constrained_node.at(trajectory_id));
@@ -390,12 +400,12 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
         node_poses.trajectory(trajectory_id).begin()->id.node_index,
         trajectory_to_last_inter_trajectory_constrained_node.at(trajectory_id));
     
-    // 用节点索引与最大值
+    // 节点索引的最大值
     last_inter_submap_constrained_node =
         std::max(last_inter_submap_constrained_node,
                  last_inter_trajectory_constrained_node);
 
-    // 如果轨迹结束了, 更新节点的索引到轨迹的最后一个节点的索引
+    // 如果轨迹结束了, 更新节点的索引为 轨迹的最后一个节点的索引
     if (map_builder_->pose_graph()->IsTrajectoryFrozen(trajectory_id)) {
       last_inter_submap_constrained_node =
           (--node_poses.trajectory(trajectory_id).end())->id.node_index;
@@ -404,6 +414,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     }
 
     marker.color.a = 1.0;
+    
     // 遍历所有节点
     for (const auto& node_id_data : node_poses.trajectory(trajectory_id)) {
       // 如果没有位姿数据就先跳过
@@ -412,18 +423,20 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
         continue;
       }
 
-      // 获取节点在global map 下的坐标
+      // 将 节点在 global map 下的坐标 放入marker中
       const ::geometry_msgs::Point node_point =
           ToGeometryMsgPoint(node_id_data.data.global_pose.translation());
       marker.points.push_back(node_point);
 
-      // 如果是最后一个节点, 更改透明度
+      // 更新到inter_trajectory_constrained_node, 就将color设置成0.5
       if (node_id_data.id.node_index ==
           last_inter_trajectory_constrained_node) {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
         marker.points.push_back(node_point);
         marker.color.a = 0.5;
       }
+
+      // 更新到inter_submap_constrained_node, 就将color设置成0.25
       if (node_id_data.id.node_index == last_inter_submap_constrained_node) {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
         marker.points.push_back(node_point);
@@ -446,7 +459,8 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     // 如果该轨迹id不在trajectory_to_highest_marker_id_中, 将current_last_marker_id保存
     if (trajectory_to_highest_marker_id_.count(trajectory_id) == 0) {
       trajectory_to_highest_marker_id_[trajectory_id] = current_last_marker_id;
-    } else {
+    } 
+    else {
       marker.action = visualization_msgs::Marker::DELETE;
       while (static_cast<size_t>(marker.id) <=
              trajectory_to_highest_marker_id_[trajectory_id]) {
@@ -484,12 +498,13 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   visualization_msgs::MarkerArray constraint_list;
   int marker_id = 0;
 
-  // 6种marker
+  // 6种marker的声明
 
   // 1 内部子图约束, 非全局约束, rviz中显示的最多的约束
   visualization_msgs::Marker constraint_intra_marker;
   constraint_intra_marker.id = marker_id++;
   constraint_intra_marker.ns = "Intra constraints";
+  // note: Marker::LINE_LIST: 每对点之间画一条线，eg: 0-1，2-3，4-5
   constraint_intra_marker.type = visualization_msgs::Marker::LINE_LIST;
   constraint_intra_marker.header.stamp = ros::Time::now();
   constraint_intra_marker.header.frame_id = node_options_.map_frame;
@@ -506,8 +521,8 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   // 将该标记和其他数量较少的标记设置z为略高于帧内约束标记, 以确保它们可见.
   residual_intra_marker.pose.position.z = 0.1;
 
-  // 外部子图约束, 回环约束, 全局约束
   // 3 Inter constraints, same trajectory, rviz中显示的第二多的约束
+  // 外部子图约束, 回环约束, 全局约束
   visualization_msgs::Marker constraint_inter_same_trajectory_marker =
       constraint_intra_marker;
   constraint_inter_same_trajectory_marker.id = marker_id++;
@@ -543,14 +558,16 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   const auto submap_poses = map_builder_->pose_graph()->GetAllSubmapPoses();
   const auto constraints = map_builder_->pose_graph()->constraints();
 
+  // 将约束信息填充到6种marker里
   for (const auto& constraint : constraints) {
     visualization_msgs::Marker *constraint_marker, *residual_marker;
     std_msgs::ColorRGBA color_constraint, color_residual;
 
     // 根据不同情况,将constraint_marker与residual_marker 指到到不同的maker类型上
+
+    // 子图内部的constraint,对应第一种与第二种marker
     if (constraint.tag ==
         cartographer::mapping::PoseGraphInterface::Constraint::INTRA_SUBMAP) {
-      // 子图内部的constraint,对应第一种与第二种marker
       constraint_marker = &constraint_intra_marker;
       residual_marker = &residual_intra_marker;
       // Color mapping for submaps of various trajectories - add trajectory id
@@ -562,17 +579,19 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
                                      constraint.submap_id.trajectory_id + 25));
       color_residual.a = 1.0;
       color_residual.r = 1.0;
-    } else {
-      // 相同轨迹内的constraint,对应第三种与第四种marker
+    } 
+    else {
+      // 相同轨迹内,子图外部约束, 对应第三种与第四种marker
       if (constraint.node_id.trajectory_id ==
           constraint.submap_id.trajectory_id) {
         constraint_marker = &constraint_inter_same_trajectory_marker;
         residual_marker = &residual_inter_same_trajectory_marker;
-        // Bright yellow
+        // Bright yellow 亮黄色
         color_constraint.a = 1.0;
         color_constraint.r = color_constraint.g = 1.0;
-      } else {
-        // 不同轨迹间的constraint,对应第五种与第六种marker
+      } 
+      // 不同轨迹间的constraint,对应第五种与第六种marker
+      else {
         constraint_marker = &constraint_inter_diff_trajectory_marker;
         residual_marker = &residual_inter_diff_trajectory_marker;
         // Bright orange
@@ -580,40 +599,50 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
         color_constraint.r = 1.0;
         color_constraint.g = 165. / 255.;
       }
-      // Bright cyan
+      // Bright cyan 亮青色
       color_residual.a = 1.0;
       color_residual.b = color_residual.g = 1.0;
     }
 
+    // 设置颜色信息
     for (int i = 0; i < 2; ++i) {
       constraint_marker->colors.push_back(color_constraint);
       residual_marker->colors.push_back(color_residual);
     }
 
+    // 在submap_poses中找到约束对应的submap_id
     const auto submap_it = submap_poses.find(constraint.submap_id);
+    // 没找到就先跳过
     if (submap_it == submap_poses.end()) {
       continue;
     }
+    // 子图的坐标
     const auto& submap_pose = submap_it->data.pose;
+
+    // 在trajectory_node_poses中找到约束对应的node_id
     const auto node_it = trajectory_node_poses.find(constraint.node_id);
     if (node_it == trajectory_node_poses.end()) {
       continue;
     }
+    // 节点在global坐标系下的坐标
     const auto& trajectory_node_pose = node_it->data.global_pose;
+    // 根据子图坐标与约束的坐标变换算出约束的另一头的坐标
     const Rigid3d constraint_pose = submap_pose * constraint.pose.zbar_ij;
 
-    // 在这将约束放进不同类型的marker中
+    // 将子图与节点间的约束放进不同类型的marker中
     constraint_marker->points.push_back(
         ToGeometryMsgPoint(submap_pose.translation()));
     constraint_marker->points.push_back(
         ToGeometryMsgPoint(constraint_pose.translation()));
 
+    // 两种方式计算出的节点坐标不会完全相同, 将这个差值作为残差发布出来
     residual_marker->points.push_back(
         ToGeometryMsgPoint(constraint_pose.translation()));
     residual_marker->points.push_back(
         ToGeometryMsgPoint(trajectory_node_pose.translation()));
-  } // for
+  } // end for
 
+  // 将填充完数据的Marker放到MarkerArray中
   constraint_list.markers.push_back(constraint_intra_marker);
   constraint_list.markers.push_back(residual_intra_marker);
   constraint_list.markers.push_back(constraint_inter_same_trajectory_marker);
@@ -629,12 +658,12 @@ SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id) {
 }
 
 /**
- * @brief 保存local slam 的结果, 包含当前轨迹id, 当前时间, 当前位姿, 以及所有的雷达数据
+ * @brief 保存local slam 的结果
  * 
- * @param[in] trajectory_id 
- * @param[in] time 
- * @param[in] local_pose 
- * @param[in] range_data_in_local 
+ * @param[in] trajectory_id 当前轨迹id
+ * @param[in] time 扫描匹配的时间
+ * @param[in] local_pose 扫描匹配计算出的在local坐标系下的位姿
+ * @param[in] range_data_in_local 扫描匹配使用的雷达数据
  */
 void MapBuilderBridge::OnLocalSlamResult(
     const int trajectory_id, const ::cartographer::common::Time time,
