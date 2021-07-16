@@ -38,11 +38,14 @@ void CheckStrideIsAsExpected(int width) {
 
 }  // namespace
 
+// 生成 使用cairo_surface_destroy释放资源 的unique_ptr智能指针
 UniqueCairoSurfacePtr MakeUniqueCairoSurfacePtr(cairo_surface_t* surface) {
+  // cairo_surface_destroy是cairo库中定义的销毁图像的函数
   return UniqueCairoSurfacePtr(surface, cairo_surface_destroy);
 }
 
 UniqueCairoPtr MakeUniqueCairoPtr(cairo_t* surface) {
+  // cairo_destroy是cairo库中定义的函数
   return UniqueCairoPtr(surface, cairo_destroy);
 }
 

@@ -114,6 +114,7 @@ std::unique_ptr<Grid2D> ProbabilityGrid::ComputeCroppedGrid() const {
   return std::unique_ptr<Grid2D>(cropped_grid.release());
 }
 
+// todo: ProbabilityGrid::DrawToSubmapTexture
 bool ProbabilityGrid::DrawToSubmapTexture(
     proto::SubmapQuery::Response::SubmapTexture* const texture,
     transform::Rigid3d local_pose) const {
@@ -138,11 +139,14 @@ bool ProbabilityGrid::DrawToSubmapTexture(
         128 - ProbabilityToLogOddsInteger(GetProbability(xy_index + offset));
     const uint8 alpha = delta > 0 ? 0 : -delta;
     const uint8 value = delta > 0 ? delta : 0;
+    // 存数据时存了2个值, 一个是栅格值value, 另一个是alpha
     cells.push_back(value);
     cells.push_back((value || alpha) ? alpha : 1);
   }
 
+  // 保存地图栅格数据时进行压缩
   common::FastGzipString(cells, texture->mutable_cells());
+  
   texture->set_width(cell_limits.num_x_cells);
   texture->set_height(cell_limits.num_y_cells);
   const double resolution = limits().resolution();

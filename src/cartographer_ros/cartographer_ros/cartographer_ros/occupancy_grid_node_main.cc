@@ -81,6 +81,7 @@ class Node {
 
 Node::Node(const double resolution, const double publish_period_sec)
     : resolution_(resolution),
+      // SubmapQuery服务的客户端
       client_(node_handle_.serviceClient<::cartographer_ros_msgs::SubmapQuery>(
           kSubmapQueryServiceName)),
       // 订阅 submap_list topic,注册回调函数
@@ -91,7 +92,7 @@ Node::Node(const double resolution, const double publish_period_sec)
               [this](const cartographer_ros_msgs::SubmapList::ConstPtr& msg) {
                 HandleSubmapList(msg);
               }))),
-      // map 发布器
+      // 声明 map 发布器
       occupancy_grid_publisher_(
           node_handle_.advertise<::nav_msgs::OccupancyGrid>(
               FLAGS_occupancy_grid_topic, kLatestOnlyPublisherQueueSize,
@@ -101,28 +102,37 @@ Node::Node(const double resolution, const double publish_period_sec)
           node_handle_.createWallTimer(::ros::WallDuration(publish_period_sec),
                                        &Node::DrawAndPublish, this)) {}
 
+// 订阅SubmapList话题的回调函数
 void Node::HandleSubmapList(
     const cartographer_ros_msgs::SubmapList::ConstPtr& msg) {
   absl::MutexLock locker(&mutex_);
 
   // We do not do any work if nobody listens.
+  // 如果没人订阅就不处理
   if (occupancy_grid_publisher_.getNumSubscribers() == 0) {
     return;
   }
 
   // Keep track of submap IDs that don't appear in the message anymore.
+  // 先将所有的submap_slices_保存到submap_ids_to_delete中
   std::set<SubmapId> submap_ids_to_delete;
   for (const auto& pair : submap_slices_) {
     submap_ids_to_delete.insert(pair.first);
   }
 
+  // 遍历所有的submap
   for (const auto& submap_msg : msg->submap) {
+    // 生成SubmapId
     const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
+    // 如果msg中存在这个生成SubmapId就在 待删除列表 中移除
     submap_ids_to_delete.erase(id);
+    // 根据参数决定 是否 对 frozen 与 unfrozen 的submap进行跳过
     if ((submap_msg.is_frozen && !FLAGS_include_frozen_submaps) ||
         (!submap_msg.is_frozen && !FLAGS_include_unfrozen_submaps)) {
       continue;
     }
+
+    // 获取key为id的值的引用进行赋值, 如果key中没有这个id就新建一个键值对
     SubmapSlice& submap_slice = submap_slices_[id];
     submap_slice.pose = ToRigid3d(submap_msg.pose);
     submap_slice.metadata_version = submap_msg.submap_version;
@@ -131,8 +141,10 @@ void Node::HandleSubmapList(
       continue;
     }
 
+    // 获取格式为io::SubmapTextures的地图栅格数据
     auto fetched_textures =
         ::cartographer_ros::FetchSubmapTextures(id, &client_);
+
     if (fetched_textures == nullptr) {
       continue;
     }
@@ -142,12 +154,15 @@ void Node::HandleSubmapList(
     // We use the first texture only. By convention this is the highest
     // resolution texture and that is the one we want to use to construct the
     // map for ROS.
+    // 将 格式为io::SubmapTextures的地图栅格数据 放入 submap_slice 中
     const auto fetched_texture = fetched_textures->textures.begin();
     submap_slice.width = fetched_texture->width;
     submap_slice.height = fetched_texture->height;
     submap_slice.slice_pose = fetched_texture->slice_pose;
     submap_slice.resolution = fetched_texture->resolution;
     submap_slice.cairo_data.clear();
+    
+    // surface是指向Cairo图片画布的指针
     submap_slice.surface = ::cartographer::io::DrawTexture(
         fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
         fetched_texture->width, fetched_texture->height,
@@ -155,6 +170,7 @@ void Node::HandleSubmapList(
   }
 
   // Delete all submaps that didn't appear in the message.
+  // msg处理完之后, 还在 待删除 列表中的信息 就是后来不出现的, 可以删掉了
   for (const auto& id : submap_ids_to_delete) {
     submap_slices_.erase(id);
   }
@@ -163,11 +179,13 @@ void Node::HandleSubmapList(
   last_frame_id_ = msg->header.frame_id;
 }
 
+// 时间驱动的函数
 void Node::DrawAndPublish(const ::ros::WallTimerEvent& unused_timer_event) {
   absl::MutexLock locker(&mutex_);
   if (submap_slices_.empty() || last_frame_id_.empty()) {
     return;
   }
+  //  todo: 
   auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
   
   // 由cartographer格式的地图生成ros格式的地图

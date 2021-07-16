@@ -496,17 +496,16 @@ std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
       * 像素值在中间的值保持不变,灰色
       */
       /*
-      int value_temp = ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
-      if (value_temp > 100 * 0.65)
-          value_temp = 100;
-      else if (value_temp < 100 * 0.196)
-          value_temp =  0;
-      else
-          value_temp += 0;  
-      const int value =
-          observed == 0
-              ? -1
-              : value_temp;
+      int value = -1;
+      if (observed != 0)
+      {
+        int value_temp = ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
+        if (value_temp > 100 * 0.65)
+            value_temp = 100;
+        else if (value_temp < 100 * 0.196)
+            value_temp =  0;
+        value = value_temp;
+      }
       */
 
       CHECK_LE(-1, value);

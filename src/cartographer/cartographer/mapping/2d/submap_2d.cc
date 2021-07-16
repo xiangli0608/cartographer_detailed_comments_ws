@@ -145,6 +145,7 @@ void Submap2D::ToResponseProto(
   response->set_submap_version(num_range_data());
   proto::SubmapQuery::Response::SubmapTexture* const texture =
       response->add_textures();
+  // 填充压缩后的数据
   grid()->DrawToSubmapTexture(texture, local_pose());
 }
 
