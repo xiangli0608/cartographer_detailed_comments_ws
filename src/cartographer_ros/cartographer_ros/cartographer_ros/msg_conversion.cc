@@ -124,6 +124,44 @@ sensor_msgs::PointCloud2 PreparePointCloud2Message(const int64_t timestamp,
   return msg;
 }
 
+/*
+$ rosmsg show sensor_msgs/LaserScan 
+std_msgs/Header header
+  uint32 seq
+  time stamp
+  string frame_id
+float32 angle_min
+float32 angle_max
+float32 angle_increment
+float32 time_increment
+float32 scan_time
+float32 range_min
+float32 range_max
+float32[] ranges
+float32[] intensities
+
+$ rosmsg show sensor_msgs/Multi
+sensor_msgs/MultiDOFJointState  sensor_msgs/MultiEchoLaserScan
+lx@lx-laptop:~$ rosmsg show sensor_msgs/MultiEchoLaserScan 
+std_msgs/Header header
+  uint32 seq
+  time stamp
+  string frame_id
+float32 angle_min
+float32 angle_max
+float32 angle_increment
+float32 time_increment
+float32 scan_time
+float32 range_min
+float32 range_max
+sensor_msgs/LaserEcho[] ranges
+  float32[] echoes
+sensor_msgs/LaserEcho[] intensities
+  float32[] echoes
+
+
+*/
+
 // For sensor_msgs::LaserScan.
 bool HasEcho(float) { return true; }
 
@@ -166,7 +204,7 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
         const cartographer::sensor::TimedRangefinderPoint point{
             rotation * (first_echo * Eigen::Vector3f::UnitX()), // position
             i * msg.time_increment};                            // time
-        // 保存点云位置信息
+        // 保存点云坐标与时间信息
         point_cloud.points.push_back(point);
         
         // 如果存在强度信息
@@ -188,6 +226,8 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
   if (!point_cloud.points.empty()) {
     const double duration = point_cloud.points.back().time;
     timestamp += cartographer::common::FromSeconds(duration);
+
+    // 让点云的时间变成相对值, 最后一个点的时间为0
     for (auto& point : point_cloud.points) {
       point.time -= duration;
     }
@@ -256,9 +296,11 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
   // We check for intensity field here to avoid run-time warnings if we pass in
   // a PointCloud2 without intensity.
 
+  // 有强度数据
   if (PointCloud2HasField(msg, "intensity")) {
+
+    // 有强度字段, 有时间字段
     if (PointCloud2HasField(msg, "time")) {
-      // 有强度字段, 有时间字段
       pcl::PointCloud<PointXYZIT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
@@ -268,8 +310,9 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
             {Eigen::Vector3f{point.x, point.y, point.z}, point.time});
         point_cloud.intensities.push_back(point.intensity);
       }
-    } else {
-      // 有强度字段, 没时间字段
+    } 
+    // 有强度字段, 没时间字段
+    else {
       pcl::PointCloud<pcl::PointXYZI> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
@@ -280,10 +323,12 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
         point_cloud.intensities.push_back(point.intensity);
       }
     }
-  } else {
+  } 
+  // 没有强度数据
+  else {
     // If we don't have an intensity field, just copy XYZ and fill in 1.0f.
+    // 没强度字段, 有时间字段
     if (PointCloud2HasField(msg, "time")) {
-      // 没强度字段, 有时间字段
       pcl::PointCloud<PointXYZT> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
@@ -293,8 +338,9 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
             {Eigen::Vector3f{point.x, point.y, point.z}, point.time});
         point_cloud.intensities.push_back(1.0f);
       }
-    } else {
-      // 没强度字段, 没时间字段
+    } 
+    // 没强度字段, 没时间字段
+    else {
       pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
       pcl::fromROSMsg(msg, pcl_point_cloud);
       point_cloud.points.reserve(pcl_point_cloud.size());
@@ -310,11 +356,15 @@ ToPointCloudWithIntensities(const sensor_msgs::PointCloud2& msg) {
   ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
   if (!point_cloud.points.empty()) {
     const double duration = point_cloud.points.back().time;
-    // 点云开始的时间 加上 第一个点到最后一个点的时间, 作为整个点云的时间戳
+    // 点云开始的时间 加上 第一个点到最后一个点的时间
+    // 点云最后一个点的时间 作为整个点云的时间戳
     timestamp += cartographer::common::FromSeconds(duration);
-    // 对每个点进行时间检查, 看是否有数据点的时间比最后一个点的时间晚, 否则就报错
+
     for (auto& point : point_cloud.points) {
+      // 将每个点的时间减去整个点云的时间, 所以每个点的时间都应该小于0
       point.time -= duration;
+
+      // 对每个点进行时间检查, 看是否有数据点的时间大于0, 大于0就报错
       CHECK_LE(point.time, 0.f)
           << "Encountered a point with a larger stamp than "
              "the last point in the cloud.";

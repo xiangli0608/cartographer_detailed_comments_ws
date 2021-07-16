@@ -82,6 +82,7 @@ void SensorBridge::HandleOdometryMessage(
   std::unique_ptr<carto::sensor::OdometryData> odometry_data =
       ToOdometryData(msg);
   if (odometry_data != nullptr) {
+    // tag: 这个trajectory_builder_是谁, 讲map_builder时候再揭晓
     trajectory_builder_->AddSensorData(
         sensor_id,
         carto::sensor::OdometryData{odometry_data->time, odometry_data->pose});

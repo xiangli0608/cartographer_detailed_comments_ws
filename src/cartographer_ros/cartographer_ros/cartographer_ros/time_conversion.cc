@@ -21,6 +21,7 @@
 
 namespace cartographer_ros {
 
+// 将 ICU Universal Time 转成 ROS的时间
 ::ros::Time ToRos(::cartographer::common::Time time) {
   int64_t uts_timestamp = ::cartographer::common::ToUniversal(time);
   int64_t ns_since_unix_epoch =
@@ -34,6 +35,7 @@ namespace cartographer_ros {
 }
 
 // TODO(pedrofernandez): Write test.
+// 将 ROS的时间 转成 ICU Universal Time
 ::cartographer::common::Time FromRos(const ::ros::Time& time) {
   // The epoch of the ICU Universal Time Scale is "0001-01-01 00:00:00.0 +0000",
   // exactly 719162 days before the Unix epoch.
