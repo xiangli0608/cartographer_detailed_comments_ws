@@ -124,44 +124,6 @@ sensor_msgs::PointCloud2 PreparePointCloud2Message(const int64_t timestamp,
   return msg;
 }
 
-/*
-$ rosmsg show sensor_msgs/LaserScan 
-std_msgs/Header header
-  uint32 seq
-  time stamp
-  string frame_id
-float32 angle_min
-float32 angle_max
-float32 angle_increment
-float32 time_increment
-float32 scan_time
-float32 range_min
-float32 range_max
-float32[] ranges
-float32[] intensities
-
-$ rosmsg show sensor_msgs/Multi
-sensor_msgs/MultiDOFJointState  sensor_msgs/MultiEchoLaserScan
-lx@lx-laptop:~$ rosmsg show sensor_msgs/MultiEchoLaserScan 
-std_msgs/Header header
-  uint32 seq
-  time stamp
-  string frame_id
-float32 angle_min
-float32 angle_max
-float32 angle_increment
-float32 time_increment
-float32 scan_time
-float32 range_min
-float32 range_max
-sensor_msgs/LaserEcho[] ranges
-  float32[] echoes
-sensor_msgs/LaserEcho[] intensities
-  float32[] echoes
-
-
-*/
-
 // For sensor_msgs::LaserScan.
 bool HasEcho(float) { return true; }
 
@@ -469,14 +431,12 @@ Eigen::Vector3d LatLongAltToEcef(const double latitude, const double longitude,
 }
 
 /**
- * @brief 将经纬度转成ecef坐标,然后以rotation * -translation为坐标变换,固定一个局部坐标系
- * 这个坐标变换是从 rotation * -translation坐标 指向 ecef坐标系原点的,
- * 用这个坐标变换 乘以 之后的gps数据,就相当于减去了rotation * translation,
- * 从而得到了gps数据间的相对坐标变换
+ * @brief 计算第一帧GPS数据在ECEF坐标系下的逆变换, 用这个逆变换乘以之后的GPS数据
+ * 就得到了之后的GPS数据相对于第一帧GPS数据的相对坐标变换
  * 
  * @param[in] latitude 维度数据
  * @param[in] longitude 经度数据
- * @return cartographer::transform::Rigid3d 
+ * @return cartographer::transform::Rigid3d 第一帧GPS数据相对ECEF坐标系下的逆变换
  */
 cartographer::transform::Rigid3d ComputeLocalFrameFromLatLong(
     const double latitude, const double longitude) {

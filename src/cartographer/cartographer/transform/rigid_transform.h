@@ -71,8 +71,8 @@ class Rigid2 {
     return common::NormalizeAngleDifference(rotation().angle());
   }
 
-  // T = [R t] T^-1 = [R^-1  -R*t]
-  //     [0 1]        [0      1  ] 
+  // T = [R t] T^-1 = [R^-1  -R^-1 * t]
+  //     [0 1]        [0         1    ] 
   // R是旋转矩阵, 特殊正交群, 所以R^-1 = R^T
   // tag: 这里手写一下推倒过程
   Rigid2 inverse() const {
@@ -91,9 +91,8 @@ class Rigid2 {
   Rotation2D rotation_;
 };
 
-// note: Rigid2 operator*
-// rhs是全局坐标系下的坐姿变动量, lhs是全局坐标系下的位姿
-// 通过 lhs.rotation() * rhs.translation() + lhs.translation() 
+// lhs是全局坐标系下的位姿, rhs是全局坐标系下的坐姿变动量
+// lhs.rotation() * rhs.translation() + lhs.translation() 的意思是
 // 将 rhs 转换成 lhs自身坐标系下的位姿变动量 再与lhs的坐标相加
 // 得到 lhs 在全局坐标系下的新的位姿
 template <typename FloatType>
@@ -165,6 +164,9 @@ class Rigid3 {
   const Vector& translation() const { return translation_; }
   const Quaternion& rotation() const { return rotation_; }
 
+  // T = [R t] T^-1 = [R^-1  -R^-1 * t]
+  //     [0 1]        [0         1    ] 
+  // R是旋转矩阵, 特殊正交群, 所以R^-1 = R^T
   Rigid3 inverse() const {
     const Quaternion rotation = rotation_.conjugate();
     const Vector translation = -(rotation * translation_);
@@ -189,6 +191,10 @@ class Rigid3 {
   Quaternion rotation_;
 };
 
+// lhs是全局坐标系下的位姿, rhs是全局坐标系下的坐姿变动量
+// lhs.rotation() * rhs.translation() + lhs.translation() 的意思是
+// 将 rhs 转换成 lhs自身坐标系下的位姿变动量 再与lhs的坐标相加
+// 得到 lhs 在全局坐标系下的新的位姿
 template <typename FloatType>
 Rigid3<FloatType> operator*(const Rigid3<FloatType>& lhs,
                             const Rigid3<FloatType>& rhs) {

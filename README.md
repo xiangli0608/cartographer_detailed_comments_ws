@@ -3,9 +3,7 @@
 ## 项目简介
 基于2021.04.20日在github上下载的master的代码的注释版本
 1. 在代码中进行了规范, 超详细的注释, 帮助大家更好的理解cartographer
-
-**注释多数在 .cc 文件中, .h文件中存在cartographer原本的注释**
-
+  **注释多数在 .cc 文件中, .h文件中存在cartographer原本的注释**
 2. 对cartographer中的关键概念进行了解释与说明
 3. 对cartographer中使用的**c++11新标准**语法进行了标注与说明
 
