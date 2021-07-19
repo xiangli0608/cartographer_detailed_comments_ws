@@ -431,12 +431,12 @@ Eigen::Vector3d LatLongAltToEcef(const double latitude, const double longitude,
 }
 
 /**
- * @brief 计算第一帧GPS数据在ECEF坐标系下的逆变换, 用这个逆变换乘以之后的GPS数据
+ * @brief 计算第一帧GPS数据指向ECEF坐标系下原点的坐标变换, 用这个坐标变换乘以之后的GPS数据
  * 就得到了之后的GPS数据相对于第一帧GPS数据的相对坐标变换
  * 
  * @param[in] latitude 维度数据
  * @param[in] longitude 经度数据
- * @return cartographer::transform::Rigid3d 第一帧GPS数据相对ECEF坐标系下的逆变换
+ * @return cartographer::transform::Rigid3d 计算第一帧GPS数据指向ECEF坐标系下原点的坐标变换
  */
 cartographer::transform::Rigid3d ComputeLocalFrameFromLatLong(
     const double latitude, const double longitude) {
