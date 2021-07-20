@@ -284,9 +284,10 @@ void SensorBridge::HandleRangefinder(
   if (sensor_to_tracking != nullptr) {
     trajectory_builder_->AddSensorData(
         sensor_id, carto::sensor::TimedPointCloudData{
-                       time, sensor_to_tracking->translation().cast<float>(),
+                       time, 
+                       sensor_to_tracking->translation().cast<float>(),
                        carto::sensor::TransformTimedPointCloud(
-                           ranges, sensor_to_tracking->cast<float>())});
+                           ranges, sensor_to_tracking->cast<float>())} ); // 强度始终为空
   }
 }
 

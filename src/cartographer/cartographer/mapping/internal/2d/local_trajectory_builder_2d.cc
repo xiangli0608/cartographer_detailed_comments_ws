@@ -35,7 +35,12 @@ static auto* kCeresScanMatcherCostMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualDistanceMetric = metrics::Histogram::Null();
 static auto* kScanMatcherResidualAngleMetric = metrics::Histogram::Null();
 
-// 构造函数
+/**
+ * @brief 构造函数
+ * 
+ * @param[in] options 
+ * @param[in] expected_range_sensor_ids 所有range类型的话题
+ */
 LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
     const proto::LocalTrajectoryBuilderOptions2D& options,
     const std::vector<std::string>& expected_range_sensor_ids)

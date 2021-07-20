@@ -33,9 +33,10 @@ void TrajectoryCollator::AddTrajectory(
   for (const auto& sensor_id : expected_sensor_ids) {
     const auto queue_key = QueueKey{trajectory_id, sensor_id};
     trajectory_to_queue_[trajectory_id].AddQueue(
-        queue_key, [callback, sensor_id](std::unique_ptr<Data> data) {
+        queue_key, 
+        [callback, sensor_id](std::unique_ptr<Data> data) {
           callback(sensor_id, std::move(data));
-        });
+        } );
     trajectory_to_queue_keys_[trajectory_id].push_back(queue_key);
   }
 }

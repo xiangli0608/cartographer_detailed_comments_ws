@@ -54,7 +54,7 @@ std::vector<std::string> SelectRangeSensorIds(
   return range_sensor_ids;
 }
 
-// 检查是否是纯定位模式,支持2种纯定位的参数名字
+// 检查是否是纯定位模式,支持2种纯定位的参数名字,老参数已经弃用,会报警告但程序不会终止
 void MaybeAddPureLocalizationTrimmer(
     const int trajectory_id,
     const proto::TrajectoryBuilderOptions& trajectory_options,

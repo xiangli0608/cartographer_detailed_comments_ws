@@ -32,8 +32,11 @@ sensor::TimedPointCloudOriginData RangeDataCollator::AddRangeData(
     const std::string& sensor_id,
     sensor::TimedPointCloudData timed_point_cloud_data) {
   CHECK_NE(expected_sensor_ids_.count(sensor_id), 0);
+
+  // 从sensor_bridge传过来的数据的intensities为空
   timed_point_cloud_data.intensities.resize(
       timed_point_cloud_data.ranges.size(), kDefaultIntensityValue);
+
   // TODO(gaschler): These two cases can probably be one.
   if (id_to_pending_data_.count(sensor_id) != 0) {
     current_start_ = current_end_;
@@ -44,16 +47,24 @@ sensor::TimedPointCloudOriginData RangeDataCollator::AddRangeData(
     id_to_pending_data_.emplace(sensor_id, std::move(timed_point_cloud_data));
     return result;
   }
+
+  // 只有在 键 不存在sensor_id时 才进行添加
   id_to_pending_data_.emplace(sensor_id, std::move(timed_point_cloud_data));
+
+  // 等到range数据的话题都到来之后再进行处理
   if (expected_sensor_ids_.size() != id_to_pending_data_.size()) {
     return {};
   }
+
+  // current_start_为上一帧点云的时间
   current_start_ = current_end_;
   // We have messages from all sensors, move forward to oldest.
+  // 获取当前点云的时间戳(点云最后一个点的时间)
   common::Time oldest_timestamp = common::Time::max();
   for (const auto& pair : id_to_pending_data_) {
     oldest_timestamp = std::min(oldest_timestamp, pair.second.time);
   }
+  // current_end_ 为 id_to_pending_data_的点云时间中最老的一个时间
   current_end_ = oldest_timestamp;
   return CropAndMerge();
 }
