@@ -38,7 +38,7 @@ struct RangefinderPoint {
 // 带时间戳的单个数据点的坐标
 struct TimedRangefinderPoint {
   Eigen::Vector3f position;
-  float time;
+  float time; // 相对点云最后一个点的时间, 最后一个点的时间为0, 其他点的时间都为负的
 };
 
 template <class T>

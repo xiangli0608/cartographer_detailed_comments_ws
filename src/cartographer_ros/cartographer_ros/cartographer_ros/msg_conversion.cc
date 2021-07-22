@@ -187,6 +187,7 @@ LaserScanToPointCloudWithIntensities(const LaserMessageType& msg) {
   ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);
   if (!point_cloud.points.empty()) {
     const double duration = point_cloud.points.back().time;
+    // 以点云最后一个点的时间为点云的时间戳
     timestamp += cartographer::common::FromSeconds(duration);
 
     // 让点云的时间变成相对值, 最后一个点的时间为0

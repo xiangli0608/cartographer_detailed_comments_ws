@@ -25,16 +25,16 @@ namespace cartographer {
 namespace sensor {
 
 struct TimedPointCloudData {
-  common::Time time;
-  Eigen::Vector3f origin;
-  TimedPointCloud ranges;
+  common::Time time;        // 点云最后一个点的时间
+  Eigen::Vector3f origin;   // 从tracking_frame_到雷达坐标系的坐标变化
+  TimedPointCloud ranges;   // 数据点的集合, 每个数据点包含xyz与time, time是负的
   // 'intensities' has to be same size as 'ranges', or empty.
-  std::vector<float> intensities;
+  std::vector<float> intensities; // 空的
 };
 
 struct TimedPointCloudOriginData {
   struct RangeMeasurement {
-    TimedRangefinderPoint point_time;
+    TimedRangefinderPoint point_time;   // 带时间戳的单个数据点的坐标
     float intensity;
     size_t origin_index;
   };
