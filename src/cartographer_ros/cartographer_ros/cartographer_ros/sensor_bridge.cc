@@ -228,14 +228,15 @@ void SensorBridge::HandleLaserScan(
   CHECK_LE(points.points.back().time, 0.f);
   // TODO(gaschler): Use per-point time instead of subdivisions.
 
-  // 参数num_subdivisions_per_laser_scan_
+  // tag: 参数 num_subdivisions_per_laser_scan
   // 意为一帧雷达数据被分成几次处理, 一般将这个参数设置为1
-
   for (int i = 0; i != num_subdivisions_per_laser_scan_; ++i) {
     const size_t start_index =
         points.points.size() * i / num_subdivisions_per_laser_scan_;
     const size_t end_index =
         points.points.size() * (i + 1) / num_subdivisions_per_laser_scan_;
+    
+    // 生成分段的点云
     carto::sensor::TimedPointCloud subdivision(
         points.points.begin() + start_index, points.points.begin() + end_index);
     if (start_index == end_index) {
@@ -257,7 +258,9 @@ void SensorBridge::HandleLaserScan(
                    << subdivision_time;
       continue;
     }
+    // 更新对应sensor_id的时间戳
     sensor_to_previous_subdivision_time_[sensor_id] = subdivision_time;
+    
     // 检查点云的时间
     for (auto& point : subdivision) {
       point.time -= time_to_subdivision_end;

@@ -33,7 +33,7 @@ options = {
   use_landmarks = false,                    -- 是否使用landmark
   num_laser_scans = 0,                      -- 是否使用单线激光数据
   num_multi_echo_laser_scans = 0,           -- 是否使用multi_echo_laser_scans数据
-  num_subdivisions_per_laser_scan = 1,      -- 1帧数据被分成几次发出,一般为1
+  num_subdivisions_per_laser_scan = 1,      -- 1帧数据被分成几次处理,一般为1
   num_point_clouds = 1,                     -- 是否使用点云数据
   
   lookup_transform_timeout_sec = 0.2,       -- 查找tf时的超时时间

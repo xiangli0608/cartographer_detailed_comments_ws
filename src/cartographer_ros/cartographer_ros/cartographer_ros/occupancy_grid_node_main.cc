@@ -21,7 +21,10 @@
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 #include "absl/synchronization/mutex.h"
+
+// todo: cairo是一个
 #include "cairo/cairo.h"
+
 #include "cartographer/common/port.h"
 #include "cartographer/io/image.h"
 #include "cartographer/io/submap_painter.h"
