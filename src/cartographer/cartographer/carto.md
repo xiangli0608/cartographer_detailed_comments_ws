@@ -130,3 +130,14 @@ glog比较语句的源码
   #define CHECK_GE(val1, val2) CHECK_OP(_GE, >=, val1, val2)
   #define CHECK_GT(val1, val2) CHECK_OP(_GT, > , val1, val2)
 ```
+
+Cairo是非常流行的开源2D图形渲染引擎库，它支持包括X-Windos，Win32，图像，pdf在内的各种输出设备。目前，Cairo已被广泛的使用在多个平台上来渲染图形界面，包括Firefox/Webkit-EFL/GTK+/Poppler等等。 
+
+Cairo 初探
+https://blog.csdn.net/qq_33266987/article/details/54425196?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0.control&spm=1001.2101.3001.4242
+
+Cairo学习（一）  
+http://diff3.com/f255/
+
+Cairo官网 
+https://www.cairographics.org/tutorial/
