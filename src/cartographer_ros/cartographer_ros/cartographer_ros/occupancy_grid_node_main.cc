@@ -22,7 +22,7 @@
 #include "Eigen/Geometry"
 #include "absl/synchronization/mutex.h"
 
-// todo: cairo是一个
+// cairo是一个非常流行的开源2D图形渲染引擎库
 #include "cairo/cairo.h"
 
 #include "cartographer/common/port.h"
@@ -87,7 +87,7 @@ Node::Node(const double resolution, const double publish_period_sec)
       // SubmapQuery服务的客户端
       client_(node_handle_.serviceClient<::cartographer_ros_msgs::SubmapQuery>(
           kSubmapQueryServiceName)),
-      // 订阅 submap_list topic,注册回调函数
+      // 订阅 submap_list topic, 注册回调函数
       submap_list_subscriber_(node_handle_.subscribe(
           kSubmapListTopic, kLatestOnlyPublisherQueueSize,
           boost::function<void(
@@ -170,7 +170,7 @@ void Node::HandleSubmapList(
         fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
         fetched_texture->width, fetched_texture->height,
         &submap_slice.cairo_data);
-  }
+  } // end for
 
   // Delete all submaps that didn't appear in the message.
   // msg处理完之后, 还在 待删除 列表中的信息 就是后来不出现的, 可以删掉了
