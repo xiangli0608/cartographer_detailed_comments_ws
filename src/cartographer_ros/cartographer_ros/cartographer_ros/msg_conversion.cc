@@ -451,7 +451,7 @@ cartographer::transform::Rigid3d ComputeLocalFrameFromLatLong(
 }
 
 /**
- * @brief 由cartographer格式的地图生成ros格式的地图
+ * @brief 由cairo的图像生成ros格式的地图
  * 
  * @param[in] painted_slices 
  * @param[in] resolution 栅格地图的分辨率
@@ -519,7 +519,7 @@ std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
         if (value_temp > 100 * 0.65)
             value_temp = 100;
         else if (value_temp < 100 * 0.196)
-            value_temp =  0;
+            value_temp = 0;
         value = value_temp;
       }
       */

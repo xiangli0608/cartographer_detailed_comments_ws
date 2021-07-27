@@ -168,7 +168,7 @@ void Node::HandleSubmapList(
     submap_slice.resolution = fetched_texture->resolution;
     submap_slice.cairo_data.clear();
     
-    // Step: 2 使用Cairo绘制图片, surface是指向Cairo图片画布的指针
+    // Step: 2 生成surface, surface是指向Cairo画布的指针
     submap_slice.surface = ::cartographer::io::DrawTexture(
         fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
         fetched_texture->width, fetched_texture->height,
@@ -191,7 +191,7 @@ void Node::DrawAndPublish(const ::ros::WallTimerEvent& unused_timer_event) {
   if (submap_slices_.empty() || last_frame_id_.empty()) {
     return;
   }
-  //  Step: 3 生成PaintSubmapSlicesResult
+  //  Step: 3 生成PaintSubmapSlicesResult, 绘制图像
   auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
   
   // Step: 4 由cartographer格式的地图生成ros格式的地图

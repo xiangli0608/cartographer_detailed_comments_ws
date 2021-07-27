@@ -86,7 +86,7 @@ bool Has3DGrids(const mapping::proto::Submap& submap) {
 }  // namespace
 
 /**
- * @brief 返回PaintSubmapSlicesResult
+ * @brief 绘制栅格地图的cairo图像
  * 
  * @param[in] submaps 地图图片
  * @param[in] resolution 地图分辨率
@@ -131,21 +131,22 @@ PaintSubmapSlicesResult PaintSubmapSlices(
   auto surface = MakeUniqueCairoSurfacePtr(
       cairo_image_surface_create(kCairoFormat, size.x(), size.y()));
   
-  // 绘制图片
   {
     auto cr = MakeUniqueCairoPtr(cairo_create(surface.get()));
     // 设置颜色
     cairo_set_source_rgba(cr.get(), 0.5, 0.0, 0.0, 1.);
     // 绘制
     cairo_paint(cr.get());
-    // 进行平移之后的结果
+    // 进行平移
     cairo_translate(cr.get(), origin.x(), origin.y());
 
     // 根据传入的数据进行图片的绘制
     CairoPaintSubmapSlices(1. / resolution, submaps, cr.get(),
                            [&cr](const SubmapSlice& submap_slice) {
+                             // 从surface读取图形数据
                              cairo_set_source_surface(
                                  cr.get(), submap_slice.surface.get(), 0., 0.);
+                             // 绘制图形
                              cairo_paint(cr.get());
                            });
     cairo_surface_flush(surface.get());
@@ -245,8 +246,8 @@ SubmapTexture::Pixels UnpackTextureData(const std::string& compressed_cells,
 /**
  * @brief 指向新创建的图像的指针
  * 
- * @param[in] intensity 
- * @param[in] alpha 
+ * @param[in] intensity 地图栅格数据
+ * @param[in] alpha 地图栅格的透明度
  * @param[in] width 地图的宽
  * @param[in] height 地图的高
  * @param[out] cairo_data 4字节的值, 左边3个字节分别存储了alpha_value intensity_value 与 observed
@@ -273,17 +274,17 @@ UniqueCairoSurfacePtr DrawTexture(const std::vector<char>& intensity,
     const uint8_t observed =
         (intensity_value == 0 && alpha_value == 0) ? 0 : 255;
         
-    cairo_data->push_back((alpha_value << 24) |     // 第一位 存储透明度
-                          (intensity_value << 16) | // 第二位 存储栅格值
-                          (observed << 8) |         // 第三位 存储是否被更新过
-                          0);                       // 第四位 始终为0
+    cairo_data->push_back((alpha_value << 24) |     // 第一字节 存储透明度
+                          (intensity_value << 16) | // 第二字节 存储栅格值
+                          (observed << 8) |         // 第三字节 存储是否被更新过
+                          0);                       // 第四字节 始终为0
   }
 
   // c++11: reinterpret_cast 用于进行各种不同类型的指针之间、不同类型的引用之间以及指针和能容纳指针的整数类型之间的转换
 
   // MakeUniqueCairoSurfacePtr 生成一个指向cairo_surface_t数据的指针
   auto surface = MakeUniqueCairoSurfacePtr(
-    // cairo_image_surface_create_for_data: 根据提供的像素数据创建图像, 返回指向新创建的图像的指针
+    // cairo_image_surface_create_for_data: 根据提供的像素数据创建surface, 返回指向新创建的surface的指针
     cairo_image_surface_create_for_data(
       reinterpret_cast<unsigned char*>(cairo_data->data()), kCairoFormat, width,
       height, expected_stride) );
