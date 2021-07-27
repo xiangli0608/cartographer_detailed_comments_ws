@@ -35,6 +35,7 @@ constexpr cairo_format_t kCairoFormat = CAIRO_FORMAT_ARGB32;
 // std::unique_ptr for Cairo surfaces. The surface is destroyed when the
 // std::unique_ptr is reset or destroyed.
 // c++11: 第二个参数是自定义资源释放的函数指针
+// 指向surfaces的指针
 using UniqueCairoSurfacePtr =
     std::unique_ptr<cairo_surface_t, void (*)(cairo_surface_t*)>;
 
@@ -42,6 +43,7 @@ using UniqueCairoSurfacePtr =
 UniqueCairoSurfacePtr MakeUniqueCairoSurfacePtr(cairo_surface_t* surface);
 
 // std::unique_ptr for Cairo contexts.
+// 指向contexts的指针
 using UniqueCairoPtr = std::unique_ptr<cairo_t, void (*)(cairo_t*)>;
 
 // Takes ownership.

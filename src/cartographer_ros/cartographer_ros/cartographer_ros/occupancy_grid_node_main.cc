@@ -40,6 +40,7 @@
 #include "nav_msgs/OccupancyGrid.h"
 #include "ros/ros.h"
 
+// 这里的分辨率只是生成地图的分辨率, 与实际cartographer使用的地图的分辨率无关
 DEFINE_double(resolution, 0.05,
               "Resolution of a grid cell in the published occupancy grid.");
 DEFINE_double(publish_period_sec, 1.0, "OccupancyGrid publishing period.");
@@ -139,12 +140,14 @@ void Node::HandleSubmapList(
     SubmapSlice& submap_slice = submap_slices_[id];
     submap_slice.pose = ToRigid3d(submap_msg.pose);
     submap_slice.metadata_version = submap_msg.submap_version;
+
+    // 如果已经填充过地图信息了就跳过
     if (submap_slice.surface != nullptr &&
         submap_slice.version == submap_msg.submap_version) {
       continue;
     }
 
-    // 获取格式为io::SubmapTextures的地图栅格数据
+    // Step: 1 获取格式为io::SubmapTextures的地图栅格数据
     auto fetched_textures =
         ::cartographer_ros::FetchSubmapTextures(id, &client_);
 
@@ -165,7 +168,7 @@ void Node::HandleSubmapList(
     submap_slice.resolution = fetched_texture->resolution;
     submap_slice.cairo_data.clear();
     
-    // surface是指向Cairo图片画布的指针
+    // Step: 2 使用Cairo绘制图片, surface是指向Cairo图片画布的指针
     submap_slice.surface = ::cartographer::io::DrawTexture(
         fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
         fetched_texture->width, fetched_texture->height,
@@ -188,13 +191,14 @@ void Node::DrawAndPublish(const ::ros::WallTimerEvent& unused_timer_event) {
   if (submap_slices_.empty() || last_frame_id_.empty()) {
     return;
   }
-  //  todo: 
+  //  Step: 3 生成PaintSubmapSlicesResult
   auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
   
-  // 由cartographer格式的地图生成ros格式的地图
+  // Step: 4 由cartographer格式的地图生成ros格式的地图
   std::unique_ptr<nav_msgs::OccupancyGrid> msg_ptr = CreateOccupancyGridMsg(
       painted_slices, resolution_, last_frame_id_, last_timestamp_);
-  // 发布map topic
+  
+  //  Step: 5 发布map topic
   occupancy_grid_publisher_.publish(*msg_ptr);
 }
 

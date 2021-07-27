@@ -44,6 +44,7 @@ UniqueCairoSurfacePtr MakeUniqueCairoSurfacePtr(cairo_surface_t* surface) {
   return UniqueCairoSurfacePtr(surface, cairo_surface_destroy);
 }
 
+// 创建指向contexts的指针
 UniqueCairoPtr MakeUniqueCairoPtr(cairo_t* surface) {
   // cairo_destroy是cairo库中定义的函数
   return UniqueCairoPtr(surface, cairo_destroy);

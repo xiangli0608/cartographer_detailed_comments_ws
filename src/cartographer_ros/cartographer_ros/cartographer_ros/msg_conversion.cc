@@ -485,13 +485,18 @@ std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
   occupancy_grid->info.origin.orientation.y = 0.;
   occupancy_grid->info.origin.orientation.z = 0.;
 
+  // 获取 uint32_t* 格式的地图数据
   const uint32_t* pixel_data = reinterpret_cast<uint32_t*>(
       cairo_image_surface_get_data(painted_slices.surface.get()));
+      
   occupancy_grid->data.reserve(width * height);
   for (int y = height - 1; y >= 0; --y) {
     for (int x = 0; x < width; ++x) {
       const uint32_t packed = pixel_data[y * width + x];
+      
+      // 根据packed获取像素值[0-255]
       const unsigned char color = packed >> 16;
+      // 根据packed获取这个栅格是否被更新过
       const unsigned char observed = packed >> 8;
 
       // source code
