@@ -77,7 +77,7 @@ void MaybeAddPureLocalizationTrimmer(
 }  // namespace
 
 /**
- * @brief SLAM算法的初始化, 初始化各个参数, 是2d建图还是3d建图
+ * @brief 保存配置参数, 根据给定的参数初始化线程池, 并且初始化pose_graph_与sensor_collator_
  * 
  * @param[in] options proto::MapBuilderOptions格式的 map_builder参数
  */
@@ -146,11 +146,10 @@ int MapBuilder::AddTrajectoryBuilder(
   }
 
   // LocalTrajectoryBuilder 就是前端, 不带 Loop Closure 
-  // 包含了 Pose Extrapolator, Scan Matching 等
+  // 包含了 Pose Extrapolator, Scan Matching, 生成submap 等
 
+  // 3d的轨迹
   if (options_.use_trajectory_builder_3d()) {
-    // 3d的轨迹
-
     // local_trajectory_builder(前端)的初始化
     std::unique_ptr<LocalTrajectoryBuilder3D> local_trajectory_builder;
     if (trajectory_options.has_trajectory_builder_3d_options()) {
@@ -187,8 +186,8 @@ int MapBuilder::AddTrajectoryBuilder(
             static_cast<PoseGraph3D*>(pose_graph_.get()),
             local_slam_result_callback, pose_graph_odometry_motion_filter)));
   } 
+  // 2d的轨迹
   else {
-    // 2d的轨迹
     std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder;
     if (trajectory_options.has_trajectory_builder_2d_options()) {
       // local_trajectory_builder(前端)的初始化
@@ -226,6 +225,7 @@ int MapBuilder::AddTrajectoryBuilder(
         common::FromUniversal(initial_trajectory_pose.timestamp()));
   }
 
+  // 保存轨迹的配置文件
   proto::TrajectoryBuilderOptionsWithSensorIds options_with_sensor_ids_proto;
   for (const auto& sensor_id : expected_sensor_ids) {
     *options_with_sensor_ids_proto.add_sensor_id() = ToProto(sensor_id);
@@ -233,6 +233,7 @@ int MapBuilder::AddTrajectoryBuilder(
   *options_with_sensor_ids_proto.mutable_trajectory_builder_options() =
       trajectory_options;
   all_trajectory_builder_options_.push_back(options_with_sensor_ids_proto);
+  
   CHECK_EQ(trajectory_builders_.size(), all_trajectory_builder_options_.size());
   return trajectory_id;
 }
