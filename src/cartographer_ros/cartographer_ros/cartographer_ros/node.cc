@@ -1243,10 +1243,10 @@ void Node::MaybeWarnAboutTopicMismatch(
 }
 
 void Node::PublishPointCloudMap(const ::ros::WallTimerEvent& timer_event) {
-  if (point_cloud_map_publisher_.getNumSubscribers() == 0) {
-    return;
-  }
-
+  // if (point_cloud_map_publisher_.getNumSubscribers() == 0) {
+  //   return;
+  // }
+  
   // {
   //   absl::MutexLock lock(&mutex_);
   //   map_builder_bridge_.GetTrajectoryNodes()
