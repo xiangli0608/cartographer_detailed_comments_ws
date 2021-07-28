@@ -153,6 +153,12 @@ Node::Node(
         node_handle_.advertise<::geometry_msgs::PoseStamped>(
             kTrackedPoseTopic, kLatestOnlyPublisherQueueSize);
   }
+  // lx add
+  if (node_options_.map_builder_options.use_trajectory_builder_3d()) {
+    point_cloud_map_publisher_ =
+        node_handle_.advertise<sensor_msgs::PointCloud2>(
+            kPointCloudMapTopic, kLatestOnlyPublisherQueueSize);
+  }
 
   // Step: 2 声明发布对应名字的ROS服务, 并将服务的发布器放入到vector容器中
   service_servers_.push_back(node_handle_.advertiseService(
@@ -195,6 +201,12 @@ Node::Node(
   wall_timers_.push_back(node_handle_.createWallTimer(
       ::ros::WallDuration(kConstraintPublishPeriodSec),  // 0.5s
       &Node::PublishConstraintList, this));
+  // lx add
+  if (node_options_.map_builder_options.use_trajectory_builder_3d()) {
+    wall_timers_.push_back(node_handle_.createWallTimer(
+        ::ros::WallDuration(kPointCloudMapPublishPeriodSec),  // 5s
+        &Node::PublishPointCloudMap, this));
+  }
 }
 
 // 在析构是执行一次全局优化
@@ -1228,6 +1240,19 @@ void Node::MaybeWarnAboutTopicMismatch(
     LOG(WARNING) << "Currently available topics are: "
                  << published_topics_string.str();
   }
+}
+
+void Node::PublishPointCloudMap(const ::ros::WallTimerEvent& timer_event) {
+  if (point_cloud_map_publisher_.getNumSubscribers() == 0) {
+    return;
+  }
+
+  // {
+  //   absl::MutexLock lock(&mutex_);
+  //   map_builder_bridge_.GetTrajectoryNodes()
+  //   point_cloud_map_publisher_.publish();
+  // }
+  
 }
 
 }  // namespace cartographer_ros

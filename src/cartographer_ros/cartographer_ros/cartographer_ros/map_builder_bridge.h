@@ -123,6 +123,9 @@ class MapBuilderBridge {
   visualization_msgs::MarkerArray GetLandmarkPosesList();
   visualization_msgs::MarkerArray GetConstraintList();
 
+  // lx add
+  void GetTrajectoryNodes();
+
   SensorBridge* sensor_bridge(int trajectory_id);
 
  private:

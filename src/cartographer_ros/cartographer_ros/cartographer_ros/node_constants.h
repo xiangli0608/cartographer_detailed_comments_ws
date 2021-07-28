@@ -34,6 +34,7 @@ constexpr char kLandmarkTopic[] = "landmark";
 constexpr char kFinishTrajectoryServiceName[] = "finish_trajectory";
 constexpr char kOccupancyGridTopic[] = "map";
 constexpr char kScanMatchedPointCloudTopic[] = "scan_matched_points2";
+constexpr char kPointCloudMapTopic[] = "point_cloud_map";
 constexpr char kSubmapListTopic[] = "submap_list";
 constexpr char kTrackedPoseTopic[] = "tracked_pose";
 constexpr char kSubmapQueryServiceName[] = "submap_query";
@@ -46,6 +47,7 @@ constexpr char kTrajectoryNodeListTopic[] = "trajectory_node_list";
 constexpr char kLandmarkPosesListTopic[] = "landmark_poses_list";
 constexpr char kConstraintListTopic[] = "constraint_list";
 constexpr double kConstraintPublishPeriodSec = 0.5;
+constexpr double kPointCloudMapPublishPeriodSec = 5;
 constexpr double kTopicMismatchCheckDelaySec = 3.0;
 
 constexpr int kInfiniteSubscriberQueueSize = 0;

@@ -174,6 +174,9 @@ class Node {
       int trajectory_id) EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&);
 
+  // lx add
+  void PublishPointCloudMap(const ::ros::WallTimerEvent& timer_event);
+
   // Helper function for service handlers that need to check trajectory states.
   cartographer_ros_msgs::StatusResponse TrajectoryStateToStatus(
       int trajectory_id,
@@ -203,6 +206,9 @@ class Node {
   std::vector<::ros::ServiceServer> service_servers_;
   ::ros::Publisher scan_matched_point_cloud_publisher_;
 
+  // lx add
+  ::ros::Publisher point_cloud_map_publisher_;
+  
   // 控制各个传感器数据的采样频率
   struct TrajectorySensorSamplers {
     TrajectorySensorSamplers(const double rangefinder_sampling_ratio,

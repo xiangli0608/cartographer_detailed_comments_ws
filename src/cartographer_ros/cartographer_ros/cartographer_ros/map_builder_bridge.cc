@@ -678,4 +678,9 @@ void MapBuilderBridge::OnLocalSlamResult(
   local_slam_data_[trajectory_id] = std::move(local_slam_data);
 }
 
+// lx add 获取节点位姿与雷达数据
+void MapBuilderBridge::GetTrajectoryNodes() {
+  const auto trajectory_nodes = map_builder_->pose_graph()->GetTrajectoryNodes();
+}
+
 }  // namespace cartographer_ros
