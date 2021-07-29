@@ -114,15 +114,17 @@ std::unique_ptr<Grid2D> ProbabilityGrid::ComputeCroppedGrid() const {
   return std::unique_ptr<Grid2D>(cropped_grid.release());
 }
 
-// todo: ProbabilityGrid::DrawToSubmapTexture
+// 获取压缩后的地图栅格数据
 bool ProbabilityGrid::DrawToSubmapTexture(
     proto::SubmapQuery::Response::SubmapTexture* const texture,
     transform::Rigid3d local_pose) const {
   Eigen::Array2i offset;
   CellLimits cell_limits;
+  // 根据known_cells_box_更新limits
   ComputeCroppedLimits(&offset, &cell_limits);
 
   std::string cells;
+  // 遍历地图, 将栅格数据存入cells
   for (const Eigen::Array2i& xy_index : XYIndexRangeIterator(cell_limits)) {
     if (!IsKnown(xy_index + offset)) {
       cells.push_back(0 /* unknown log odds value */);
@@ -135,11 +137,17 @@ bool ProbabilityGrid::DrawToSubmapTexture(
     // zero, and use 'alpha' to subtract. This is only correct when the pixel
     // is currently white, so walls will look too gray. This should be hard to
     // detect visually for the user, though.
+    // 我们想添加 'delta'，但使用值和 alpha 是不可能的
+    // 我们使用预乘 alpha，因此当 'delta' 为正时，我们可以通过将 'alpha' 设置为零来添加它。 
+    // 如果它是负数，我们将 'value' 设置为零，并使用 'alpha' 进行减法。 这仅在像素当前为白色时才正确，因此墙壁看起来太灰。 
+    // 但是，这对于用户来说应该很难在视觉上检测到。
+    
+    // tag: 这里需要确认一下
     const int delta =
         128 - ProbabilityToLogOddsInteger(GetProbability(xy_index + offset));
     const uint8 alpha = delta > 0 ? 0 : -delta;
     const uint8 value = delta > 0 ? delta : 0;
-    // 存数据时存了2个值, 一个是栅格值value, 另一个是alpha
+    // 存数据时存了2个值, 一个是栅格值value, 另一个是alpha透明度
     cells.push_back(value);
     cells.push_back((value || alpha) ? alpha : 1);
   }
@@ -147,6 +155,7 @@ bool ProbabilityGrid::DrawToSubmapTexture(
   // 保存地图栅格数据时进行压缩
   common::FastGzipString(cells, texture->mutable_cells());
   
+  // 填充地图描述信息
   texture->set_width(cell_limits.num_x_cells);
   texture->set_height(cell_limits.num_y_cells);
   const double resolution = limits().resolution();

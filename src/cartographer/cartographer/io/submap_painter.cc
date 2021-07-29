@@ -273,7 +273,7 @@ UniqueCairoSurfacePtr DrawTexture(const std::vector<char>& intensity,
     const uint8_t alpha_value = alpha.at(i);
     const uint8_t observed =
         (intensity_value == 0 && alpha_value == 0) ? 0 : 255;
-        
+    // tag: 这里需要确认一下
     cairo_data->push_back((alpha_value << 24) |     // 第一字节 存储透明度
                           (intensity_value << 16) | // 第二字节 存储栅格值
                           (observed << 8) |         // 第三字节 存储是否被更新过

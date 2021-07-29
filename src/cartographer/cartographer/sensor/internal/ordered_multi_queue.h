@@ -31,7 +31,6 @@
 namespace cartographer {
 namespace sensor {
 
-// tag: QueueKey
 struct QueueKey {
   int trajectory_id;      // 轨迹id
   std::string sensor_id;  // topic名字

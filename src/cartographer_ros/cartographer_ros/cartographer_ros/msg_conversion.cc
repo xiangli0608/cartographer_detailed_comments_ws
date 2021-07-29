@@ -506,7 +506,7 @@ std::unique_ptr<nav_msgs::OccupancyGrid> CreateOccupancyGridMsg(
               ? -1
               : ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
 
-      /* tag: CreateOccupancyGridMsg
+      /* note: 生成ROS兼容的栅格地图
       * 像素值65-100的设置占用值为100,表示占用,代表障碍物
       * 像素值0-19.6的设置占用值为0,表示空闲,代表可通过区域
       * 像素值在中间的值保持不变,灰色

@@ -41,10 +41,8 @@ namespace mapping {
 // Wires up the local SLAM stack (i.e. pose extrapolator, scan matching, etc.)
 // without loop closure.
 // TODO(gaschler): Add test for this class similar to the 3D test.
-// todo: LocalTrajectoryBuilder2D
 class LocalTrajectoryBuilder2D {
  public:
-  // tag: LocalTrajectoryBuilder2D::InsertionResult
   struct InsertionResult {
     std::shared_ptr<const TrajectoryNode::Data> constant_data;
     std::vector<std::shared_ptr<const Submap2D>> insertion_submaps;

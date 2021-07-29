@@ -78,3 +78,15 @@
 6. ground_truth
 7. metrics
 8. cloud
+
+先讲 map_builder.cc
+
+照着sensor_bridge讲 CollatedTrajectoryBuilder 有个回调函数
+
+再讲 sensor::Collator
+
+OrderedMultiQueue
+
+BlockingQueue
+
+最后 GlobalTrajectoryBuilder

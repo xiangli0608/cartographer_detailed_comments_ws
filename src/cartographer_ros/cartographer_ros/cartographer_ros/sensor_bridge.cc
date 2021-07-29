@@ -228,7 +228,6 @@ void SensorBridge::HandleLaserScan(
   CHECK_LE(points.points.back().time, 0.f);
   // TODO(gaschler): Use per-point time instead of subdivisions.
 
-  // tag: 参数 num_subdivisions_per_laser_scan
   // 意为一帧雷达数据被分成几次处理, 一般将这个参数设置为1
   for (int i = 0; i != num_subdivisions_per_laser_scan_; ++i) {
     const size_t start_index =

@@ -57,7 +57,6 @@ class LocalSlamResultData;
  */
 class TrajectoryBuilderInterface {
  public:
-  // tag: TrajectoryBuilderInterface::InsertionResult
   struct InsertionResult {
     NodeId node_id;
     std::shared_ptr<const TrajectoryNode::Data> constant_data;

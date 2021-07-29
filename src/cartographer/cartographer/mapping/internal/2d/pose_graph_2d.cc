@@ -663,7 +663,6 @@ void PoseGraph2D::HandleWorkQueue(
     // 
     DeleteTrajectoriesIfNeeded();
     
-    // ?: TrimmingHandle
     TrimmingHandle trimming_handle(this);
     for (auto& trimmer : trimmers_) {
       trimmer->Trim(&trimming_handle);
@@ -853,6 +852,7 @@ bool PoseGraph2D::IsTrajectoryFinished(const int trajectory_id) const {
              TrajectoryState::FINISHED;
 }
 
+// 将指定轨迹id设置为FROZEN状态
 void PoseGraph2D::FreezeTrajectory(const int trajectory_id) {
   {
     absl::MutexLock locker(&mutex_);
@@ -882,7 +882,7 @@ void PoseGraph2D::FreezeTrajectory(const int trajectory_id) {
   });
 }
 
-// 返回轨迹是否是 FROZEN 状态
+// 判断轨迹是否是 FROZEN 状态
 bool PoseGraph2D::IsTrajectoryFrozen(const int trajectory_id) const {
   return data_.trajectories_state.count(trajectory_id) != 0 &&
          data_.trajectories_state.at(trajectory_id).state ==

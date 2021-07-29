@@ -24,7 +24,6 @@
 namespace cartographer {
 namespace mapping {
 
-// tag: LocalSlamResult2D
 class LocalSlamResult2D : public LocalSlamResultData {
  public:
   LocalSlamResult2D(

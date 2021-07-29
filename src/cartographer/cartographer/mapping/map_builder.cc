@@ -236,7 +236,7 @@ int MapBuilder::AddTrajectoryBuilder(
   return trajectory_id;
 }
 
-// 从序列化的数据中构造一条 trajectory, 没有使用
+// 从序列化的数据中构造一条 trajectory
 int MapBuilder::AddTrajectoryForDeserialization(
     const proto::TrajectoryBuilderOptionsWithSensorIds&
         options_with_sensor_ids_proto) {
@@ -307,24 +307,32 @@ std::map<int, int> MapBuilder::LoadState(
   const auto& all_builder_options_proto =
       deserializer.all_trajectory_builder_options();
 
+  // key为pbstream文件中的轨迹id, value为新生成的轨迹的id
   std::map<int, int> trajectory_remapping;
+
+  // 从文件中添加轨迹
   for (int i = 0; i < pose_graph_proto.trajectory_size(); ++i) {
     auto& trajectory_proto = *pose_graph_proto.mutable_trajectory(i);
     const auto& options_with_sensor_ids_proto =
         all_builder_options_proto.options_with_sensor_ids(i);
+    // 添加新轨迹
     const int new_trajectory_id =
         AddTrajectoryForDeserialization(options_with_sensor_ids_proto);
+    // 原始轨迹id与新生成的轨迹id组成map,放入trajectory_remapping中
     CHECK(trajectory_remapping
               .emplace(trajectory_proto.trajectory_id(), new_trajectory_id)
               .second)
         << "Duplicate trajectory ID: " << trajectory_proto.trajectory_id();
+    // 将原始id设置为新生成的id
     trajectory_proto.set_trajectory_id(new_trajectory_id);
     if (load_frozen_state) {
+      // 将指定轨迹id设置为FROZEN状态
       pose_graph_->FreezeTrajectory(new_trajectory_id);
     }
   }
 
   // Apply the calculated remapping to constraints in the pose graph proto.
+  // 更新约束中节点与子图的轨迹id
   for (auto& constraint_proto : *pose_graph_proto.mutable_constraint()) {
     constraint_proto.mutable_submap_id()->set_trajectory_id(
         trajectory_remapping.at(constraint_proto.submap_id().trajectory_id()));
@@ -332,6 +340,7 @@ std::map<int, int> MapBuilder::LoadState(
         trajectory_remapping.at(constraint_proto.node_id().trajectory_id()));
   }
 
+  // 获取submap_poses
   MapById<SubmapId, transform::Rigid3d> submap_poses;
   for (const proto::Trajectory& trajectory_proto :
        pose_graph_proto.trajectory()) {
@@ -343,6 +352,7 @@ std::map<int, int> MapBuilder::LoadState(
     }
   }
 
+  // 获取node_poses
   MapById<NodeId, transform::Rigid3d> node_poses;
   for (const proto::Trajectory& trajectory_proto :
        pose_graph_proto.trajectory()) {
@@ -354,6 +364,7 @@ std::map<int, int> MapBuilder::LoadState(
   }
 
   // Set global poses of landmarks.
+  // 获取landmark_poses
   for (const auto& landmark : pose_graph_proto.landmark_poses()) {
     pose_graph_->SetLandmarkPose(landmark.landmark_id(),
                                  transform::ToRigid3(landmark.global_pose()),
@@ -386,6 +397,7 @@ std::map<int, int> MapBuilder::LoadState(
                 proto.submap().submap_id().trajectory_id()));
         const SubmapId submap_id(proto.submap().submap_id().trajectory_id(),
                                  proto.submap().submap_id().submap_index());
+        // 将submap添加到位姿图中
         pose_graph_->AddSubmapFromProto(submap_poses.at(submap_id),
                                         proto.submap());
         break;
@@ -396,12 +408,14 @@ std::map<int, int> MapBuilder::LoadState(
         const NodeId node_id(proto.node().node_id().trajectory_id(),
                              proto.node().node_id().node_index());
         const transform::Rigid3d& node_pose = node_poses.at(node_id);
+        // 将Node添加到位姿图中
         pose_graph_->AddNodeFromProto(node_pose, proto.node());
         break;
       }
       case SerializedData::kTrajectoryData: {
         proto.mutable_trajectory_data()->set_trajectory_id(
             trajectory_remapping.at(proto.trajectory_data().trajectory_id()));
+        // 将TrajectoryData添加到位姿图中
         pose_graph_->SetTrajectoryDataFromProto(proto.trajectory_data());
         break;
       }
@@ -441,6 +455,7 @@ std::map<int, int> MapBuilder::LoadState(
     }
   }
 
+  // 添加子图的附属的节点
   if (load_frozen_state) {
     // Add information about which nodes belong to which submap.
     // This is required, even without constraints.
@@ -456,7 +471,8 @@ std::map<int, int> MapBuilder::LoadState(
           SubmapId{constraint_proto.submap_id().trajectory_id(),
                    constraint_proto.submap_id().submap_index()});
     }
-  } else {
+  } 
+  else {
     // When loading unfrozen trajectories, 'AddSerializedConstraints' will
     // take care of adding information about which nodes belong to which
     // submap.
@@ -467,9 +483,10 @@ std::map<int, int> MapBuilder::LoadState(
   return trajectory_remapping;
 }
 
-// 从文件读取slam的各个状态
+// 从pbstream文件读取信息
 std::map<int, int> MapBuilder::LoadStateFromFile(
     const std::string& state_filename, const bool load_frozen_state) {
+  // 检查后缀名
   const std::string suffix = ".pbstream";
   if (state_filename.substr(
           std::max<int>(state_filename.size() - suffix.size(), 0)) != suffix) {

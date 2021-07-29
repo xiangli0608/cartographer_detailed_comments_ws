@@ -461,7 +461,6 @@ void OptimizationProblem2D::Solve(
       }
 
       // Step: 第五种残差 
-      // ?: 节点与gps第一帧间的坐标变换
       problem.AddResidualBlock(
           CreateAutoDiffSpaCostFunction(constraint_pose),
           options_.fixed_frame_pose_use_tolerant_loss()

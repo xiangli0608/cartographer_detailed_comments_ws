@@ -115,6 +115,7 @@ void Grid2D::FinishUpdate() {
 
 // Fills in 'offset' and 'limits' to define a subregion of that contains all
 // known cells.
+// 根据known_cells_box_更新limits
 void Grid2D::ComputeCroppedLimits(Eigen::Array2i* const offset,
                                   CellLimits* const limits) const {
   if (known_cells_box_.isEmpty()) {
