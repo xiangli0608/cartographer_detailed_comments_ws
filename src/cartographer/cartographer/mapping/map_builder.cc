@@ -86,17 +86,16 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
   CHECK(options.use_trajectory_builder_2d() ^
         options.use_trajectory_builder_3d());
 
-  // 是2d建图还是3d建图
+  // 2d位姿图(后端)的初始化
   if (options.use_trajectory_builder_2d()) {
-    // 2d位姿图(后端)的初始化
     pose_graph_ = absl::make_unique<PoseGraph2D>(
         options_.pose_graph_options(),
         absl::make_unique<optimization::OptimizationProblem2D>(
             options_.pose_graph_options().optimization_problem_options()),
         &thread_pool_);
   }
+  // 3d位姿图(后端)的初始化
   if (options.use_trajectory_builder_3d()) {
-    // 3d位姿图(后端)的初始化
     pose_graph_ = absl::make_unique<PoseGraph3D>(
         options_.pose_graph_options(),
         absl::make_unique<optimization::OptimizationProblem3D>(
@@ -109,8 +108,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
   if (options.collate_by_trajectory()) {
     sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
   } else {
-    // 实际是使用这个
-    // sensor_collator_初始化
+    // sensor_collator_初始化, 实际使用这个
     sensor_collator_ = absl::make_unique<sensor::Collator>();
   }
 }
@@ -238,7 +236,7 @@ int MapBuilder::AddTrajectoryBuilder(
   return trajectory_id;
 }
 
-// 从序列化的数据中构造一条 trajectory
+// 从序列化的数据中构造一条 trajectory, 没有使用
 int MapBuilder::AddTrajectoryForDeserialization(
     const proto::TrajectoryBuilderOptionsWithSensorIds&
         options_with_sensor_ids_proto) {
@@ -258,9 +256,10 @@ void MapBuilder::FinishTrajectory(const int trajectory_id) {
   pose_graph_->FinishTrajectory(trajectory_id);
 }
 
-// 将submap写成proto格式
+// 返回压缩后的地图数据
 std::string MapBuilder::SubmapToProto(
     const SubmapId& submap_id, proto::SubmapQuery::Response* const response) {
+  // 进行id的检查
   if (submap_id.trajectory_id < 0 ||
       submap_id.trajectory_id >= num_trajectory_builders()) {
     return "Requested submap from trajectory " +
@@ -268,25 +267,27 @@ std::string MapBuilder::SubmapToProto(
            std::to_string(num_trajectory_builders()) + " trajectories.";
   }
 
+  // 获取地图数据
   const auto submap_data = pose_graph_->GetSubmapData(submap_id);
   if (submap_data.submap == nullptr) {
     return "Requested submap " + std::to_string(submap_id.submap_index) +
            " from trajectory " + std::to_string(submap_id.trajectory_id) +
            " but it does not exist: maybe it has been trimmed.";
   }
-  // 将压缩后的地图数据传入response
+
+  // 将压缩后的地图数据放入response
   submap_data.submap->ToResponseProto(submap_data.pose, response);
   return "";
 }
 
-// 调用 io::WritePbStream, 保存所有数据
+// 调用 io::WritePbStream 保存所有数据, 没有使用
 void MapBuilder::SerializeState(bool include_unfinished_submaps,
                                 io::ProtoStreamWriterInterface* const writer) {
   io::WritePbStream(*pose_graph_, all_trajectory_builder_options_, writer,
                     include_unfinished_submaps);
 }
 
-// 调用 io::WritePbStream, 保存所有数据到文件中去
+// 将数据进行压缩,并保存到文件中
 bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
                                       const std::string& filename) {
   io::ProtoStreamWriter writer(filename);

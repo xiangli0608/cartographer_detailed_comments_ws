@@ -171,7 +171,8 @@
     "typeindex": "cpp",
     "core": "cpp",
     "csignal": "cpp",
-    "any": "cpp"
+    "any": "cpp",
+    "future": "cpp"
   },
   "python.autoComplete.extraPaths": [
     "/opt/ros/kinetic/lib/python2.7/dist-packages"

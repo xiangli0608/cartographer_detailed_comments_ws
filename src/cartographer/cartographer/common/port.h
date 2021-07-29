@@ -51,7 +51,7 @@ inline int64 RoundToInt64(const double x) { return std::lround(x); }
  * @brief 将字符串进行压缩
  * 
  * @param[in] uncompressed 压缩前的string
- * @param[in] compressed 压缩后的string
+ * @param[out] compressed 压缩后的string
  */
 inline void FastGzipString(const std::string& uncompressed,
                            std::string* compressed) {

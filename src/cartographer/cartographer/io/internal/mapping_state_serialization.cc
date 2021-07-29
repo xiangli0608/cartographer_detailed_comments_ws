@@ -217,17 +217,25 @@ void WritePbStream(
     const std::vector<mapping::proto::TrajectoryBuilderOptionsWithSensorIds>&
         trajectory_builder_options,
     ProtoStreamWriterInterface* const writer, bool include_unfinished_submaps) {
+  // Header
   writer->WriteProto(CreateHeader());
+  // 位姿图
   writer->WriteProto(
       SerializePoseGraph(pose_graph, include_unfinished_submaps));
+  // 参数配置
   writer->WriteProto(SerializeTrajectoryBuilderOptions(
       trajectory_builder_options,
       GetValidTrajectoryIds(pose_graph.GetTrajectoryStates())));
 
+  // 所有的submap
   SerializeSubmaps(pose_graph.GetAllSubmapData(), include_unfinished_submaps,
                    writer);
+  // 雷达数据, 前端后端的位姿, 时间戳
   SerializeTrajectoryNodes(pose_graph.GetTrajectoryNodes(), writer);
+  // fixed_frame_origin_in_map
   SerializeTrajectoryData(pose_graph.GetTrajectoryData(), writer);
+
+  // 传感器数据
   SerializeImuData(pose_graph.GetImuData(), writer);
   SerializeOdometryData(pose_graph.GetOdometryData(), writer);
   SerializeFixedFramePoseData(pose_graph.GetFixedFramePoseData(), writer);

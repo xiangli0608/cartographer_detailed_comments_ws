@@ -1344,7 +1344,7 @@ std::vector<std::vector<int>> PoseGraph2D::GetConnectedTrajectories() const {
   return data_.trajectory_connectivity_state.Components();
 }
 
-// 获取所有的submap地图
+// 获取指定id的submap地图
 PoseGraphInterface::SubmapData PoseGraph2D::GetSubmapData(
     const SubmapId& submap_id) const {
   absl::MutexLock locker(&mutex_);

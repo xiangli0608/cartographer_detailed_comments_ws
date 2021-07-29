@@ -74,7 +74,6 @@ void Run(const std::string& pose_graph_filename,
 }  // namespace ground_truth
 }  // namespace cartographer
 
-// todo: GenerateGroundTruth main
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
