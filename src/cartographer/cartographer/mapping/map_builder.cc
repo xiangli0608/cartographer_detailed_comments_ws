@@ -380,6 +380,7 @@ std::map<int, int> MapBuilder::LoadState(
   }
 
   SerializedData proto;
+  // 向pose_graph_中添加信息
   while (deserializer.ReadNextSerializedData(&proto)) {
     switch (proto.data_case()) {
       case SerializedData::kPoseGraph:
@@ -421,6 +422,7 @@ std::map<int, int> MapBuilder::LoadState(
       }
       case SerializedData::kImuData: {
         if (load_frozen_state) break;
+        // 将IMU数据添加到位姿图中
         pose_graph_->AddImuData(
             trajectory_remapping.at(proto.imu_data().trajectory_id()),
             sensor::FromProto(proto.imu_data().imu_data()));
@@ -428,6 +430,7 @@ std::map<int, int> MapBuilder::LoadState(
       }
       case SerializedData::kOdometryData: {
         if (load_frozen_state) break;
+        // 将Odom数据添加到位姿图中
         pose_graph_->AddOdometryData(
             trajectory_remapping.at(proto.odometry_data().trajectory_id()),
             sensor::FromProto(proto.odometry_data().odometry_data()));
@@ -435,6 +438,7 @@ std::map<int, int> MapBuilder::LoadState(
       }
       case SerializedData::kFixedFramePoseData: {
         if (load_frozen_state) break;
+        // 将GPS数据添加到位姿图中
         pose_graph_->AddFixedFramePoseData(
             trajectory_remapping.at(
                 proto.fixed_frame_pose_data().trajectory_id()),
@@ -444,6 +448,7 @@ std::map<int, int> MapBuilder::LoadState(
       }
       case SerializedData::kLandmarkData: {
         if (load_frozen_state) break;
+        // 将landmark数据添加到位姿图中
         pose_graph_->AddLandmarkData(
             trajectory_remapping.at(proto.landmark_data().trajectory_id()),
             sensor::FromProto(proto.landmark_data().landmark_data()));
@@ -465,6 +470,7 @@ std::map<int, int> MapBuilder::LoadState(
           proto::PoseGraph::Constraint::INTRA_SUBMAP) {
         continue;
       }
+      // 添加子图的附属的节点
       pose_graph_->AddNodeToSubmap(
           NodeId{constraint_proto.node_id().trajectory_id(),
                  constraint_proto.node_id().node_index()},
@@ -498,7 +504,7 @@ std::map<int, int> MapBuilder::LoadStateFromFile(
   return LoadState(&stream, load_frozen_state);
 }
 
-// 接口
+// 工厂函数
 std::unique_ptr<MapBuilderInterface> CreateMapBuilder(
     const proto::MapBuilderOptions& options) {
   return absl::make_unique<MapBuilder>(options);

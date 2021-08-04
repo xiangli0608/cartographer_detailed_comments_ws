@@ -13,10 +13,10 @@
   "todo-tree.general.tags": [
     "?",
     "!",
+    "param",
     "Step",
     "c++11",
     "note",
-    "done",
     "tag",
     "todo",
   ],
@@ -54,11 +54,11 @@
       "iconColour": "orange",
       "type": "text-and-comment",
     },
-    "done": {
+    "param": {
       "icon": "issue-closed",
-      "foreground": "#FF00FF",
-      "rulerColour": "#FF00FF",
-      "iconColour": "#FF00FF",
+      "foreground": "orange",
+      "rulerColour": "orange",
+      "iconColour": "orange",
       "type": "text-and-comment",
     },
     "tag": {

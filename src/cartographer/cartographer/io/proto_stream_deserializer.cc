@@ -37,6 +37,7 @@ bool IsVersionSupported(const mapping::proto::SerializationHeader& header) {
 
 }  // namespace
 
+// 从文件中读取信息
 mapping::proto::PoseGraph DeserializePoseGraphFromFile(
     const std::string& file_name) {
   ProtoStreamReader reader(file_name);
@@ -44,12 +45,14 @@ mapping::proto::PoseGraph DeserializePoseGraphFromFile(
   return deserializer.pose_graph();
 }
 
+// 从ProtoStreamReader进行构造
 ProtoStreamDeserializer::ProtoStreamDeserializer(
     ProtoStreamReaderInterface* const reader)
     : reader_(reader), header_(ReadHeaderOrDie(reader)) {
   CHECK(IsVersionSupported(header_)) << "Unsupported serialization format \""
                                      << header_.format_version() << "\"";
 
+  // 向pose_graph_赋值
   CHECK(ReadNextSerializedData(&pose_graph_))
       << "Serialized stream misses PoseGraph.";
   CHECK(pose_graph_.has_pose_graph())

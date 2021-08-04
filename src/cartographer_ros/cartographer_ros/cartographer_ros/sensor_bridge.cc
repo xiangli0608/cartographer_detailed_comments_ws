@@ -272,6 +272,15 @@ void SensorBridge::HandleLaserScan(
 
 // 雷达相关的数据最终的处理函数
 // 先将数据转到tracking坐标系下,再调用trajectory_builder_的AddSensorData进行数据的处理
+
+/**
+ * @brief 
+ * 
+ * @param[in] sensor_id 数据的话题
+ * @param[in] time 点云的时间戳(最后一个点的时间)
+ * @param[in] frame_id 点云的frame
+ * @param[in] ranges 雷达坐标系下的TimedPointCloud格式的点云
+ */
 void SensorBridge::HandleRangefinder(
     const std::string& sensor_id, const carto::common::Time time,
     const std::string& frame_id, const carto::sensor::TimedPointCloud& ranges) {
@@ -288,6 +297,7 @@ void SensorBridge::HandleRangefinder(
         sensor_id, carto::sensor::TimedPointCloudData{
                        time, 
                        sensor_to_tracking->translation().cast<float>(),
+                       // 将点云从雷达坐标系下转到tracking_frame坐标系系下
                        carto::sensor::TransformTimedPointCloud(
                            ranges, sensor_to_tracking->cast<float>())} ); // 强度始终为空
   }

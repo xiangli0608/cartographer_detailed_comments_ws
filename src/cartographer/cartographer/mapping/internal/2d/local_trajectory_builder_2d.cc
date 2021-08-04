@@ -124,17 +124,18 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
 
 
 /**
- * @brief 
+ * @brief 处理点云数据, 进行扫描匹配, 将点云写成地图
  * 
- * @param[in] sensor_id 
- * @param[in] unsynchronized_data 
- * @return std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult> 
+ * @param[in] sensor_id 点云数据对应的话题名称
+ * @param[in] unsynchronized_data 传入的点云数据
+ * @return std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult> 匹配后的结果
  */
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
 LocalTrajectoryBuilder2D::AddRangeData(
     const std::string& sensor_id,
     const sensor::TimedPointCloudData& unsynchronized_data) {
-  // Step: 1 进行多个传感器的数据同步, 只有一个传感器的时候, 可以直接忽略
+  
+  // Step: 1 进行多个雷达点云数据的时间同步
   auto synchronized_data =
       range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);
   if (synchronized_data.ranges.empty()) {
@@ -144,6 +145,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
   const common::Time& time = synchronized_data.time;
   // Initialize extrapolator now if we do not ever use an IMU.
+  // 如果不用imu, 就在雷达这初始化位姿推测器
   if (!options_.use_imu_data()) {
     InitializeExtrapolator(time);
   }
@@ -159,7 +161,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   // TODO(gaschler): Check if this can strictly be 0.
   CHECK_LE(synchronized_data.ranges.back().point_time.time, 0.f);
 
-  // Step: 2 运动畸变的去除
+  // 计算第一个点的时间
   const common::Time time_first_point =
       time +
       common::FromSeconds(synchronized_data.ranges.front().point_time.time);
@@ -172,10 +174,12 @@ LocalTrajectoryBuilder2D::AddRangeData(
   range_data_poses.reserve(synchronized_data.ranges.size());
   bool warned = false;
 
-  // 插值得到每一个时间点的位姿
+  // 预测得到每一个时间点的位姿
   for (const auto& range : synchronized_data.ranges) {
     common::Time time_point = time + common::FromSeconds(range.point_time.time);
+    // 如果该时间比PoseExtrapolator的最新时间还要早,说明在第一个点被捕获时,PoseExtrapolator还没初始化
     if (time_point < extrapolator_->GetLastExtrapolatedTime()) {
+      // 一个循环只报一次错
       if (!warned) {
         LOG(ERROR)
             << "Timestamp of individual range data point jumps backwards from "
@@ -184,6 +188,8 @@ LocalTrajectoryBuilder2D::AddRangeData(
       }
       time_point = extrapolator_->GetLastExtrapolatedTime();
     }
+    
+    // Step: 2 预测出 每个点的时间戳时刻, tracking frame 在 local slam 坐标系下的位姿
     range_data_poses.push_back(
         extrapolator_->ExtrapolatePose(time_point).cast<float>());
   }
@@ -196,32 +202,44 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
   // Drop any returns below the minimum range and convert returns beyond the
   // maximum range into misses.
-  // Step: 3 无效数据的处理
-  // 得到所有的累计数据, 对范围的数据进行滤除
+  // 对每个数据点进行处理
   for (size_t i = 0; i < synchronized_data.ranges.size(); ++i) {
+    // 获取在tracking frame 下点的坐标
     const sensor::TimedRangefinderPoint& hit =
         synchronized_data.ranges[i].point_time;
+    // 将点云的origins坐标转到 local slam 坐标系下
     const Eigen::Vector3f origin_in_local =
         range_data_poses[i] *
         synchronized_data.origins.at(synchronized_data.ranges[i].origin_index);
+    
+    // Step: 3 运动畸变的去除, 将hit坐标根据转到 local slam 坐标系下
     sensor::RangefinderPoint hit_in_local =
         range_data_poses[i] * sensor::ToRangefinderPoint(hit);
+    
+    // 计算这个点的距离, 这里用的是去畸变之后的点的距离
     const Eigen::Vector3f delta = hit_in_local.position - origin_in_local;
-
     const float range = delta.norm();
+    
+    // param: min_range max_range
     if (range >= options_.min_range()) {
       if (range <= options_.max_range()) {
+        // 在这里可以看到, returns里保存的是local slam下的去畸变之后的点的坐标
         accumulated_range_data_.returns.push_back(hit_in_local);
       } else {
+        // Step: 4 超过max_range时的处理: 用一个距离进行替代, 并放入misses里
         hit_in_local.position =
             origin_in_local +
+            // param: missing_data_ray_length, 是个比例, 不是距离
             options_.missing_data_ray_length() / range * delta;
         accumulated_range_data_.misses.push_back(hit_in_local);
       }
     }
-  }
+  } // end for
+
+  // 有一帧有效的数据了
   ++num_accumulated_;
 
+  // param: num_accumulated_range_data
   if (num_accumulated_ >= options_.num_accumulated_range_data()) {
     const common::Time current_sensor_time = synchronized_data.time;
     absl::optional<common::Duration> sensor_duration;
@@ -229,6 +247,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
       sensor_duration = current_sensor_time - last_sensor_time_.value();
     }
     last_sensor_time_ = current_sensor_time;
+    
     num_accumulated_ = 0;
     const transform::Rigid3d gravity_alignment = transform::Rigid3d::Rotation(
         extrapolator_->EstimateGravityOrientation(time));
@@ -384,11 +403,14 @@ void LocalTrajectoryBuilder2D::AddOdometryData(
 
 // 如果Extrapolator没有初始化就进行初始化
 void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
+  // 如果已经初始化过了就直接返回
   if (extrapolator_ != nullptr) {
     return;
   }
   CHECK(!options_.pose_extrapolator_options().use_imu_based());
   // TODO(gaschler): Consider using InitializeWithImu as 3D does.
+
+  // 初始化位姿推测器
   extrapolator_ = absl::make_unique<PoseExtrapolator>(
       ::cartographer::common::FromSeconds(options_.pose_extrapolator_options()
                                               .constant_velocity()
@@ -396,6 +418,7 @@ void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
       options_.pose_extrapolator_options()
           .constant_velocity()
           .imu_gravity_time_constant());
+  // 添加初始位姿
   extrapolator_->AddPose(time, transform::Rigid3d::Identity());
 }
 

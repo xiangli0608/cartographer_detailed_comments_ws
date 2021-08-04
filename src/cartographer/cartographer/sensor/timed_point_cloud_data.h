@@ -24,23 +24,25 @@
 namespace cartographer {
 namespace sensor {
 
+// 时间同步前的点云
 struct TimedPointCloudData {
   common::Time time;        // 点云最后一个点的时间
-  Eigen::Vector3f origin;   // 从tracking_frame_到雷达坐标系的坐标变化
+  Eigen::Vector3f origin;   // 以tracking_frame_到雷达坐标系的坐标变换为原点
   TimedPointCloud ranges;   // 数据点的集合, 每个数据点包含xyz与time, time是负的
   // 'intensities' has to be same size as 'ranges', or empty.
   std::vector<float> intensities; // 空的
 };
 
+// 时间同步后的点云
 struct TimedPointCloudOriginData {
   struct RangeMeasurement {
-    TimedRangefinderPoint point_time;   // 带时间戳的单个数据点的坐标
-    float intensity;
-    size_t origin_index;
+    TimedRangefinderPoint point_time;   // 带时间戳的单个数据点的坐标 xyz
+    float intensity;                    // 强度值
+    size_t origin_index;                // 属于第几个origins的点
   };
-  common::Time time;
-  std::vector<Eigen::Vector3f> origins;
-  std::vector<RangeMeasurement> ranges;
+  common::Time time;                    // 点云的时间
+  std::vector<Eigen::Vector3f> origins; // 点云是由几个点云组成, 每个点云的原点
+  std::vector<RangeMeasurement> ranges; // 数据点的集合
 };
 
 // Converts 'timed_point_cloud_data' to a proto::TimedPointCloudData.

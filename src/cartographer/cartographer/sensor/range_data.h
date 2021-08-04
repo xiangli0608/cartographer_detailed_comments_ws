@@ -33,9 +33,9 @@ namespace sensor {
 /**
  * @brief local_slam_data中存储所有雷达点云的数据结构
  * 
- * @param[] origin  当前时刻雷达的位姿, 也就是雷达坐标系的原点的坐标
- * @param[] returns 所有雷达数据点的坐标, 记为returns, 也就是hit
- * @param[] misses  是在光线方向上未检测到返回的点(nan, inf等等), 并以配置的距离代替, 将这段直线视为空闲区域
+ * @param origin  当前时刻雷达的位姿, 也就是雷达坐标系的原点的坐标
+ * @param returns 所有雷达数据点的坐标, 记为returns, 也就是hit
+ * @param misses  是在光线方向上未检测到返回的点(nan, inf等等), 并以配置的距离代替, 将这段直线视为空闲区域
  */
 struct RangeData {
   Eigen::Vector3f origin;

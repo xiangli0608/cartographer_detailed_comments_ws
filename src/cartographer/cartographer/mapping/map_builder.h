@@ -96,7 +96,7 @@ class MapBuilder : public MapBuilderInterface {
       all_trajectory_builder_options_;
 };
 
-// 接口
+// 工厂函数
 std::unique_ptr<MapBuilderInterface> CreateMapBuilder(
     const proto::MapBuilderOptions& options);
 
