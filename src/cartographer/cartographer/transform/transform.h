@@ -101,7 +101,7 @@ Eigen::Quaternion<T> AngleAxisVectorToRotationQuaternion(
 }
 
 // Projects 'transform' onto the XY plane.
-// 将“变换”投影到XY平面上.
+// 取三维变换的 xy坐标与投影到xy平面上的yaw角
 template <typename T>
 Rigid2<T> Project2D(const Rigid3<T>& transform) {
   return Rigid2<T>(transform.translation().template head<2>(),

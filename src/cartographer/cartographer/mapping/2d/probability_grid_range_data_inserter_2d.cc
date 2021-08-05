@@ -32,8 +32,10 @@ namespace {
 // Factor for subpixel accuracy of start and end point for ray casts.
 constexpr int kSubpixelScale = 1000;
 
+// 根据点云的bounding box, 看是否需要对地图进行扩张
 void GrowAsNeeded(const sensor::RangeData& range_data,
                   ProbabilityGrid* const probability_grid) {
+  // 找到点云的bounding_box
   Eigen::AlignedBox2f bounding_box(range_data.origin.head<2>());
   // Padding around bounding box to avoid numerical issues at cell boundaries.
   constexpr float kPadding = 1e-6f;
@@ -43,6 +45,7 @@ void GrowAsNeeded(const sensor::RangeData& range_data,
   for (const sensor::RangefinderPoint& miss : range_data.misses) {
     bounding_box.extend(miss.position.head<2>());
   }
+  // 是否对地图进行扩张
   probability_grid->GrowLimits(bounding_box.min() -
                                kPadding * Eigen::Vector2f::Ones());
   probability_grid->GrowLimits(bounding_box.max() +
@@ -121,6 +124,12 @@ ProbabilityGridRangeDataInserter2D::ProbabilityGridRangeDataInserter2D(
       miss_table_(ComputeLookupTableToApplyCorrespondenceCostOdds(
           Odds(options.miss_probability()))) {}
 
+/**
+ * @brief 将点云写入栅格地图
+ * 
+ * @param[in] range_data 要写入地图的点云
+ * @param[in] grid 栅格地图
+ */
 void ProbabilityGridRangeDataInserter2D::Insert(
     const sensor::RangeData& range_data, GridInterface* const grid) const {
   ProbabilityGrid* const probability_grid = static_cast<ProbabilityGrid*>(grid);

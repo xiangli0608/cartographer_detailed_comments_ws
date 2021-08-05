@@ -60,7 +60,7 @@ class PointCloud {
 
   // Creates a PointCloud consisting of all the points for which `predicate`
   // returns true, together with the corresponding intensities.
-  // 将point输入到UnaryPredicate这个类中, 如果返回true了才进行操作
+  // 根据条件进行赋值
   template <class UnaryPredicate>
   PointCloud copy_if(UnaryPredicate predicate) const {
     std::vector<PointType> points;
@@ -71,6 +71,7 @@ class PointCloud {
     if (intensities_.empty()) {
       for (size_t index = 0; index < size(); ++index) {
         const PointType& point = points_[index];
+        // 表达式为true时才使用这个点
         if (predicate(point)) {
           points.push_back(point);
         }

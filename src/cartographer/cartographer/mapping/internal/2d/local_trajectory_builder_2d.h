@@ -43,10 +43,12 @@ namespace mapping {
 // TODO(gaschler): Add test for this class similar to the 3D test.
 class LocalTrajectoryBuilder2D {
  public:
+  // 将点云插入到地图后的result
   struct InsertionResult {
     std::shared_ptr<const TrajectoryNode::Data> constant_data;
     std::vector<std::shared_ptr<const Submap2D>> insertion_submaps;
   };
+  // 扫描匹配的result
   struct MatchingResult {
     common::Time time;
     transform::Rigid3d local_pose;

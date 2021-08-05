@@ -55,33 +55,35 @@ LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
 LocalTrajectoryBuilder2D::~LocalTrajectoryBuilder2D() {}
 
 /**
- * @brief 先进行z方向的滤波, 然后再进行体素滤波减少数据量
+ * @brief 先进行点云的旋转与z方向的滤波, 然后再进行体素滤波减少数据量
  * 
  * @param[in] transform_to_gravity_aligned_frame 
- * @param[in] range_data 
- * @return sensor::RangeData 
+ * @param[in] range_data 传入的点云
+ * @return sensor::RangeData 处理后的点云
  */
 sensor::RangeData
 LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
     const transform::Rigid3f& transform_to_gravity_aligned_frame,
     const sensor::RangeData& range_data) const {
+  // Step: 5 对将点云旋转到与重力垂直的方向, 再进行z轴上的过滤
   const sensor::RangeData cropped =
       sensor::CropRangeData(sensor::TransformRangeData(
                                 range_data, transform_to_gravity_aligned_frame),
-                            options_.min_z(), options_.max_z());
+                            options_.min_z(), options_.max_z()); // param: min_z max_z
+  // Step: 6 对点云进行体素滤波
   return sensor::RangeData{
       cropped.origin,
-      sensor::VoxelFilter(cropped.returns, options_.voxel_filter_size()),
+      sensor::VoxelFilter(cropped.returns, options_.voxel_filter_size()), // param: voxel_filter_size
       sensor::VoxelFilter(cropped.misses, options_.voxel_filter_size())};
 }
 
 /**
- * @brief 
+ * @brief 进行扫描匹配
  * 
- * @param[in] time 
- * @param[in] pose_prediction 
- * @param[in] filtered_gravity_aligned_point_cloud 
- * @return std::unique_ptr<transform::Rigid2d> 
+ * @param[in] time 点云的时间
+ * @param[in] pose_prediction 先验位姿
+ * @param[in] filtered_gravity_aligned_point_cloud 匹配用的点云
+ * @return std::unique_ptr<transform::Rigid2d> 匹配后的二维位姿
  */
 std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
     const common::Time time, const transform::Rigid2d& pose_prediction,
@@ -89,12 +91,14 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
   if (active_submaps_.submaps().empty()) {
     return absl::make_unique<transform::Rigid2d>(pose_prediction);
   }
+  // 使用active_submaps_的第一个子图进行匹配
   std::shared_ptr<const Submap2D> matching_submap =
       active_submaps_.submaps().front();
   // The online correlative scan matcher will refine the initial estimate for
   // the Ceres scan matcher.
   transform::Rigid2d initial_ceres_pose = pose_prediction;
 
+  // 根据参数决定是否 使用correlative_scan_matching对先验位姿进行校准
   if (options_.use_online_correlative_scan_matching()) {
     const double score = real_time_correlative_scan_matcher_.Match(
         pose_prediction, filtered_gravity_aligned_point_cloud,
@@ -104,10 +108,12 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
 
   auto pose_observation = absl::make_unique<transform::Rigid2d>();
   ceres::Solver::Summary summary;
+  // 使用ceres进行扫描匹配
   ceres_scan_matcher_.Match(pose_prediction.translation(), initial_ceres_pose,
                             filtered_gravity_aligned_point_cloud,
                             *matching_submap->grid(), pose_observation.get(),
                             &summary);
+  // 一些度量
   if (pose_observation) {
     kCeresScanMatcherCostMetric->Observe(summary.final_cost);
     const double residual_distance =
@@ -119,9 +125,9 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
                  pose_prediction.rotation().angle());
     kScanMatcherResidualAngleMetric->Observe(residual_angle);
   }
+  // 返回ceres计算后的位姿
   return pose_observation;
 }
-
 
 /**
  * @brief 处理点云数据, 进行扫描匹配, 将点云写成地图
@@ -239,25 +245,32 @@ LocalTrajectoryBuilder2D::AddRangeData(
   // 有一帧有效的数据了
   ++num_accumulated_;
 
-  // param: num_accumulated_range_data
+  // param: num_accumulated_range_data 几帧有效的点云数据进行一次扫描匹配
   if (num_accumulated_ >= options_.num_accumulated_range_data()) {
+    // 计算2次有效点云数据的的时间差
     const common::Time current_sensor_time = synchronized_data.time;
     absl::optional<common::Duration> sensor_duration;
     if (last_sensor_time_.has_value()) {
       sensor_duration = current_sensor_time - last_sensor_time_.value();
     }
     last_sensor_time_ = current_sensor_time;
-    
+
+    // 重置变量
     num_accumulated_ = 0;
+
+    // ?: 估计重力的方向
     const transform::Rigid3d gravity_alignment = transform::Rigid3d::Rotation(
         extrapolator_->EstimateGravityOrientation(time));
+
     // TODO(gaschler): This assumes that 'range_data_poses.back()' is at time
     // 'time'.
+    // 以最后一个点的时间戳估计出的坐标为这帧数据的原点
     accumulated_range_data_.origin = range_data_poses.back().translation();
+    
     return AddAccumulatedRangeData(
         time,
-        // Step: 5 对数据
         TransformToGravityAlignedFrameAndFilter(
+            // ?: 重力方向乘以原点的逆 代表什么
             gravity_alignment.cast<float>() * range_data_poses.back().inverse(),
             accumulated_range_data_),
         gravity_alignment, sensor_duration);
@@ -267,12 +280,12 @@ LocalTrajectoryBuilder2D::AddRangeData(
 }
 
 /**
- * @brief 
+ * @brief 进行扫描匹配, 将点云写入地图
  * 
- * @param[in] time 
- * @param[in] gravity_aligned_range_data 
+ * @param[in] time 点云的时间戳
+ * @param[in] gravity_aligned_range_data 处理后的点云
  * @param[in] gravity_alignment 
- * @param[in] sensor_duration 
+ * @param[in] sensor_duration 2帧点云数据的时间差
  * @return std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult> 
  */
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
@@ -281,17 +294,21 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
     const sensor::RangeData& gravity_aligned_range_data,
     const transform::Rigid3d& gravity_alignment,
     const absl::optional<common::Duration>& sensor_duration) {
+  // 如果处理完点云之后数据为空, 就报错. 使用单线雷达时不要设置min_z
   if (gravity_aligned_range_data.returns.empty()) {
     LOG(WARNING) << "Dropped empty horizontal range data.";
     return nullptr;
   }
 
   // Computes a gravity aligned pose prediction.
+  // 进行位姿的预测, 先验位姿
   const transform::Rigid3d non_gravity_aligned_pose_prediction =
       extrapolator_->ExtrapolatePose(time);
+  // ?: 将位姿转成二维的
   const transform::Rigid2d pose_prediction = transform::Project2D(
       non_gravity_aligned_pose_prediction * gravity_alignment.inverse());
 
+  // Step: 7 进行自适应体素滤波
   const sensor::PointCloud& filtered_gravity_aligned_point_cloud =
       sensor::AdaptiveVoxelFilter(gravity_aligned_range_data.returns,
                                   options_.adaptive_voxel_filter_options());
@@ -308,18 +325,24 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
     LOG(WARNING) << "Scan matching failed.";
     return nullptr;
   }
+
+  // 将二维坐标旋转回之前的姿态
   const transform::Rigid3d pose_estimate =
       transform::Embed3D(*pose_estimate_2d) * gravity_alignment;
+  // 校准位姿估计器
   extrapolator_->AddPose(time, pose_estimate);
 
+  // Step: 8 根据匹配后的位姿对点云进行校正
   sensor::RangeData range_data_in_local =
       TransformRangeData(gravity_aligned_range_data,
                          transform::Embed3D(pose_estimate_2d->cast<float>()));
-  // 将处理后的雷达数据写入submap
+  
+  // 将校正后的雷达数据写入submap
   std::unique_ptr<InsertionResult> insertion_result = InsertIntoSubmap(
       time, range_data_in_local, filtered_gravity_aligned_point_cloud,
       pose_estimate, gravity_alignment.rotation());
 
+  // 计算耗时
   const auto wall_time = std::chrono::steady_clock::now();
   if (last_wall_time_.has_value()) {
     const auto wall_time_duration = wall_time - last_wall_time_.value();
@@ -341,6 +364,8 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   }
   last_wall_time_ = wall_time;
   last_thread_cpu_time_seconds_ = thread_cpu_time_seconds;
+
+  // 返回结果 
   return absl::make_unique<MatchingResult>(
       MatchingResult{time, pose_estimate, std::move(range_data_in_local),
                      std::move(insertion_result)});
@@ -349,10 +374,10 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
 /**
  * @brief 将处理后的雷达数据写入submap
  * 
- * @param[in] time 
- * @param[in] range_data_in_local 
- * @param[in] filtered_gravity_aligned_point_cloud 
- * @param[in] pose_estimate 
+ * @param[in] time 点云的时间
+ * @param[in] range_data_in_local 校正后的点云
+ * @param[in] filtered_gravity_aligned_point_cloud 自适应体素滤波后的点云
+ * @param[in] pose_estimate 扫描匹配后的三维位姿
  * @param[in] gravity_alignment 
  * @return std::unique_ptr<LocalTrajectoryBuilder2D::InsertionResult> 
  */
@@ -370,12 +395,12 @@ LocalTrajectoryBuilder2D::InsertIntoSubmap(
   std::vector<std::shared_ptr<const Submap2D>> insertion_submaps =
       active_submaps_.InsertRangeData(range_data_in_local);
 
-  // 生成InsertionResult格式的数据
+  // 生成InsertionResult格式的数据进行返回
   return absl::make_unique<InsertionResult>(InsertionResult{
       std::make_shared<const TrajectoryNode::Data>(TrajectoryNode::Data{
           time,
           gravity_alignment,
-          filtered_gravity_aligned_point_cloud,
+          filtered_gravity_aligned_point_cloud,  // 这里存的是体素滤波后的点云, 不是校准后的点云
           {},  // 'high_resolution_point_cloud' is only used in 3D.
           {},  // 'low_resolution_point_cloud' is only used in 3D.
           {},  // 'rotational_scan_matcher_histogram' is only used in 3D.

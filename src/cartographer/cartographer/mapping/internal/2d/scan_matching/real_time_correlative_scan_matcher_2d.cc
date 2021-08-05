@@ -114,6 +114,7 @@ RealTimeCorrelativeScanMatcher2D::GenerateExhaustiveSearchCandidates(
   return candidates;
 }
 
+// todo: RealTimeCorrelativeScanMatcher2D::Match
 double RealTimeCorrelativeScanMatcher2D::Match(
     const transform::Rigid2d& initial_pose_estimate,
     const sensor::PointCloud& point_cloud, const Grid2D& grid,
