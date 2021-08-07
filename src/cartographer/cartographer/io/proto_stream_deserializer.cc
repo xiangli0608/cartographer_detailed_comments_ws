@@ -52,7 +52,7 @@ ProtoStreamDeserializer::ProtoStreamDeserializer(
   CHECK(IsVersionSupported(header_)) << "Unsupported serialization format \""
                                      << header_.format_version() << "\"";
 
-  // 向pose_graph_赋值
+  // 从pbstream中获取位姿图
   CHECK(ReadNextSerializedData(&pose_graph_))
       << "Serialized stream misses PoseGraph.";
   CHECK(pose_graph_.has_pose_graph())
@@ -60,6 +60,7 @@ ProtoStreamDeserializer::ProtoStreamDeserializer(
          "`SerializationHeader`, but got field tag "
       << pose_graph_.data_case();
 
+  // 从pbstream中获取配置文件
   CHECK(ReadNextSerializedData(&all_trajectory_builder_options_))
       << "Serialized stream misses `AllTrajectoryBuilderOptions`.";
   CHECK(all_trajectory_builder_options_.has_all_trajectory_builder_options())
@@ -73,6 +74,7 @@ ProtoStreamDeserializer::ProtoStreamDeserializer(
                .options_with_sensor_ids_size());
 }
 
+// 调用ProtoStreamReader读取pbstream文件中的内容
 bool ProtoStreamDeserializer::ReadNextSerializedData(
     mapping::proto::SerializedData* data) {
   return reader_->ReadProto(data);

@@ -38,7 +38,9 @@
 
 namespace cartographer {
 namespace mapping {
-namespace {
+  
+// c++11: 匿名命名空间, 作用域被限制在本文件内
+namespace { 
 
 using mapping::proto::SerializedData;
 
@@ -83,6 +85,8 @@ void MaybeAddPureLocalizationTrimmer(
  */
 MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) {
+  // param: num_background_threads
+  
   CHECK(options.use_trajectory_builder_2d() ^
         options.use_trajectory_builder_3d());
 
@@ -103,8 +107,8 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
         &thread_pool_);
   } 
 
-  // 默认collate_by_trajectory = false
   // 在 cartographer/configuration_files/map_builder.lua 中设置
+  // param: MAP_BUILDER.collate_by_trajectory 默认为false
   if (options.collate_by_trajectory()) {
     sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
   } else {
@@ -296,7 +300,7 @@ bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
   return (writer.Close());
 }
 
-// 从 proto流 中读取slam的各个状态
+// 从pbstream文件向位姿图添加信息
 std::map<int, int> MapBuilder::LoadState(
     io::ProtoStreamReaderInterface* const reader, bool load_frozen_state) {
   io::ProtoStreamDeserializer deserializer(reader);
@@ -323,7 +327,7 @@ std::map<int, int> MapBuilder::LoadState(
               .emplace(trajectory_proto.trajectory_id(), new_trajectory_id)
               .second)
         << "Duplicate trajectory ID: " << trajectory_proto.trajectory_id();
-    // 将原始id设置为新生成的id
+    // 将轨迹id设置为新生成的id
     trajectory_proto.set_trajectory_id(new_trajectory_id);
     if (load_frozen_state) {
       // 将指定轨迹id设置为FROZEN状态
@@ -340,7 +344,7 @@ std::map<int, int> MapBuilder::LoadState(
         trajectory_remapping.at(constraint_proto.node_id().trajectory_id()));
   }
 
-  // 获取submap_poses
+  // 从获取到的位姿图中生成submap_poses
   MapById<SubmapId, transform::Rigid3d> submap_poses;
   for (const proto::Trajectory& trajectory_proto :
        pose_graph_proto.trajectory()) {
@@ -352,7 +356,7 @@ std::map<int, int> MapBuilder::LoadState(
     }
   }
 
-  // 获取node_poses
+  // 从获取到的位姿图中生成node_poses
   MapById<NodeId, transform::Rigid3d> node_poses;
   for (const proto::Trajectory& trajectory_proto :
        pose_graph_proto.trajectory()) {
@@ -364,7 +368,7 @@ std::map<int, int> MapBuilder::LoadState(
   }
 
   // Set global poses of landmarks.
-  // 获取landmark_poses
+  // 将landmark_poses添加到位姿图中
   for (const auto& landmark : pose_graph_proto.landmark_poses()) {
     pose_graph_->SetLandmarkPose(landmark.landmark_id(),
                                  transform::ToRigid3(landmark.global_pose()),
@@ -393,6 +397,7 @@ std::map<int, int> MapBuilder::LoadState(
                       "corrupt!.";
         break;
       case SerializedData::kSubmap: {
+        // 为submap设置新的轨迹id
         proto.mutable_submap()->mutable_submap_id()->set_trajectory_id(
             trajectory_remapping.at(
                 proto.submap().submap_id().trajectory_id()));
@@ -404,12 +409,13 @@ std::map<int, int> MapBuilder::LoadState(
         break;
       }
       case SerializedData::kNode: {
+        // 为node_id设置新的轨迹id
         proto.mutable_node()->mutable_node_id()->set_trajectory_id(
             trajectory_remapping.at(proto.node().node_id().trajectory_id()));
         const NodeId node_id(proto.node().node_id().trajectory_id(),
                              proto.node().node_id().node_index());
         const transform::Rigid3d& node_pose = node_poses.at(node_id);
-        // 将Node添加到位姿图中
+        // 将node_pose添加到位姿图中
         pose_graph_->AddNodeFromProto(node_pose, proto.node());
         break;
       }
@@ -466,6 +472,7 @@ std::map<int, int> MapBuilder::LoadState(
     // This is required, even without constraints.
     for (const proto::PoseGraph::Constraint& constraint_proto :
          pose_graph_proto.constraint()) {
+      // 如果子图外约束就跳过, 只向子图添加子图内约束的节点
       if (constraint_proto.tag() !=
           proto::PoseGraph::Constraint::INTRA_SUBMAP) {
         continue;

@@ -55,12 +55,14 @@ std::vector<int> GetValidTrajectoryIds(
   return valid_trajectories;
 }
 
+// 创建消息头
 mapping::proto::SerializationHeader CreateHeader() {
   mapping::proto::SerializationHeader header;
   header.set_format_version(kMappingStateSerializationFormatVersion);
   return header;
 }
 
+// 将位姿图 序列化到protobuf格式的数据里
 SerializedData SerializePoseGraph(const mapping::PoseGraph& pose_graph,
                                   bool include_unfinished_submaps) {
   SerializedData proto;
@@ -68,6 +70,7 @@ SerializedData SerializePoseGraph(const mapping::PoseGraph& pose_graph,
   return proto;
 }
 
+// 将配置文件 序列化到protobuf格式的数据里
 SerializedData SerializeTrajectoryBuilderOptions(
     const std::vector<mapping::proto::TrajectoryBuilderOptionsWithSensorIds>&
         trajectory_builder_options,
@@ -100,6 +103,7 @@ void SerializeSubmaps(
   }
 }
 
+// 序列化TrajectoryNodes并写入到pbstream文件里
 void SerializeTrajectoryNodes(
     const MapById<NodeId, TrajectoryNode>& trajectory_nodes,
     ProtoStreamWriterInterface* const writer) {
@@ -139,6 +143,7 @@ void SerializeTrajectoryData(
   }
 }
 
+// 序列化IMU数据并写入到pbstream文件里
 void SerializeImuData(const sensor::MapByTime<sensor::ImuData>& all_imu_data,
                       ProtoStreamWriterInterface* const writer) {
   for (const int trajectory_id : all_imu_data.trajectory_ids()) {
@@ -152,6 +157,7 @@ void SerializeImuData(const sensor::MapByTime<sensor::ImuData>& all_imu_data,
   }
 }
 
+// 序列化里程计数据并写入到pbstream文件里
 void SerializeOdometryData(
     const sensor::MapByTime<sensor::OdometryData>& all_odometry_data,
     ProtoStreamWriterInterface* const writer) {
@@ -168,6 +174,7 @@ void SerializeOdometryData(
   }
 }
 
+// 序列化GPS数据并写入到pbstream文件里
 void SerializeFixedFramePoseData(
     const sensor::MapByTime<sensor::FixedFramePoseData>&
         all_fixed_frame_pose_data,
@@ -186,6 +193,7 @@ void SerializeFixedFramePoseData(
   }
 }
 
+// 序列化landmark数据并写入到pbstream文件里
 void SerializeLandmarkNodes(
     const std::map<std::string, PoseGraphInterface::LandmarkNode>&
         all_landmark_nodes,

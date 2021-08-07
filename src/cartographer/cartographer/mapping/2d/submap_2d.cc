@@ -140,7 +140,7 @@ void Submap2D::UpdateFromProto(const proto::Submap& proto) {
 /**
  * @brief 将地图进行压缩, 放入response
  * 
- * @param[out]] response 压缩后的地图数据
+ * @param[out] response 压缩后的地图数据
  */
 void Submap2D::ToResponseProto(
     const transform::Rigid3d&,

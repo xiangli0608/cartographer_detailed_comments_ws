@@ -42,6 +42,7 @@ struct TrajectoryNodePose {
   absl::optional<ConstantPoseData> constant_pose_data;
 };
 
+// tag: TrajectoryNode
 // 节点在global坐标系下的位姿, 与前端的结果
 struct TrajectoryNode {
   // 前端匹配所用的数据与计算出的local坐标系下的位姿
