@@ -73,6 +73,7 @@ class MapBuilder : public MapBuilderInterface {
     return trajectory_builders_.size();
   }
 
+  // 返回指向CollatedTrajectoryBuilder的指针
   mapping::TrajectoryBuilderInterface *GetTrajectoryBuilder(
       int trajectory_id) const override {
     return trajectory_builders_.at(trajectory_id).get();

@@ -119,19 +119,17 @@ QueueKey OrderedMultiQueue::GetBlocker() const {
  */
 void OrderedMultiQueue::Dispatch() {
   while (true) {
-
     /*
       queues_: 
-        (0, scan): {4,5,6}
-        (0, imu): {1,3,7}
-        (0, odom): {2,8}
+        (0, scan): {      4,     }
+        (0, imu):  {1,  3,   5,  }
+        (0, odom): {  2,       6,}
     */
-
     const Data* next_data = nullptr;
     Queue* next_queue = nullptr;
     QueueKey next_queue_key;
 
-    // 遍历所有的数据队列, 找到所有数据队列的第一个数据中时间最老的一个数据
+    // Step: 1 遍历所有的数据队列, 找到所有数据队列的第一个数据中时间最老的一个数据
     for (auto it = queues_.begin(); it != queues_.end();) {
 
       // c++11: auto*(指针类型说明符), auto&(引用类型说明符), auto &&(右值引用)
@@ -165,7 +163,7 @@ void OrderedMultiQueue::Dispatch() {
       ++it;
     } // end for
 
-    // 退出条件2: 如果for循环走完了next_data还是空指针, 就说明所有数据队列中都是空的或者都是完成状态
+    // 退出条件2: 只有多队列queues_为空, 才可能next_data==nullptr
     if (next_data == nullptr) {
       CHECK(queues_.empty());
       return;
@@ -175,16 +173,15 @@ void OrderedMultiQueue::Dispatch() {
     // all queues of this trajectory until a common start time has been reached.
     // 如果我们还没有为这个轨迹分配任何数据，快进这个轨迹的所有队列，直到达到一个共同的开始时间
     
-    // 获取对应轨迹id的所有数据队列中的最小共同时间戳, 作为轨迹开始的时间
+    // Step: 2 获取对应轨迹id的所有数据队列中的最小共同时间戳, 作为轨迹开始的时间
     const common::Time common_start_time =
         GetCommonStartTime(next_queue_key.trajectory_id);
 
-    // 开始处理 next_data 这一个数据
+    // Step: 3 将 next_queue 的时间最老的一个数据传入回调函数进行处理 
 
-    // 正常情况, 数据时间都超过common_start_time
+    // 大多数情况, 数据时间都会超过common_start_time的
     if (next_data->GetTime() >= common_start_time) {
       // Happy case, we are beyond the 'common_start_time' already.
-
       // 更新分发数据的时间
       last_dispatched_time_ = next_data->GetTime();
       // 将数据传入 callback() 函数进行处理,并将这个数据从数据队列中删除
@@ -192,20 +189,18 @@ void OrderedMultiQueue::Dispatch() {
     } 
     // 数据时间小于common_start_time,同时数据队列数据的个数小于2,只有1个数据的情况 罕见
     else if (next_queue->queue.Size() < 2) {
-
       // 退出条件3: 数据队列数据的个数少,又不是完成状态, 不能确定现在到底是啥情况, 就先退出稍后再处理
       if (!next_queue->finished) {
         // We cannot decide whether to drop or dispatch this yet.
         CannotMakeProgress(next_queue_key);
         return;
       } 
-
       // 处于完成状态了, 将数据传入 callback() 函数进行最后几个数据的处理
       // 更新分发数据的时间,将数据传入 callback() 进行处理,并将这个数据从数据队列中删除
       last_dispatched_time_ = next_data->GetTime();
       next_queue->callback(next_queue->queue.Pop());
     } 
-    // 数据时间小于common_start_time,同时数据队列数据的个数多于1个
+    // 数据时间小于common_start_time,同时数据队列数据的个数大于等于2个
     else {
       // We take a peek at the time after next data. If it also is not beyond
       // 'common_start_time' we drop 'next_data', otherwise we just found the
@@ -219,16 +214,19 @@ void OrderedMultiQueue::Dispatch() {
         next_queue->callback(std::move(next_data_owner));
       }
     }
-
   }
 }
 
 // 标记queue_key为阻塞者,并按条件发布log,等等这个数据
 void OrderedMultiQueue::CannotMakeProgress(const QueueKey& queue_key) {
+  // 标记queue_key为阻塞者
   blocker_ = queue_key;
   for (auto& entry : queues_) {
+    // queue_key对应的数据队列为空,而某一个传感器数据队列的数据已经大于kMaxQueueSize了
+    // 有问题, 进行报错
     if (entry.second.queue.Size() > kMaxQueueSize) {
       // tag: 将报错信息放这里
+      // 在该语句第1、61、121……次被执行的时候, 记录日志信息
       LOG_EVERY_N(WARNING, 60) << "Queue waiting for data: " << queue_key;
       return;
     }

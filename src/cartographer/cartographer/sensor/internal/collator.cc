@@ -22,9 +22,9 @@ namespace sensor {
 /**
  * @brief 添加轨迹以生成排序的传感器输出, 每个topic设置一个回调函数
  * 
- * @param[in] trajectory_id 
- * @param[in] expected_sensor_ids 
- * @param[in] callback CollatedTrajectoryBuilder::HandleCollatedSensorData()
+ * @param[in] trajectory_id 新生成的轨迹的id
+ * @param[in] expected_sensor_ids 需要排序的topic名字的集合
+ * @param[in] callback 回调函数, 实际是CollatedTrajectoryBuilder::HandleCollatedSensorData()函数
  */
 void Collator::AddTrajectory(
     const int trajectory_id,
@@ -48,7 +48,7 @@ void Collator::FinishTrajectory(const int trajectory_id) {
   }
 }
 
-// 向trajectory_id中添加 data 
+// 向数据队列中添加 传感器数据 
 void Collator::AddSensorData(const int trajectory_id,
                              std::unique_ptr<Data> data) {
   QueueKey queue_key{trajectory_id, data->GetSensorId()};

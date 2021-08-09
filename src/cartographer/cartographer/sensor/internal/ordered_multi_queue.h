@@ -35,7 +35,8 @@ struct QueueKey {
   int trajectory_id;      // 轨迹id
   std::string sensor_id;  // topic名字
 
-  // 作为key时要对 < 进行重载
+  // 重载小于运算符, map根据这个规则对QueueKey进行排序
+  // 以tuple规则比较2者, tuple定义了<运算符, 逐个元素进行比较
   bool operator<(const QueueKey& other) const {
     return std::forward_as_tuple(trajectory_id, sensor_id) <
            std::forward_as_tuple(other.trajectory_id, other.sensor_id);
@@ -56,6 +57,9 @@ class OrderedMultiQueue {
   using Callback = std::function<void(std::unique_ptr<Data>)>;
 
   OrderedMultiQueue();
+
+  // c++11: 移动构造函数, 只在使用的时候编译器才会自动生成
+  // 这里是显示指定让编译器生成一个默认的移动构造函数
   OrderedMultiQueue(OrderedMultiQueue&& queue) = default;
 
   ~OrderedMultiQueue();
@@ -96,7 +100,7 @@ class OrderedMultiQueue {
   common::Time last_dispatched_time_ = common::Time::min();
 
   std::map<int, common::Time> common_start_time_per_trajectory_;
-  std::map<QueueKey, Queue> queues_;   //多队列主体,本类最大的内存占用量
+  std::map<QueueKey, Queue> queues_;   // 多个数据队列
   QueueKey blocker_;
 };
 

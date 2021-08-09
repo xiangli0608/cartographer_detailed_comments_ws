@@ -70,6 +70,7 @@ CollatedTrajectoryBuilder::CollatedTrajectoryBuilder(
     expected_sensor_id_strings.insert(sensor_id.id);
   }
 
+  // sensor::Collator的初始化
   sensor_collator_->AddTrajectory(
       trajectory_id, expected_sensor_id_strings,
       [this](const std::string& sensor_id, std::unique_ptr<sensor::Data> data) {
@@ -77,6 +78,7 @@ CollatedTrajectoryBuilder::CollatedTrajectoryBuilder(
       });
 }
 
+// 将数据传入sensor_collator_的AddSensorData进行排序
 void CollatedTrajectoryBuilder::AddData(std::unique_ptr<sensor::Data> data) {
   sensor_collator_->AddSensorData(trajectory_id_, std::move(data));
 }
@@ -90,6 +92,7 @@ void CollatedTrajectoryBuilder::AddData(std::unique_ptr<sensor::Data> data) {
 void CollatedTrajectoryBuilder::HandleCollatedSensorData(
     const std::string& sensor_id, std::unique_ptr<sensor::Data> data) {
   auto it = rate_timers_.find(sensor_id);
+  // 找不到就新建一个
   if (it == rate_timers_.end()) {
     // map::emplace()返回一个pair
     // emplace().first表示新插入元素或者原始位置的迭代器
@@ -102,6 +105,8 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
                      common::FromSeconds(kSensorDataRatesLoggingPeriodSeconds)))
              .first;
   }
+  
+  // 对数据队列进行更新
   it->second.Pulse(data->GetTime());
 
   if (std::chrono::steady_clock::now() - last_logging_time_ >

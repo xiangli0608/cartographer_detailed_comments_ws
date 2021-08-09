@@ -58,6 +58,8 @@ class RateTimer {
   // Returns the ratio of the pulse rate (with supplied times) to the wall time
   // rate. For example, if a sensor produces pulses at 10 Hz, but we call Pulse
   // at 20 Hz wall time, this will return 2.
+  // 返回脉搏率（提供时间）与wall time率的比率
+  // 例如, 如果传感器产生 10 Hz 的脉冲, 但我们将 Pulse 称为 20 Hz 墙时间, 这将返回 2
   double ComputeWallTimeRateRatio() const {
     if (events_.empty()) {
       return 0.;
@@ -68,9 +70,11 @@ class RateTimer {
   }
 
   // Records an event that will contribute to the computed rate.
-  // 等待一段时间,删除队列头部数据,直到队列中最后与最前间的时间间隔小于window_duration_
+  // 对数据队列进行更新
   void Pulse(common::Time time) {
+    // 将传入的时间放入队列中
     events_.push_back(Event{time, ClockType::now()});
+    // 删除队列头部数据,直到队列中最后与最前间的时间间隔小于window_duration_
     while (events_.size() > 2 &&
            (events_.back().wall_time - events_.front().wall_time) >
                window_duration_) {
