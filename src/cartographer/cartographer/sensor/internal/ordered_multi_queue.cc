@@ -225,9 +225,11 @@ void OrderedMultiQueue::CannotMakeProgress(const QueueKey& queue_key) {
     // queue_key对应的数据队列为空,而某一个传感器数据队列的数据已经大于kMaxQueueSize了
     // 有问题, 进行报错
     if (entry.second.queue.Size() > kMaxQueueSize) {
-      // tag: 将报错信息放这里
       // 在该语句第1、61、121……次被执行的时候, 记录日志信息
       LOG_EVERY_N(WARNING, 60) << "Queue waiting for data: " << queue_key;
+
+      // [ WARN] [1628516438.493835120, 1606808659.273453929]: W0809 21:40:38.000000 10662 ordered_multi_queue.cc:230] Queue waiting for data: (0, points2)
+      // [ WARN] [1628516439.089736487, 1606808659.869309184]: W0809 21:40:39.000000 10662 ordered_multi_queue.cc:230] Queue waiting for data: (0, points2)
       return;
     }
   }
@@ -261,6 +263,9 @@ common::Time OrderedMultiQueue::GetCommonStartTime(const int trajectory_id) {
     }
     LOG(INFO) << "All sensor data for trajectory " << trajectory_id
               << " is available starting at '" << common_start_time << "'.";
+
+    // [ INFO] [1628516134.243770381, 1606808649.533687125]: I0809 21:35:34.000000  8604 ordered_multi_queue.cc:264] All sensor data for trajectory 0 is available starting at '637424054495384530'.
+
   }
 
   return common_start_time;
