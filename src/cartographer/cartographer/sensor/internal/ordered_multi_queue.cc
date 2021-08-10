@@ -114,8 +114,8 @@ QueueKey OrderedMultiQueue::GetBlocker() const {
  * 
  * 3种退出情况:
  * 退出条件1 某个话题的数据队列为空同时又不是完成状态, 就退出
- * 退出条件2 所有话题的数据队列都为空或者都处于完成状态, 就退出
- * 退出条件3 数据队列中数据的个数只有1个,又不是完成状态, 不能确定状态, 就先退出
+ * 退出条件2 只有多队列queues_为空, 就退出
+ * 退出条件3 数据队列中数据的个数只有1个,又不是完成状态,不能确定状态, 就先退出
  */
 void OrderedMultiQueue::Dispatch() {
   while (true) {
@@ -255,6 +255,7 @@ common::Time OrderedMultiQueue::GetCommonStartTime(const int trajectory_id) {
   // 只会在轨迹开始时插入成功一次
   if (emplace_result.second) {
     // 找到这个轨迹下,所有数据队列中数据的时间戳最大 的时间戳
+    // 执行到这里时, 所有的数据队列都有值了, 因为没值的情况在Dispatch()中提前返回了
     for (auto& entry : queues_) {
       if (entry.first.trajectory_id == trajectory_id) {
         common_start_time = std::max(

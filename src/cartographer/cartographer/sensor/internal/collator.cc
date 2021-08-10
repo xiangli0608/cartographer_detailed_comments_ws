@@ -24,7 +24,7 @@ namespace sensor {
  * 
  * @param[in] trajectory_id 新生成的轨迹的id
  * @param[in] expected_sensor_ids 需要排序的topic名字的集合
- * @param[in] callback 回调函数, 实际是CollatedTrajectoryBuilder::HandleCollatedSensorData()函数
+ * @param[in] callback 2个参数的回调函数, 实际是CollatedTrajectoryBuilder::HandleCollatedSensorData()函数
  */
 void Collator::AddTrajectory(
     const int trajectory_id,
