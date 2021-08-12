@@ -46,6 +46,7 @@ std::vector<Eigen::Array2i> RayToPixelMask(const Eigen::Array2i& scaled_begin,
   std::vector<Eigen::Array2i> pixel_mask;
   // Special case: We have to draw a vertical line in full pixels, as
   // 'scaled_begin' and 'scaled_end' have the same full pixel x coordinate.
+  // x相等, 斜率不存在的情况
   if (scaled_begin.x() / subpixel_scale == scaled_end.x() / subpixel_scale) {
     Eigen::Array2i current(
         scaled_begin.x() / subpixel_scale,
@@ -58,6 +59,8 @@ std::vector<Eigen::Array2i> RayToPixelMask(const Eigen::Array2i& scaled_begin,
     }
     return pixel_mask;
   }
+
+  // 下边就是 breshman 的具体实现
 
   const int64 dx = scaled_end.x() - scaled_begin.x();
   const int64 dy = scaled_end.y() - scaled_begin.y();
@@ -92,6 +95,7 @@ std::vector<Eigen::Array2i> RayToPixelMask(const Eigen::Array2i& scaled_begin,
   const int end_x = std::max(scaled_begin.x(), scaled_end.x()) / subpixel_scale;
 
   // Move from 'scaled_begin' to the next pixel border to the right.
+  // dy > 0 时的情况
   sub_y += dy * first_pixel;
   if (dy > 0) {
     while (true) {
@@ -125,6 +129,7 @@ std::vector<Eigen::Array2i> RayToPixelMask(const Eigen::Array2i& scaled_begin,
     return pixel_mask;
   }
 
+  // dy <= 0 时的情况
   // Same for lines non-ascending in y coordinates.
   while (true) {
     if (!isEqual(pixel_mask.back(), current)) pixel_mask.push_back(current);

@@ -29,6 +29,8 @@ namespace mapping {
 // Performs lazy computations of lookup tables for mapping from a uint16 value
 // to a float in ['lower_bound', 'upper_bound']. The first element of the table
 // is set to 'unknown_result'.
+// 以将 uint16 值映射到 ['lower_bound', 'upper_bound'] 中的浮点数
+// 表的第一个元素设置为 unknown_result 
 class ValueConversionTables {
  public:
   const std::vector<float>* GetConversionTable(float unknown_result,

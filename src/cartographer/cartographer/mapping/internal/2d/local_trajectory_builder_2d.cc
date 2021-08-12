@@ -264,6 +264,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
     // TODO(gaschler): This assumes that 'range_data_poses.back()' is at time
     // 'time'.
+    // note: 地图的原点就是这块的origin
     // 以最后一个点的时间戳估计出的坐标为这帧数据的原点
     accumulated_range_data_.origin = range_data_poses.back().translation();
     
@@ -352,6 +353,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
                                    common::ToSeconds(wall_time_duration));
     }
   }
+  // 计算cpu耗时
   const double thread_cpu_time_seconds = common::GetThreadCpuTimeSeconds();
   if (last_thread_cpu_time_seconds_.has_value()) {
     const double thread_cpu_duration_seconds =

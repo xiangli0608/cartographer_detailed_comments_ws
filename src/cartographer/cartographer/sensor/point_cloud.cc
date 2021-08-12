@@ -26,7 +26,7 @@ PointCloud::PointCloud() {}
 PointCloud::PointCloud(std::vector<PointCloud::PointType> points)
     : points_(std::move(points)) {}
 
-// 构造时先拷贝，再进行移动
+// 构造时先拷贝, 再进行移动
 PointCloud::PointCloud(std::vector<PointType> points,
                        std::vector<float> intensities)
     : points_(std::move(points)), intensities_(std::move(intensities)) {

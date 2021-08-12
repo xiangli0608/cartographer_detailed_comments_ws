@@ -60,7 +60,7 @@ void Collator::AddSensorData(const int trajectory_id,
 void Collator::Flush() { queue_.Flush(); }
 
 // 返回在 CollatorInterface 解锁之前需要更多数据的轨迹的 ID
-// 对于不等待特定轨迹的实现，返回 'nullopt'
+// 对于不等待特定轨迹的实现, 返回 'nullopt'
 absl::optional<int> Collator::GetBlockingTrajectoryId() const {
   return absl::optional<int>(queue_.GetBlocker().trajectory_id);
 }

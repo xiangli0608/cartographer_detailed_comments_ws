@@ -65,6 +65,7 @@ class Grid2D : public GridInterface {
   float GetMaxCorrespondenceCost() const { return max_correspondence_cost_; }
 
   // Returns true if the probability at the specified index is known.
+  // 如果指定索引处的概率已知, 则返回 true
   bool IsKnown(const Eigen::Array2i& cell_index) const {
     return limits_.Contains(cell_index) &&
            correspondence_cost_cells_[ToFlatIndex(cell_index)] !=
@@ -94,6 +95,7 @@ class Grid2D : public GridInterface {
                   const std::vector<std::vector<uint16>*>& grids,
                   const std::vector<uint16>& grids_unknown_cell_values);
 
+  // 返回不可以修改的栅格地图数组的引用
   const std::vector<uint16>& correspondence_cost_cells() const {
     return correspondence_cost_cells_;
   }
@@ -102,6 +104,7 @@ class Grid2D : public GridInterface {
     return known_cells_box_;
   }
 
+  // 返回可以修改的栅格地图数组的指针
   std::vector<uint16>* mutable_correspondence_cost_cells() {
     return &correspondence_cost_cells_;
   }
@@ -117,15 +120,17 @@ class Grid2D : public GridInterface {
   }
 
  private:
-  MapLimits limits_;  // 地图大小边界，包括x和y最大值， 分辨率， x和yu方向栅格数
-  std::vector<uint16> correspondence_cost_cells_; // grid 地图存储值，采用uint16类型
+  MapLimits limits_;  // 地图大小边界, 包括x和y最大值, 分辨率, x和y方向栅格数
+
+  // 地图栅格值, 存储的是free的概率转成uint16后的[0, 32767]范围内的值, 0代表未知
+  std::vector<uint16> correspondence_cost_cells_; 
   float min_correspondence_cost_;
   float max_correspondence_cost_;
   std::vector<int> update_indices_;               // 记录已经更新过的索引
 
   // Bounding box of known cells to efficiently compute cropping limits.
-  Eigen::AlignedBox2i known_cells_box_;           // 栅格的bounding box
-  // 将[1, 32767] 映射到 [0.1, 0.9] 的查找表
+  Eigen::AlignedBox2i known_cells_box_;           // 栅格的bounding box, 存的是像素坐标
+  // 将[0, 1~32767] 映射到 [0.9, 0.1~0.9] 的转换表
   const std::vector<float>* value_to_correspondence_cost_table_;
 };
 

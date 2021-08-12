@@ -171,7 +171,7 @@ void OrderedMultiQueue::Dispatch() {
 
     // If we haven't dispatched any data for this trajectory yet, fast forward
     // all queues of this trajectory until a common start time has been reached.
-    // 如果我们还没有为这个轨迹分配任何数据，快进这个轨迹的所有队列，直到达到一个共同的开始时间
+    // 如果我们还没有为这个轨迹分配任何数据, 快进这个轨迹的所有队列, 直到达到一个共同的开始时间
     
     // Step: 2 获取对应轨迹id的所有数据队列中的最小共同时间戳, 作为轨迹开始的时间
     const common::Time common_start_time =

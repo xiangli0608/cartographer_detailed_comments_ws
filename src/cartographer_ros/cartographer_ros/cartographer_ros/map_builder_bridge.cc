@@ -49,7 +49,7 @@ visualization_msgs::Marker CreateTrajectoryMarker(const int trajectory_id,
   visualization_msgs::Marker marker;
   marker.ns = absl::StrCat("Trajectory ", trajectory_id);
   marker.id = 0;
-  // note: Marker::LINE_STRIP 它会在每两个连续的点之间画一条线 eg: 0-1，1-2，2-3
+  // note: Marker::LINE_STRIP 它会在每两个连续的点之间画一条线 eg: 0-1, 1-2, 2-3
   marker.type = visualization_msgs::Marker::LINE_STRIP;
   marker.header.stamp = ::ros::Time::now();
   marker.header.frame_id = frame_id;
@@ -504,7 +504,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   visualization_msgs::Marker constraint_intra_marker;
   constraint_intra_marker.id = marker_id++;
   constraint_intra_marker.ns = "Intra constraints";
-  // note: Marker::LINE_LIST: 每对点之间画一条线，eg: 0-1，2-3，4-5
+  // note: Marker::LINE_LIST: 每对点之间画一条线, eg: 0-1, 2-3, 4-5
   constraint_intra_marker.type = visualization_msgs::Marker::LINE_LIST;
   constraint_intra_marker.header.stamp = ros::Time::now();
   constraint_intra_marker.header.frame_id = node_options_.map_frame;

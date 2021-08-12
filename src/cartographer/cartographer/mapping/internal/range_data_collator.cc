@@ -73,7 +73,7 @@ sensor::TimedPointCloudOriginData RangeDataCollator::AddRangeData(
   for (const auto& pair : id_to_pending_data_) {
     oldest_timestamp = std::min(oldest_timestamp, pair.second.time);
   }
-  // current_end_是下次融合的开始时间，是本次融合的最后时间刻度
+  // current_end_是下次融合的开始时间, 是本次融合的最后时间刻度
   // 但其实是此次融合所有传感器中最早的时间戳
   current_end_ = oldest_timestamp;
   return CropAndMerge();
@@ -116,11 +116,11 @@ sensor::TimedPointCloudOriginData RangeDataCollator::CropAndMerge() {
 
     // Copy overlapping range.
     if (overlap_begin < overlap_end) {
-      // 获取下个点云的index，即当前vector的个数
+      // 获取下个点云的index, 即当前vector的个数
       std::size_t origin_index = result.origins.size();
       result.origins.push_back(data.origin);  // 插入原点坐标
 
-      // 获取此传感器时间与集合时间戳的误差，
+      // 获取此传感器时间与集合时间戳的误差, 
       const float time_correction =
           static_cast<float>(common::ToSeconds(data.time - current_end_));
 

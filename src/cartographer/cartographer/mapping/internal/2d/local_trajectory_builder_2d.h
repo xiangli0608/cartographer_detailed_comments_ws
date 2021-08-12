@@ -46,7 +46,7 @@ class LocalTrajectoryBuilder2D {
   // 将点云插入到地图后的result
   struct InsertionResult {
     std::shared_ptr<const TrajectoryNode::Data> constant_data;
-    std::vector<std::shared_ptr<const Submap2D>> insertion_submaps;
+    std::vector<std::shared_ptr<const Submap2D>> insertion_submaps; // 最多只有2个子图的指针
   };
   // 扫描匹配的result
   struct MatchingResult {

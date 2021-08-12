@@ -280,6 +280,16 @@ LocalTrajectoryBuilder3D::AddRangeData(
       extrapolation_result.gravity_from_tracking);
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] time 
+ * @param[in] filtered_range_data_in_tracking 
+ * @param[in] sensor_duration 
+ * @param[in] pose_prediction 
+ * @param[in] gravity_alignment 
+ * @return std::unique_ptr<LocalTrajectoryBuilder3D::MatchingResult> 
+ */
 std::unique_ptr<LocalTrajectoryBuilder3D::MatchingResult>
 LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     const common::Time time,
@@ -287,6 +297,7 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     const absl::optional<common::Duration>& sensor_duration,
     const transform::Rigid3d& pose_prediction,
     const Eigen::Quaterniond& gravity_alignment) {
+  // 如果处理完点云之后数据为空, 就报错
   if (filtered_range_data_in_tracking.returns.empty()) {
     LOG(WARNING) << "Dropped empty range data.";
     return nullptr;
@@ -294,6 +305,7 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
 
   const auto scan_matcher_start = std::chrono::steady_clock::now();
 
+  // 对returns点云进行高分辨率自适应体素滤波
   const sensor::PointCloud high_resolution_point_cloud_in_tracking =
       sensor::AdaptiveVoxelFilter(
           filtered_range_data_in_tracking.returns,
@@ -302,6 +314,8 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     LOG(WARNING) << "Dropped empty high resolution point cloud data.";
     return nullptr;
   }
+
+  // 对returns点云进行低分辨率自适应体素滤波
   const sensor::PointCloud low_resolution_point_cloud_in_tracking =
       sensor::AdaptiveVoxelFilter(
           filtered_range_data_in_tracking.returns,
@@ -311,6 +325,7 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     return nullptr;
   }
 
+  // 进行扫描匹配
   std::unique_ptr<transform::Rigid3d> pose_estimate =
       ScanMatch(pose_prediction, low_resolution_point_cloud_in_tracking,
                 high_resolution_point_cloud_in_tracking);
@@ -318,8 +333,11 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     LOG(WARNING) << "Scan matching failed.";
     return nullptr;
   }
+
+  // 校准位姿估计器
   extrapolator_->AddPose(time, *pose_estimate);
 
+  // 计算扫描匹配时间差
   const auto scan_matcher_stop = std::chrono::steady_clock::now();
   const auto scan_matcher_duration = scan_matcher_stop - scan_matcher_start;
   if (sensor_duration.has_value()) {
@@ -329,6 +347,7 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
     kLocalSlamScanMatcherFraction->Set(scan_matcher_fraction);
   }
 
+  // 根据匹配后的位姿对点云进行校正
   sensor::RangeData filtered_range_data_in_local = sensor::TransformRangeData(
       filtered_range_data_in_tracking, pose_estimate->cast<float>());
 
@@ -340,6 +359,7 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
       gravity_alignment);
   const auto insert_into_submap_stop = std::chrono::steady_clock::now();
 
+  // 计算插入地图的耗时
   const auto insert_into_submap_duration =
       insert_into_submap_stop - insert_into_submap_start;
   if (sensor_duration.has_value()) {
@@ -348,6 +368,8 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
         common::ToSeconds(sensor_duration.value());
     kLocalSlamInsertIntoSubmapFraction->Set(insert_into_submap_fraction);
   }
+
+  // 计算耗时
   const auto wall_time = std::chrono::steady_clock::now();
   if (last_wall_time_.has_value()) {
     const auto wall_time_duration = wall_time - last_wall_time_.value();
@@ -357,6 +379,7 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
                                    common::ToSeconds(wall_time_duration));
     }
   }
+  // 计算cpu耗时
   const double thread_cpu_time_seconds = common::GetThreadCpuTimeSeconds();
   if (last_thread_cpu_time_seconds_.has_value()) {
     const double thread_cpu_duration_seconds =
@@ -369,6 +392,8 @@ LocalTrajectoryBuilder3D::AddAccumulatedRangeData(
   }
   last_wall_time_ = wall_time;
   last_thread_cpu_time_seconds_ = thread_cpu_time_seconds;
+  
+  // 返回结果 
   return absl::make_unique<MatchingResult>(MatchingResult{
       time, *pose_estimate, std::move(filtered_range_data_in_local),
       std::move(insertion_result)});

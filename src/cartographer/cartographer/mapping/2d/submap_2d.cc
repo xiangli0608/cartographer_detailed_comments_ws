@@ -238,7 +238,7 @@ std::unique_ptr<GridInterface> ActiveSubmaps2D::CreateGrid(
     case proto::GridOptions2D::PROBABILITY_GRID:
       return absl::make_unique<ProbabilityGrid>(
           MapLimits(resolution,
-                    // 左上角坐标为坐标系的最大值
+                    // 左上角坐标为坐标系的最大值, origin位于地图的中间
                     origin.cast<double>() + 0.5 * kInitialSubmapSize *
                                                 resolution *
                                                 Eigen::Vector2d::Ones(),
@@ -271,10 +271,10 @@ void ActiveSubmaps2D::AddSubmap(const Eigen::Vector2f& origin) {
     // This will crop the finished Submap before inserting a new Submap to
     // reduce peak memory usage a bit.
     CHECK(submaps_.front()->insertion_finished());
-    // 删掉第一个子图
+    // 删掉第一个子图的指针
     submaps_.erase(submaps_.begin());
   }
-  // 新建一个子图
+  // 新建一个子图, 并保存指向新子图的智能指针
   submaps_.push_back(absl::make_unique<Submap2D>(
       origin,
       std::unique_ptr<Grid2D>(

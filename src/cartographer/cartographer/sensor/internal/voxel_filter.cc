@@ -66,7 +66,7 @@ PointCloud AdaptivelyVoxelFiltered(
       // Binary search to find the right amount of filtering. 'low_length' gave
       // a sufficiently dense 'result', 'high_length' did not. We stop when the
       // edge length is at most 10% off.
-      // 二分查找找到合适的过滤量, 当边缘长度最多减少 10% 时，我们停止。
+      // 二分查找找到合适的过滤量, 当边缘长度最多减少 10% 时, 我们停止。
       while ((high_length - low_length) / low_length > 1e-1f) {
         const float mid_length = (low_length + high_length) / 2.f;
         const PointCloud candidate = VoxelFilter(point_cloud, mid_length);

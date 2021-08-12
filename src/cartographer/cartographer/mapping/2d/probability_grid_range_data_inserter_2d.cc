@@ -52,10 +52,20 @@ void GrowAsNeeded(const sensor::RangeData& range_data,
                                kPadding * Eigen::Vector2f::Ones());
 }
 
+/**
+ * @brief 根据雷达点对栅格地图进行更新
+ * 
+ * @param[in] range_data 
+ * @param[in] hit_table 更新占用栅格时的查找表
+ * @param[in] miss_table 更新空闲栅格时的查找表
+ * @param[in] insert_free_space 
+ * @param[in] probability_grid 栅格地图
+ */
 void CastRays(const sensor::RangeData& range_data,
               const std::vector<uint16>& hit_table,
               const std::vector<uint16>& miss_table,
               const bool insert_free_space, ProbabilityGrid* probability_grid) {
+  // 根据雷达数据调整地图范围
   GrowAsNeeded(range_data, probability_grid);
 
   const MapLimits& limits = probability_grid->limits();
@@ -64,16 +74,20 @@ void CastRays(const sensor::RangeData& range_data,
       superscaled_resolution, limits.max(),
       CellLimits(limits.cell_limits().num_x_cells * kSubpixelScale,
                  limits.cell_limits().num_y_cells * kSubpixelScale));
+  // 雷达原点在地图中的像素坐标, 作为画线的起始坐标
   const Eigen::Array2i begin =
       superscaled_limits.GetCellIndex(range_data.origin.head<2>());
   // Compute and add the end points.
   std::vector<Eigen::Array2i> ends;
   ends.reserve(range_data.returns.size());
   for (const sensor::RangefinderPoint& hit : range_data.returns) {
+    // 计算hit点在地图中的像素坐标, 作为画线的终止点坐标
     ends.push_back(superscaled_limits.GetCellIndex(hit.position.head<2>()));
+    // 更新hit点的栅格值
     probability_grid->ApplyLookupTable(ends.back() / kSubpixelScale, hit_table);
   }
-
+  
+  // 如果不插入free空间就可以结束了
   if (!insert_free_space) {
     return;
   }
@@ -83,6 +97,7 @@ void CastRays(const sensor::RangeData& range_data,
     std::vector<Eigen::Array2i> ray =
         RayToPixelMask(begin, end, kSubpixelScale);
     for (const Eigen::Array2i& cell_index : ray) {
+      // 从起点到end点之前, 更新miss点的栅格值
       probability_grid->ApplyLookupTable(cell_index, miss_table);
     }
   }
@@ -93,6 +108,7 @@ void CastRays(const sensor::RangeData& range_data,
         begin, superscaled_limits.GetCellIndex(missing_echo.position.head<2>()),
         kSubpixelScale);
     for (const Eigen::Array2i& cell_index : ray) {
+      // 从起点到misses点之前, 更新miss点的栅格值
       probability_grid->ApplyLookupTable(cell_index, miss_table);
     }
   }
@@ -116,13 +132,16 @@ CreateProbabilityGridRangeDataInserterOptions2D(
   return options;
 }
 
+// 写入器的构造, 新建了2个查找表
 ProbabilityGridRangeDataInserter2D::ProbabilityGridRangeDataInserter2D(
     const proto::ProbabilityGridRangeDataInserterOptions2D& options)
     : options_(options),
+      // 生成更新占用栅格时的查找表 // param: hit_probability
       hit_table_(ComputeLookupTableToApplyCorrespondenceCostOdds(
-          Odds(options.hit_probability()))),
+          Odds(options.hit_probability()))),    // 0.55
+      // 生成更新空闲栅格时的查找表 // param: miss_probability
       miss_table_(ComputeLookupTableToApplyCorrespondenceCostOdds(
-          Odds(options.miss_probability()))) {}
+          Odds(options.miss_probability()))) {} // 0.49
 
 /**
  * @brief 将点云写入栅格地图
@@ -136,6 +155,7 @@ void ProbabilityGridRangeDataInserter2D::Insert(
   CHECK(probability_grid != nullptr);
   // By not finishing the update after hits are inserted, we give hits priority
   // (i.e. no hits will be ignored because of a miss in the same cell).
+  // param: insert_free_space
   CastRays(range_data, hit_table_, miss_table_, options_.insert_free_space(),
            probability_grid);
   probability_grid->FinishUpdate();
