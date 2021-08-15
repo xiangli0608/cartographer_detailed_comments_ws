@@ -52,7 +52,7 @@ class LocalTrajectoryBuilder2D {
   struct MatchingResult {
     common::Time time;
     transform::Rigid3d local_pose;
-    sensor::RangeData range_data_in_local;
+    sensor::RangeData range_data_in_local; // 经过扫描匹配之后位姿校准之后的雷达数据
     // 'nullptr' if dropped by the motion filter.
     std::unique_ptr<const InsertionResult> insertion_result;
   };

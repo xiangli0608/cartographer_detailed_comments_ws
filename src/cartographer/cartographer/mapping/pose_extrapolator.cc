@@ -53,15 +53,16 @@ std::unique_ptr<PoseExtrapolator> PoseExtrapolator::InitializeWithImu(
   return extrapolator;
 }
 
-// 返回最新添加位姿的时间,如果尚未添加任何姿势, 则返回Time::min()
+// 返回上次校准位姿时的时间
 common::Time PoseExtrapolator::GetLastPoseTime() const {
+  // 如果尚未添加任何位姿, 则返回Time::min()
   if (timed_pose_queue_.empty()) {
     return common::Time::min();
   }
   return timed_pose_queue_.back().time;
 }
 
-// 获取上一次预测位姿的时间戳
+// 获取上一次校准位姿的时间
 common::Time PoseExtrapolator::GetLastExtrapolatedTime() const {
   if (!extrapolation_imu_tracker_) {
     return common::Time::min();

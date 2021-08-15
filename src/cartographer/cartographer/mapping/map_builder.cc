@@ -84,9 +84,7 @@ void MaybeAddPureLocalizationTrimmer(
  * @param[in] options proto::MapBuilderOptions格式的 map_builder参数
  */
 MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
-    : options_(options), thread_pool_(options.num_background_threads()) {
-  // param: num_background_threads
-  
+    : options_(options), thread_pool_(options.num_background_threads()) { // param: num_background_threads
   CHECK(options.use_trajectory_builder_2d() ^
         options.use_trajectory_builder_3d());
 

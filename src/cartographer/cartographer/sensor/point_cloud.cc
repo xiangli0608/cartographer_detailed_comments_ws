@@ -97,7 +97,7 @@ TimedPointCloud TransformTimedPointCloud(const TimedPointCloud& point_cloud,
  * @param[in] point_cloud 输入的点云
  * @param[in] min_z 最小的z
  * @param[in] max_z 最大的z
- * @return PointCloud 裁剪之后的点云
+ * @return PointCloud 裁剪之后的点云 拷贝
  */
 PointCloud CropPointCloud(const PointCloud& point_cloud, const float min_z,
                           const float max_z) {

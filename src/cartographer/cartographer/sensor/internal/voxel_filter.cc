@@ -28,7 +28,7 @@ namespace sensor {
 
 namespace {
 
-// 只有点小于最大距离时才进行使用
+// 只有点小于最大距离时才进行拷贝
 PointCloud FilterByMaxRange(const PointCloud& point_cloud,
                             const float max_range) {
   return point_cloud.copy_if([max_range](const RangefinderPoint& point) {
@@ -40,14 +40,14 @@ PointCloud FilterByMaxRange(const PointCloud& point_cloud,
 PointCloud AdaptivelyVoxelFiltered(
     const proto::AdaptiveVoxelFilterOptions& options,
     const PointCloud& point_cloud) {
-  // param: adaptive_voxel_filter.min_num_points 满足小于等于这个值的点云满足要求
+  // param: adaptive_voxel_filter.min_num_points 满足小于等于这个值的点云满足要求, 足够稀疏
   if (point_cloud.size() <= options.min_num_points()) {
     // 'point_cloud' is already sparse enough.
     return point_cloud;
   }
   // param: adaptive_voxel_filter.max_length 进行一次体素滤波
   PointCloud result = VoxelFilter(point_cloud, options.max_length());
-  // 如果按照最大边长进行体素滤波之后还超过这个数了, 就说明已经是最稠密的状态了, 直接返回
+  // 如果按照最大边长进行体素滤波之后还超过这个数了, 就说明已经是这个参数下最稀疏的状态了, 直接返回
   if (result.size() >= options.min_num_points()) {
     // Filtering with 'max_length' resulted in a sufficiently dense point cloud.
     return result;
@@ -56,24 +56,29 @@ PointCloud AdaptivelyVoxelFiltered(
   // Search for a 'low_length' that is known to result in a sufficiently
   // dense point cloud. We give up and use the full 'point_cloud' if reducing
   // the edge length by a factor of 1e-2 is not enough.
+  // 将体素滤波的边长从max_length逐渐减小, 每次除以2
   for (float high_length = options.max_length();
        high_length > 1e-2f * options.max_length(); high_length /= 2.f) {
     // 减小边长再次进行体素滤波
     float low_length = high_length / 2.f;
     result = VoxelFilter(point_cloud, low_length);
-    // 循环直到滤波后的点数多于min_num_points
+    
+    // 重复for循环直到 滤波后的点数多于min_num_points
     if (result.size() >= options.min_num_points()) {
       // Binary search to find the right amount of filtering. 'low_length' gave
       // a sufficiently dense 'result', 'high_length' did not. We stop when the
       // edge length is at most 10% off.
-      // 二分查找找到合适的过滤量, 当边缘长度最多减少 10% 时, 我们停止。
+      // 以二分查找的方式找到合适的过滤边长, 当边缘长度最多减少 10% 时停止
       while ((high_length - low_length) / low_length > 1e-1f) {
         const float mid_length = (low_length + high_length) / 2.f;
         const PointCloud candidate = VoxelFilter(point_cloud, mid_length);
+        // 如果点数多, 就将边长变大, 让low_length变大
         if (candidate.size() >= options.min_num_points()) {
           low_length = mid_length;
           result = candidate;
-        } else {
+        } 
+        // 如果点数少, 就将边长变小, 让high_length变小
+        else {
           high_length = mid_length;
         }
       }
@@ -217,9 +222,9 @@ proto::AdaptiveVoxelFilterOptions CreateAdaptiveVoxelFilterOptions(
 PointCloud AdaptiveVoxelFilter(
     const PointCloud& point_cloud,
     const proto::AdaptiveVoxelFilterOptions& options) {
-  // param: adaptive_voxel_filter.max_range 距远离原点超过max_range的点被移除
   return AdaptivelyVoxelFiltered(
-      // ?: 最大距离是相对于local坐标系的么
+      // param: adaptive_voxel_filter.max_range 距远离原点超过max_range的点被移除
+      // 这里的最大距离是相对于local坐标系原点的
       options, FilterByMaxRange(point_cloud, options.max_range()));
 }
 

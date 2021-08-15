@@ -89,6 +89,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
     std::unique_ptr<InsertionResult> insertion_result;
 
     // matching_result->insertion_result 的类型是 LocalTrajectoryBuilder2D::InsertionResult
+    // 如果雷达成功插入到地图中
     if (matching_result->insertion_result != nullptr) {
       kLocalSlamInsertionResults->Increment();
 
@@ -181,7 +182,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
 
 }  // namespace
 
-// 类模板不支持实参推演, 所以在类外指定模板参数的具体类型, 在进行类的实例化
+// 类模板不支持实参推演, 所以在类外指定模板参数的具体类型, 再进行类的实例化
 
 // 2d的完整的slam
 std::unique_ptr<TrajectoryBuilderInterface> CreateGlobalTrajectoryBuilder2D(

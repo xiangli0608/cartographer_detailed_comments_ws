@@ -22,13 +22,13 @@
 namespace cartographer {
 namespace sensor {
 
-// 根据给定的坐标变换, 分别对origin, returns, misses做变换
+// 根据给定的坐标变换, 分别对origin, returns, misses做变换, 拷贝
 RangeData TransformRangeData(const RangeData& range_data,
                              const transform::Rigid3f& transform) {
   return RangeData{
       transform * range_data.origin,
-      TransformPointCloud(range_data.returns, transform),
-      TransformPointCloud(range_data.misses, transform),
+      TransformPointCloud(range_data.returns, transform), // 拷贝
+      TransformPointCloud(range_data.misses, transform),  // 拷贝
   };
 }
 
@@ -38,13 +38,13 @@ RangeData TransformRangeData(const RangeData& range_data,
  * @param[in] range_data 原始点云数据
  * @param[in] min_z 最小的z坐标
  * @param[in] max_z 最大的z坐标
- * @return RangeData 裁剪之后的点云
+ * @return RangeData 裁剪之后的点云 拷贝
  */
 RangeData CropRangeData(const RangeData& range_data, const float min_z,
                         const float max_z) {
   return RangeData{range_data.origin,
-                   CropPointCloud(range_data.returns, min_z, max_z),
-                   CropPointCloud(range_data.misses, min_z, max_z)};
+                   CropPointCloud(range_data.returns, min_z, max_z),  // 拷贝
+                   CropPointCloud(range_data.misses, min_z, max_z)};  // 拷贝
 }
 
 proto::RangeData ToProto(const RangeData& range_data) {

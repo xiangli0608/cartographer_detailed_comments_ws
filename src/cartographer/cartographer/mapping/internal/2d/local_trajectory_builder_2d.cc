@@ -57,15 +57,15 @@ LocalTrajectoryBuilder2D::~LocalTrajectoryBuilder2D() {}
 /**
  * @brief 先进行点云的旋转与z方向的滤波, 然后再进行体素滤波减少数据量
  * 
- * @param[in] transform_to_gravity_aligned_frame 
+ * @param[in] transform_to_gravity_aligned_frame 将点云变换到原点处, 且姿态为0的坐标变换
  * @param[in] range_data 传入的点云
- * @return sensor::RangeData 处理后的点云
+ * @return sensor::RangeData 处理后的点云 拷贝
  */
 sensor::RangeData
 LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
     const transform::Rigid3f& transform_to_gravity_aligned_frame,
     const sensor::RangeData& range_data) const {
-  // Step: 5 对将点云旋转到与重力垂直的方向, 再进行z轴上的过滤
+  // Step: 5 将原点位于机器人当前位姿处的点云 转成 原点位于local坐标系原点处的点云, 再进行z轴上的过滤
   const sensor::RangeData cropped =
       sensor::CropRangeData(sensor::TransformRangeData(
                                 range_data, transform_to_gravity_aligned_frame),
@@ -141,7 +141,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
     const std::string& sensor_id,
     const sensor::TimedPointCloudData& unsynchronized_data) {
   
-  // Step: 1 进行多个雷达点云数据的时间同步
+  // Step: 1 进行多个雷达点云数据的时间同步, 点云的坐标是相对于tracking_frame的
   auto synchronized_data =
       range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);
   if (synchronized_data.ranges.empty()) {
@@ -183,7 +183,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   // 预测得到每一个时间点的位姿
   for (const auto& range : synchronized_data.ranges) {
     common::Time time_point = time + common::FromSeconds(range.point_time.time);
-    // 如果该时间比PoseExtrapolator的最新时间还要早,说明在第一个点被捕获时,PoseExtrapolator还没初始化
+    // 如果该时间比上次校准PoseExtrapolator的时间还要早,说明这个点的时间戳比上一帧点云的时间戳小
     if (time_point < extrapolator_->GetLastExtrapolatedTime()) {
       // 一个循环只报一次错
       if (!warned) {
@@ -258,20 +258,20 @@ LocalTrajectoryBuilder2D::AddRangeData(
     // 重置变量
     num_accumulated_ = 0;
 
-    // ?: 估计重力的方向
+    // 获取机器人当前姿态
     const transform::Rigid3d gravity_alignment = transform::Rigid3d::Rotation(
         extrapolator_->EstimateGravityOrientation(time));
 
     // TODO(gaschler): This assumes that 'range_data_poses.back()' is at time
     // 'time'.
-    // note: 地图的原点就是这块的origin
+    // note: 地图的原点就是这里的origin
     // 以最后一个点的时间戳估计出的坐标为这帧数据的原点
     accumulated_range_data_.origin = range_data_poses.back().translation();
     
     return AddAccumulatedRangeData(
         time,
         TransformToGravityAlignedFrameAndFilter(
-            // ?: 重力方向乘以原点的逆 代表什么
+            // 将点云变换到原点处, 且姿态为0
             gravity_alignment.cast<float>() * range_data_poses.back().inverse(),
             accumulated_range_data_),
         gravity_alignment, sensor_duration);
@@ -284,8 +284,8 @@ LocalTrajectoryBuilder2D::AddRangeData(
  * @brief 进行扫描匹配, 将点云写入地图
  * 
  * @param[in] time 点云的时间戳
- * @param[in] gravity_aligned_range_data 处理后的点云
- * @param[in] gravity_alignment 
+ * @param[in] gravity_aligned_range_data 原点位于local坐标系原点处的点云
+ * @param[in] gravity_alignment 机器人当前姿态
  * @param[in] sensor_duration 2帧点云数据的时间差
  * @return std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult> 
  */
@@ -305,11 +305,11 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   // 进行位姿的预测, 先验位姿
   const transform::Rigid3d non_gravity_aligned_pose_prediction =
       extrapolator_->ExtrapolatePose(time);
-  // ?: 将位姿转成二维的
+  // 将三维位姿先旋转到姿态为0, 再取xy坐标将三维位姿转成二维位姿
   const transform::Rigid2d pose_prediction = transform::Project2D(
       non_gravity_aligned_pose_prediction * gravity_alignment.inverse());
 
-  // Step: 7 进行自适应体素滤波
+  // Step: 7 对 returns点云 进行自适应体素滤波
   const sensor::PointCloud& filtered_gravity_aligned_point_cloud =
       sensor::AdaptiveVoxelFilter(gravity_aligned_range_data.returns,
                                   options_.adaptive_voxel_filter_options());
@@ -333,7 +333,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   // 校准位姿估计器
   extrapolator_->AddPose(time, pose_estimate);
 
-  // Step: 8 根据匹配后的位姿对点云进行校正
+  // Step: 8 将 原点位于local坐标系原点处的点云 变换成 原点位于匹配后的位姿处的点云
   sensor::RangeData range_data_in_local =
       TransformRangeData(gravity_aligned_range_data,
                          transform::Embed3D(pose_estimate_2d->cast<float>()));

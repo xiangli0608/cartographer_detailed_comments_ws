@@ -179,6 +179,7 @@ void Grid2D::GrowLimits(const Eigen::Vector2f& point,
     // 更新地图尺寸
     limits_ = new_limits;
     if (!known_cells_box_.isEmpty()) {
+      // 将known_cells_box_的x与y进行平移到老地图的范围上
       known_cells_box_.translate(Eigen::Vector2i(x_offset, y_offset));
     }
   }
