@@ -21,6 +21,14 @@
 namespace cartographer {
 namespace mapping {
 
+/**
+ * @brief 构造函数
+ * 
+ * @param[in] limits 地图坐标信息
+ * @param[in] truncation_distance 0.3
+ * @param[in] max_weight 10.0
+ * @param[in] conversion_tables 转换表
+ */
 TSDF2D::TSDF2D(const MapLimits& limits, float truncation_distance,
                float max_weight, ValueConversionTables* conversion_tables)
     : Grid2D(limits, -truncation_distance, truncation_distance,
@@ -46,12 +54,14 @@ TSDF2D::TSDF2D(const proto::Grid2D& proto,
   }
 }
 
+// 指定的索引的栅格是否被更新过
 bool TSDF2D::CellIsUpdated(const Eigen::Array2i& cell_index) const {
   const int flat_index = ToFlatIndex(cell_index);
   uint16 tsdf_cell = correspondence_cost_cells()[flat_index];
   return tsdf_cell >= value_converter_->getUpdateMarker();
 }
 
+// 设置栅格的TSD值与权重
 void TSDF2D::SetCell(const Eigen::Array2i& cell_index, float tsd,
                      float weight) {
   const int flat_index = ToFlatIndex(cell_index);
@@ -69,6 +79,7 @@ void TSDF2D::SetCell(const Eigen::Array2i& cell_index, float tsd,
 
 GridType TSDF2D::GetGridType() const { return GridType::TSDF; }
 
+// 获取TSD值
 float TSDF2D::GetTSD(const Eigen::Array2i& cell_index) const {
   if (limits().Contains(cell_index)) {
     return value_converter_->ValueToTSD(
@@ -77,6 +88,7 @@ float TSDF2D::GetTSD(const Eigen::Array2i& cell_index) const {
   return value_converter_->getMinTSD();
 }
 
+// 获取权重值
 float TSDF2D::GetWeight(const Eigen::Array2i& cell_index) const {
   if (limits().Contains(cell_index)) {
     return value_converter_->ValueToWeight(
@@ -85,6 +97,7 @@ float TSDF2D::GetWeight(const Eigen::Array2i& cell_index) const {
   return value_converter_->getMinWeight();
 }
 
+// 获取TSD的值与权重
 std::pair<float, float> TSDF2D::GetTSDAndWeight(
     const Eigen::Array2i& cell_index) const {
   if (limits().Contains(cell_index)) {
@@ -97,6 +110,7 @@ std::pair<float, float> TSDF2D::GetTSDAndWeight(
                         value_converter_->getMinWeight());
 }
 
+// 根据点的坐标对地图进行放大
 void TSDF2D::GrowLimits(const Eigen::Vector2f& point) {
   Grid2D::GrowLimits(point,
                      {mutable_correspondence_cost_cells(), &weight_cells_},
@@ -115,6 +129,7 @@ proto::Grid2D TSDF2D::ToProto() const {
   return result;
 }
 
+// 根据bounding_box对地图进行裁剪到正好包含点云
 std::unique_ptr<Grid2D> TSDF2D::ComputeCroppedGrid() const {
   Eigen::Array2i offset;
   CellLimits cell_limits;
@@ -134,6 +149,7 @@ std::unique_ptr<Grid2D> TSDF2D::ComputeCroppedGrid() const {
   return std::move(cropped_grid);
 }
 
+// 获取压缩后的地图栅格数据
 bool TSDF2D::DrawToSubmapTexture(
     proto::SubmapQuery::Response::SubmapTexture* const texture,
     transform::Rigid3d local_pose) const {

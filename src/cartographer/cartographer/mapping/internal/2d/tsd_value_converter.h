@@ -30,6 +30,7 @@ namespace mapping {
 
 // Provides conversions between float and uint16 representations for
 // truncated signed distance values and weights.
+// 为TSD的距离值和权重提供 float 和 uint16 表示之间的转换
 class TSDValueConverter {
  public:
   TSDValueConverter(float max_tsd, float max_weight,
@@ -94,8 +95,10 @@ class TSDValueConverter {
   static constexpr uint16 unknown_weight_value_ = 0;
   static constexpr uint16 update_marker_ = 1u << 15;
 
+  // value到tsd的转换表 将[0, 1~32767] 映射到 [-0.3, -0.3~0.3]
   const std::vector<float>* value_to_tsd_;
-  const std::vector<float>* value_to_weight_;
+  // value到weight的转换表 将[0, 1~32767] 映射到 [0.0, 0.0~10.0]
+  const std::vector<float>* value_to_weight_; 
 };
 
 }  // namespace mapping

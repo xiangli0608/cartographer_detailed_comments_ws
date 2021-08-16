@@ -254,10 +254,10 @@ std::unique_ptr<GridInterface> ActiveSubmaps2D::CreateGrid(
                     CellLimits(kInitialSubmapSize, kInitialSubmapSize)),
           options_.range_data_inserter_options()
               .tsdf_range_data_inserter_options_2d()
-              .truncation_distance(),
+              .truncation_distance(),               // 0.3
           options_.range_data_inserter_options()
               .tsdf_range_data_inserter_options_2d()
-              .maximum_weight(),
+              .maximum_weight(),                    // 10.0
           &conversion_tables_);
     default:
       LOG(FATAL) << "Unknown GridType.";

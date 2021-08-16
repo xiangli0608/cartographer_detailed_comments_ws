@@ -53,13 +53,16 @@ class OccupiedSpaceCostFunction2D {
       const Eigen::Matrix<T, 3, 1> point((T(point_cloud_[i].position.x())),
                                          (T(point_cloud_[i].position.y())),
                                          T(1.));
+      // 根据预测位姿对单个点进行坐标变换
       const Eigen::Matrix<T, 3, 1> world = transform * point;
+      // 获取三次插值之后的栅格free值, Evaluate函数内部调用了GetValue函数
       interpolator.Evaluate(
           (limits.max().x() - world[0]) / limits.resolution() - 0.5 +
               static_cast<double>(kPadding),
           (limits.max().y() - world[1]) / limits.resolution() - 0.5 +
               static_cast<double>(kPadding),
           &residual[i]);
+      // free值越小, 表示占用的概率越大
       residual[i] = scaling_factor_ * residual[i];
     }
     return true;
@@ -67,22 +70,30 @@ class OccupiedSpaceCostFunction2D {
 
  private:
   static constexpr int kPadding = INT_MAX / 4;
+  
+  // 自定义网格
   class GridArrayAdapter {
    public:
+    // 枚举 DATA_DIMENSION 表示被插值的向量或者函数的维度
     enum { DATA_DIMENSION = 1 };
 
     explicit GridArrayAdapter(const Grid2D& grid) : grid_(grid) {}
 
+    // 获取栅格free值
     void GetValue(const int row, const int column, double* const value) const {
+      // 处于地图外部时, 赋予最大free值
       if (row < kPadding || column < kPadding || row >= NumRows() - kPadding ||
           column >= NumCols() - kPadding) {
         *value = kMaxCorrespondenceCost;
-      } else {
+      } 
+      // 根据索引获取free值
+      else {
         *value = static_cast<double>(grid_.GetCorrespondenceCost(
             Eigen::Array2i(column - kPadding, row - kPadding)));
       }
     }
 
+    // map上下左右各增加 kPadding
     int NumRows() const {
       return grid_.limits().cell_limits().num_y_cells + 2 * kPadding;
     }
@@ -106,6 +117,7 @@ class OccupiedSpaceCostFunction2D {
 
 }  // namespace
 
+// 工厂函数, 返回地图的CostFunction
 ceres::CostFunction* CreateOccupiedSpaceCostFunction2D(
     const double scaling_factor, const sensor::PointCloud& point_cloud,
     const Grid2D& grid) {
@@ -113,7 +125,7 @@ ceres::CostFunction* CreateOccupiedSpaceCostFunction2D(
                                          ceres::DYNAMIC /* residuals */,
                                          3 /* pose variables */>(
       new OccupiedSpaceCostFunction2D(scaling_factor, point_cloud, grid),
-      point_cloud.size());
+      point_cloud.size()); // 比固定残差维度的 多了一个参数
 }
 
 }  // namespace scan_matching

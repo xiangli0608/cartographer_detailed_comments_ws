@@ -24,6 +24,7 @@ namespace cartographer {
 namespace mapping {
 namespace scan_matching {
 
+// 构造函数
 SearchParameters::SearchParameters(const double linear_search_window,
                                    const double angular_search_window,
                                    const sensor::PointCloud& point_cloud,
@@ -39,7 +40,7 @@ SearchParameters::SearchParameters(const double linear_search_window,
     max_scan_range = std::max(range, max_scan_range);
   }
 
-  // 求得角度搜索步长 angular_perturbation_step_size
+  // 根据论文里的公式 求得角度搜索步长 angular_perturbation_step_size
   const double kSafetyMargin = 1. - 1e-3;
   angular_perturbation_step_size =
       kSafetyMargin * std::acos(1. - common::Pow2(resolution) /
@@ -54,7 +55,7 @@ SearchParameters::SearchParameters(const double linear_search_window,
   const int num_linear_perturbations =
       std::ceil(linear_search_window / resolution);
 
-  // linear_bounds 的作用是 确定每一个 scan 的最大最小边界
+  // linear_bounds 的作用是确定每一个点云的最大最小边界
   linear_bounds.reserve(num_scans);
   for (int i = 0; i != num_scans; ++i) {
     linear_bounds.push_back(
@@ -63,6 +64,7 @@ SearchParameters::SearchParameters(const double linear_search_window,
   }
 }
 
+// For testing.
 SearchParameters::SearchParameters(const int num_linear_perturbations,
                                    const int num_angular_perturbations,
                                    const double angular_perturbation_step_size,
@@ -105,24 +107,21 @@ void SearchParameters::ShrinkToFit(const std::vector<DiscreteScan2D>& scans,
   }
 }
 
-
+// 生成按照不同角度旋转后的点云集合
 std::vector<sensor::PointCloud> GenerateRotatedScans(
     const sensor::PointCloud& point_cloud,
     const SearchParameters& search_parameters) {
   std::vector<sensor::PointCloud> rotated_scans;
+  // 生成 num_scans 个点云
   rotated_scans.reserve(search_parameters.num_scans);
-
-  // 在 MatchFullSubmap 情况下, 大约等于 -3.14186
+  // 起始角度
   double delta_theta = -search_parameters.num_angular_perturbations *
                        search_parameters.angular_perturbation_step_size;
-
-  // 遍历360度
+  // 进行遍历，生成旋转不同角度后的点云集合
   for (int scan_index = 0; scan_index < search_parameters.num_scans;
        ++scan_index,
            delta_theta += search_parameters.angular_perturbation_step_size) {
-    
     // 将 point_cloud 绕Z轴旋转 delta_theta 
-    // 在 MatchFullSubmap 情况下, 生成360度的 point_cloud
     rotated_scans.push_back(sensor::TransformPointCloud(
         point_cloud, transform::Rigid3f::Rotation(Eigen::AngleAxisf(
                          delta_theta, Eigen::Vector3f::UnitZ()))));
@@ -130,6 +129,7 @@ std::vector<sensor::PointCloud> GenerateRotatedScans(
   return rotated_scans;
 }
 
+// 将旋转后的点云集合按照预测出的平移量进行平移, 获取平移后的点在地图中的索引
 std::vector<DiscreteScan2D> DiscretizeScans(
     const MapLimits& map_limits, const std::vector<sensor::PointCloud>& scans,
     const Eigen::Translation2f& initial_translation) {

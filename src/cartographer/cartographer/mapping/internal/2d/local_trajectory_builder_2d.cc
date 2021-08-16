@@ -264,7 +264,6 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
     // TODO(gaschler): This assumes that 'range_data_poses.back()' is at time
     // 'time'.
-    // note: 地图的原点就是这里的origin
     // 以最后一个点的时间戳估计出的坐标为这帧数据的原点
     accumulated_range_data_.origin = range_data_poses.back().translation();
     
@@ -309,7 +308,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   const transform::Rigid2d pose_prediction = transform::Project2D(
       non_gravity_aligned_pose_prediction * gravity_alignment.inverse());
 
-  // Step: 7 对 returns点云 进行自适应体素滤波
+  // Step: 7 对 returns点云 进行自适应体素滤波，返回的点云的数据类型是PointCloud
   const sensor::PointCloud& filtered_gravity_aligned_point_cloud =
       sensor::AdaptiveVoxelFilter(gravity_aligned_range_data.returns,
                                   options_.adaptive_voxel_filter_options());

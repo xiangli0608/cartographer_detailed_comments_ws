@@ -287,19 +287,18 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   CHECK(score != nullptr);
   CHECK(pose_estimate != nullptr);
 
-  // 将激光点旋转按照 initial_pose_estimate 的角度旋转一下
+  // 将点云旋转到预测的方向上
   const Eigen::Rotation2Dd initial_rotation = initial_pose_estimate.rotation();
   const sensor::PointCloud rotated_point_cloud = sensor::TransformPointCloud(
       point_cloud,
       transform::Rigid3f::Rotation(Eigen::AngleAxisf(
           initial_rotation.cast<float>().angle(), Eigen::Vector3f::UnitZ())));
 
-  // 生成一系列的rotated scans, 各种不同的角度的scan, 60度或者360度范围内的旋转
+  // 生成按照不同角度旋转后的点云集合
   const std::vector<sensor::PointCloud> rotated_scans =
       GenerateRotatedScans(rotated_point_cloud, search_parameters);
 
-  // 把上面的rotated scans转换到世界坐标系中,这里进行转换的时候只需要进行平移就可以了
-  // 这里的离散激光点是在最细的分辨率的地图上面   
+  // 将旋转后的点云集合按照预测出的平移量进行平移, 获取平移后的点在地图中的索引 这里的离散激光点是在最细的分辨率的地图上面
   const std::vector<DiscreteScan2D> discrete_scans = DiscretizeScans(
       limits_, rotated_scans,
       Eigen::Translation2f(initial_pose_estimate.translation().x(),
@@ -309,12 +308,12 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits());
 
   // 计算最低分辨率中的所有的候选解 最低分辨率是通过搜索树的层数、地图的分辨率计算出来的.
-  // 对于地图坐标系来说 最低分辨率=1<<h h表示搜索树的总的层数
-  // 这里不但对最低分辨率的所有候选解的得分进行了计算　同时还按照从大到小排列
+  // 对于地图坐标系来说 最低分辨率=1<<h, h表示搜索树的总的层数
+  // 这里不但对最低分辨率的所有候选解的得分进行了计算, 同时还按照从大到小排列
   const std::vector<Candidate2D> lowest_resolution_candidates =
       ComputeLowestResolutionCandidates(discrete_scans, search_parameters);
   
-  // 调用函数BranchAndBound完成分支定界搜索, 搜索的结果将被保存在best_candidate中.
+  // 进行基于分支定界算法的搜索, 获取最优解
   const Candidate2D best_candidate = BranchAndBound(
       discrete_scans, search_parameters, lowest_resolution_candidates,
       precomputation_grid_stack_->max_depth(), min_score);

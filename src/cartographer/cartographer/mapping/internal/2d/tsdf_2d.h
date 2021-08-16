@@ -53,8 +53,8 @@ class TSDF2D : public Grid2D {
   bool CellIsUpdated(const Eigen::Array2i& cell_index) const;
 
  private:
-  ValueConversionTables* conversion_tables_;
-  std::unique_ptr<TSDValueConverter> value_converter_;
+  ValueConversionTables* conversion_tables_; // 转换表指针
+  std::unique_ptr<TSDValueConverter> value_converter_; // 数据格式转换
   std::vector<uint16> weight_cells_;  // Highest bit is update marker.
 };
 
