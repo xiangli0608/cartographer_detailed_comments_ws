@@ -171,6 +171,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   const common::Time time_first_point =
       time +
       common::FromSeconds(synchronized_data.ranges.front().point_time.time);
+  // 只有在extrapolator_初始化时, GetLastPoseTime()是common::Time::min()
   if (time_first_point < extrapolator_->GetLastPoseTime()) {
     LOG(INFO) << "Extrapolator is still initializing.";
     return nullptr;
@@ -183,7 +184,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   // 预测得到每一个时间点的位姿
   for (const auto& range : synchronized_data.ranges) {
     common::Time time_point = time + common::FromSeconds(range.point_time.time);
-    // 如果该时间比上次校准PoseExtrapolator的时间还要早,说明这个点的时间戳比上一帧点云的时间戳小
+    // 如果该时间比上次预测位姿的时间还要早,说明这个点的时间戳往回走了, 就报错
     if (time_point < extrapolator_->GetLastExtrapolatedTime()) {
       // 一个循环只报一次错
       if (!warned) {
@@ -433,6 +434,8 @@ void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
   if (extrapolator_ != nullptr) {
     return;
   }
+
+  // 注意 use_imu_based为true就会报错
   CHECK(!options_.pose_extrapolator_options().use_imu_based());
   // TODO(gaschler): Consider using InitializeWithImu as 3D does.
 
@@ -440,10 +443,10 @@ void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
   extrapolator_ = absl::make_unique<PoseExtrapolator>(
       ::cartographer::common::FromSeconds(options_.pose_extrapolator_options()
                                               .constant_velocity()
-                                              .pose_queue_duration()),
+                                              .pose_queue_duration()), // 0.001s
       options_.pose_extrapolator_options()
           .constant_velocity()
-          .imu_gravity_time_constant());
+          .imu_gravity_time_constant()); // 10
   // 添加初始位姿
   extrapolator_->AddPose(time, transform::Rigid3d::Identity());
 }

@@ -33,7 +33,7 @@ namespace mapping {
 // Keep poses for a certain duration to estimate linear and angular velocity.
 // Uses the velocities to extrapolate motion. Uses IMU and/or odometry data if
 // available to improve the extrapolation.
-// 保持poses一定持续时间, 以估计线速度和角速度.
+// 保持poses一定持续时间, 以估计线速度和角速度
 // 使用速度预测运动. 使用IMU和/或里程计数据（如果有）来改善预测
 class PoseExtrapolator : public PoseExtrapolatorInterface {
  public:
@@ -96,10 +96,9 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
   // 只能通过 std::move() 来移动unique_ptr
   // std::make_unique 是 C++14 才有的特性
 
-  // 通过ImuTracker来进行姿态的更新与计算
-  std::unique_ptr<ImuTracker> imu_tracker_;
-  std::unique_ptr<ImuTracker> odometry_imu_tracker_;
-  std::unique_ptr<ImuTracker> extrapolation_imu_tracker_;
+  std::unique_ptr<ImuTracker> imu_tracker_;               // 保存与预测当前姿态
+  std::unique_ptr<ImuTracker> odometry_imu_tracker_;      // 用于计算里程计的姿态的ImuTracker
+  std::unique_ptr<ImuTracker> extrapolation_imu_tracker_; // 用于预测姿态的ImuTracker
   TimedPose cached_extrapolated_pose_;
 
   std::deque<sensor::OdometryData> odometry_data_;

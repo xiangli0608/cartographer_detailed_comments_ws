@@ -28,7 +28,7 @@ namespace mapping {
 // slow movement) is a direct measurement of gravity, roll/pitch does not drift,
 // though yaw does.
 // 使用来自IMU的角速度和线性加速度跟踪方向
-// 由于平均线性加速度（假设缓慢移动）是重力的直接量度, 因此, 横摆/俯仰不会漂移, 尽管偏航会漂移.
+// 由于平均线性加速度(假设缓慢移动)是重力的直接量度, 因此, 横摆/俯仰不会漂移, 尽管偏航会漂移
 
 /**
  * @brief 
