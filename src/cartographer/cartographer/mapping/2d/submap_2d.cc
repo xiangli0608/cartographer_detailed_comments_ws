@@ -181,7 +181,7 @@ void Submap2D::Finish() {
 ActiveSubmaps2D::ActiveSubmaps2D(const proto::SubmapsOptions2D& options)
     : options_(options), range_data_inserter_(CreateRangeDataInserter()) {}
 
-// 返回 Active submap 的指针的vector
+// 返回指向 Submap2D 的 shared_ptr指针 的vector
 std::vector<std::shared_ptr<const Submap2D>> ActiveSubmaps2D::submaps() const {
   return std::vector<std::shared_ptr<const Submap2D>>(submaps_.begin(),
                                                       submaps_.end());
