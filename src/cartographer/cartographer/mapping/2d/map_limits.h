@@ -48,9 +48,9 @@ namespace mapping {
  * 0 ------> x           y <------0                y       
  * 
  * ros的地图坐标系: 左下角为原点, 向右为x正方向, 向上为y正方向, 角度以x轴正向为0度, 逆时针为正
- * cartographer的地图坐标系 坐标系右下角为原点, 向上为x正方向, 向左为y正方向
+ * cartographer的地图坐标系: 坐标系右下角为原点, 向上为x正方向, 向左为y正方向
  *             角度正方向以x轴正向为0度, 逆时针为正
- * cartographer地图的像素坐标系 左上角为原点, 向右为x正方向, 向下为y正方向
+ * cartographer地图的像素坐标系: 左上角为原点, 向右为x正方向, 向下为y正方向
  */
 class MapLimits {
  public:

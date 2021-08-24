@@ -200,7 +200,6 @@ std::vector<std::shared_ptr<const Submap2D>> ActiveSubmaps2D::InsertRangeData(
   for (auto& submap : submaps_) {
     submap->InsertRangeData(range_data, range_data_inserter_.get());
   }
-  // tag: 这里需要画图说明一下
   // 第一个子图的节点数量等于2倍的num_range_data时,第二个子图节点数量应该等于num_range_data
   if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) {
     submaps_.front()->Finish();
