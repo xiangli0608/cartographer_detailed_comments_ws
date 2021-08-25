@@ -106,7 +106,7 @@ POSE_GRAPH = {
   max_num_final_iterations = 200,   -- 在建图结束之后执行一次全局优化, 不要求实时性, 迭代次数多
   global_sampling_ratio = 0.003,    -- 纯定位时候查找回环的频率
   log_residual_histograms = true,
-  global_constraint_search_after_n_seconds = 10., -- 纯定位时多少秒执行一次
+  global_constraint_search_after_n_seconds = 10., -- 纯定位时多少秒执行一次全子图的约束计算
 
   --  overlapping_submaps_trimmer_2d = {
   --    fresh_submaps_count = 1,
