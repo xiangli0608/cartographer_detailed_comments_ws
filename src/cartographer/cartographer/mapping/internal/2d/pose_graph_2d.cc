@@ -378,13 +378,13 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
     }
     // 获取该 node 和该 submap 中的 node 中较新的时间
     const common::Time node_time = GetLatestNodeTime(node_id, submap_id);
-    // 得到最后一个轨迹连接的时间
+    // 两个轨迹的最后连接时间
     const common::Time last_connection_time =
         data_.trajectory_connectivity_state.LastConnectionTime(
             node_id.trajectory_id, submap_id.trajectory_id);
 
     // 如果节点和子图属于同一轨迹, 或者如果最近有一个全局约束将该节点的轨迹与子图的轨迹联系起来
-    // 则只需进行 局部搜索窗口 的匹配. 
+    // 则只需进行 局部搜索窗口 的约束计算
     if (node_id.trajectory_id == submap_id.trajectory_id ||
         node_time <
             last_connection_time +
@@ -394,49 +394,41 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
       // has been a recent global constraint that ties that node's trajectory to
       // the submap's trajectory, it suffices to do a match constrained to a
       // local search window.
-      // 进行局部匹配
       maybe_add_local_constraint = true;
     }
     // 如果节点与子图不属于同一条轨迹 并且 间隔了一段时间, 同时采样器为true
-    // maybe_add_global_constraint才为true
+    // 才进行 全局搜索窗口 的约束计算
     else if (global_localization_samplers_[node_id.trajectory_id]->Pulse()) {
       maybe_add_global_constraint = true;
     }
 
-    // 获取节点信息数据与地图
+    // 获取节点信息数据与地图数据
     constant_data = data_.trajectory_nodes.at(node_id).constant_data.get();
     submap = static_cast<const Submap2D*>(
         data_.submap_data.at(submap_id).submap.get());
   } // end {}
 
-  // 局部匹配进行局部的约束计算
   if (maybe_add_local_constraint) {
-    // 获取初始位姿的估计值
-    // submap原点在global坐标系下的坐标的逆 * 节点在global坐标系下的坐标 = 节点到submap原点间的坐标变换
+    // 计算约束的估计值
+    // submap原点在global坐标系下的坐标的逆 * 节点在global坐标系下的坐标 = submap原点指向节点的坐标变换
     const transform::Rigid2d initial_relative_pose =
         optimization_problem_->submap_data()
             .at(submap_id)
             .global_pose.inverse() *
         optimization_problem_->node_data().at(node_id).global_pose_2d;
-    // 进行局部区域的匹配, 计算局部约束
+    // 进行局部搜索窗口 的约束计算
     constraint_builder_.MaybeAddConstraint(
         submap_id, submap, node_id, constant_data, initial_relative_pose);
-  } else if (maybe_add_global_constraint) {
-    // 进行回环检测
+  } 
+  else if (maybe_add_global_constraint) {
+    // 全局搜索窗口 的约束计算
     constraint_builder_.MaybeAddGlobalConstraint(submap_id, submap, node_id,
                                                  constant_data);
   }
 }
 
-
-// 四步：
-// 1 把该节点的信息加入到OptimizationProblem中, 方便进行优化
-// 2 计算节点和新加入的submap之间的约束
-// 3 计算其它submap与节点之间约束
-// 4 计算新的submap和旧的节点的约束
-
 /**
- * @brief 
+ * @brief 保存节点, 计算子图内约束, 查找回环
  * 
  * @param[in] node_id 刚加入的节点ID
  * @param[in] insertion_submaps active_submaps
@@ -572,9 +564,8 @@ common::Time PoseGraph2D::GetLatestNodeTime(const NodeId& node_id,
   common::Time time = data_.trajectory_nodes.at(node_id).constant_data->time;
   // 获取指定 id 的 submap 的数据
   const InternalSubmapData& submap_data = data_.submap_data.at(submap_id);
-  // 如果该 submap 中的 node_ids 不为空.
   if (!submap_data.node_ids.empty()) {
-    // 获取node_ids 列表中的最后一个元素
+    // 获取子图中的最后一个节点
     const NodeId last_submap_node_id =
         *data_.submap_data.at(submap_id).node_ids.rbegin();
     // 把时间更新为 节点建立时间 与 submap 中最后一个节点时间中 较晚的那个
