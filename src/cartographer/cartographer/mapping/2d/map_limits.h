@@ -94,7 +94,6 @@ class MapLimits {
     // Index values are row major and the top left has Eigen::Array2i::Zero()
     // and contains (centered_max_x, centered_max_y). We need to flip and
     // rotate.
-    // 因为在求max时对坐标加了0.5,所以这里要减去
     return Eigen::Array2i(
         common::RoundToInt((max_.y() - point.y()) / resolution_ - 0.5),
         common::RoundToInt((max_.x() - point.x()) / resolution_ - 0.5));

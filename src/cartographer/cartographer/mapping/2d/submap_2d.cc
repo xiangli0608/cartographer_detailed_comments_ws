@@ -231,7 +231,7 @@ std::unique_ptr<GridInterface> ActiveSubmaps2D::CreateGrid(
     const Eigen::Vector2f& origin) {
   // 地图初始大小,100个栅格
   constexpr int kInitialSubmapSize = 100;
-  float resolution = options_.grid_options_2d().resolution();
+  float resolution = options_.grid_options_2d().resolution(); // param: grid_options_2d.resolution
   switch (options_.grid_options_2d().grid_type()) {
     // 概率栅格地图
     case proto::GridOptions2D::PROBABILITY_GRID:
