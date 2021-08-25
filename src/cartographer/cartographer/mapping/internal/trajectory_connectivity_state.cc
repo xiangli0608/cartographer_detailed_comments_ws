@@ -24,8 +24,7 @@ void TrajectoryConnectivityState::Add(const int trajectory_id) {
   connected_components_.Add(trajectory_id);
 }
 
-// 连接两条轨迹. 如果任一轨迹未跟踪, 则将对其进行跟踪. 
-// 此函数对其参数的顺序是不变的. 重复调用 Connect 会增加连接计数并更新上次连接时间
+// 连接两条轨迹. 如果任一轨迹未跟踪, 则将对其进行跟踪,重复调用 Connect 会增加连接计数并更新上次连接时间
 void TrajectoryConnectivityState::Connect(const int trajectory_id_a,
                                           const int trajectory_id_b,
                                           const common::Time time) {
@@ -33,6 +32,7 @@ void TrajectoryConnectivityState::Connect(const int trajectory_id_a,
     // The trajectories are transitively connected, i.e. they belong to the same
     // connected component. In this case we only update the last connection time
     // of those two trajectories.
+    // 更新时间
     auto sorted_pair = std::minmax(trajectory_id_a, trajectory_id_b);
     if (last_connection_time_map_[sorted_pair] < time) {
       last_connection_time_map_[sorted_pair] = time;
@@ -45,34 +45,39 @@ void TrajectoryConnectivityState::Connect(const int trajectory_id_a,
     // search window) when connected components are joined.
     // 这两条轨迹之间的连接即将加入连接的组件.在这里, 我们使用连接时间更新两个连接组件的所有二分轨迹对
     // 这是为了在连接组件连接时快速更改为更有效的回环搜索（通过约束搜索窗口）.
+    
+    // 获取所有与轨迹a连接的轨迹id
     std::vector<int> component_a =
         connected_components_.GetComponent(trajectory_id_a);
+    // 获取所有与轨迹a连接的轨迹id
     std::vector<int> component_b =
         connected_components_.GetComponent(trajectory_id_b);
+    // 为所有的a与b间的连接组合设置时间
     for (const auto id_a : component_a) {
       for (const auto id_b : component_b) {
+        // c++11: std::minmax 返回由最小值与最大值组成的一个pair
         auto id_pair = std::minmax(id_a, id_b);
         last_connection_time_map_[id_pair] = time;
       }
     }
   }
+  // 为两条轨迹添加连接关系
   connected_components_.Connect(trajectory_id_a, trajectory_id_b);
 }
 
-// 确定两个轨迹是否已经（传递）连接. 如果没有跟踪任一轨迹, 则返回 false, 除非它是相同的轨迹, 
-// 否则返回 true. 此函数对其参数的顺序是不变的. 
+// 判断2个轨迹是否处于连接状态
 bool TrajectoryConnectivityState::TransitivelyConnected(
     const int trajectory_id_a, const int trajectory_id_b) const {
   return connected_components_.TransitivelyConnected(trajectory_id_a,
                                                      trajectory_id_b);
 }
 
-// 轨迹ID, 按连通性分组
+// 获取链接的组件的轨迹ID列表
 std::vector<std::vector<int>> TrajectoryConnectivityState::Components() const {
   return connected_components_.Components();
 }
 
-// 返回两个轨迹之间的最后一个连接计数. 如果任一轨迹未跟踪或它们从未连接过, 则返回时间的开始
+// 返回两个轨迹之间的最后连接时间
 common::Time TrajectoryConnectivityState::LastConnectionTime(
     const int trajectory_id_a, const int trajectory_id_b) {
   const auto sorted_pair = std::minmax(trajectory_id_a, trajectory_id_b);

@@ -28,11 +28,13 @@ namespace mapping {
 ConnectedComponents::ConnectedComponents()
     : lock_(), forest_(), connection_map_() {}
 
+// 添加一个最初只连接到它自己的轨迹
 void ConnectedComponents::Add(const int trajectory_id) {
   absl::MutexLock locker(&lock_);
   forest_.emplace(trajectory_id, trajectory_id);
 }
 
+// 将轨迹a的id与轨迹b的id连接起来, 添加到connection_map_中
 void ConnectedComponents::Connect(const int trajectory_id_a,
                                   const int trajectory_id_b) {
   absl::MutexLock locker(&lock_);
@@ -41,6 +43,7 @@ void ConnectedComponents::Connect(const int trajectory_id_a,
   ++connection_map_[sorted_pair];
 }
 
+// 将轨迹a的id与轨迹b的id连接起来, 添加到forest_中
 void ConnectedComponents::Union(const int trajectory_id_a,
                                 const int trajectory_id_b) {
   forest_.emplace(trajectory_id_a, trajectory_id_a);
@@ -50,6 +53,8 @@ void ConnectedComponents::Union(const int trajectory_id_a,
   forest_[representative_a] = representative_b;
 }
 
+
+// 找到这条轨迹连接链的尽头, (b, b)是尽头
 int ConnectedComponents::FindSet(const int trajectory_id) {
   auto it = forest_.find(trajectory_id);
   CHECK(it != forest_.end());
@@ -60,6 +65,7 @@ int ConnectedComponents::FindSet(const int trajectory_id) {
   return it->second;
 }
 
+// 判断2个轨迹是否处于连接状态
 bool ConnectedComponents::TransitivelyConnected(const int trajectory_id_a,
                                                 const int trajectory_id_b) {
   if (trajectory_id_a == trajectory_id_b) {
@@ -75,6 +81,7 @@ bool ConnectedComponents::TransitivelyConnected(const int trajectory_id_a,
   return FindSet(trajectory_id_a) == FindSet(trajectory_id_b);
 }
 
+// 获取链接的组件的轨迹ID列表
 std::vector<std::vector<int>> ConnectedComponents::Components() {
   // Map from cluster exemplar -> growing cluster.
   absl::flat_hash_map<int, std::vector<int>> map;
@@ -92,6 +99,7 @@ std::vector<std::vector<int>> ConnectedComponents::Components() {
   return result;
 }
 
+// 返回与trajectory_id的连接组件的轨迹 ID 列表
 std::vector<int> ConnectedComponents::GetComponent(const int trajectory_id) {
   absl::MutexLock locker(&lock_);
   const int set_id = FindSet(trajectory_id);
@@ -104,6 +112,7 @@ std::vector<int> ConnectedComponents::GetComponent(const int trajectory_id) {
   return trajectory_ids;
 }
 
+// 获取这个连接的个数
 int ConnectedComponents::ConnectionCount(const int trajectory_id_a,
                                          const int trajectory_id_b) {
   absl::MutexLock locker(&lock_);
