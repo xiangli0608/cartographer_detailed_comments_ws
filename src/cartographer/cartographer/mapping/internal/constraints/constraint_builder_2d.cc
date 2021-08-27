@@ -178,14 +178,17 @@ void ConstraintBuilder2D::MaybeAddGlobalConstraint(
 void ConstraintBuilder2D::NotifyEndOfNode() {
   absl::MutexLock locker(&mutex_);
   CHECK(finish_node_task_ != nullptr);
+  
   // 生成个任务: 将num_finished_nodes_自加, 记录完成约束计算节点的总个数
   finish_node_task_->SetWorkItem([this] {
     absl::MutexLock locker(&mutex_);
     ++num_finished_nodes_;
   });
+
   // 将这个任务传入线程池中等待执行, 由于之前添加了依赖, 所以finish_node_task_一定会比计算约束更晚完成
   auto finish_node_task_handle =
       thread_pool_->Schedule(std::move(finish_node_task_));
+
   // move之后finish_node_task_就没有指向的地址了, 所以这里要重新初始化
   finish_node_task_ = absl::make_unique<common::Task>();
   // 将finish_node_task_handle设置为when_done_task_的依赖
@@ -204,7 +207,7 @@ void ConstraintBuilder2D::WhenDone(
   when_done_ = absl::make_unique<std::function<void(const Result&)>>(callback);
   CHECK(when_done_task_ != nullptr);
 
-  // 生成 执行回调函数 任务
+  // 生成 执行when_done_的任务
   when_done_task_->SetWorkItem([this] { RunWhenDoneCallback(); });
   // 将任务放入线程池中等待执行
   thread_pool_->Schedule(std::move(when_done_task_));
@@ -364,7 +367,7 @@ void ConstraintBuilder2D::ComputeConstraint(
   }
 }
 
-// 将临时保存的所有约束数据传入回调函数
+// 将临时保存的所有约束数据传入回调函数, 并执行回调函数
 void ConstraintBuilder2D::RunWhenDoneCallback() {
   Result result;
   std::unique_ptr<std::function<void(const Result&)>> callback;

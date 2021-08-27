@@ -693,34 +693,36 @@ void PoseGraph2D::HandleWorkQueue(
   DrainWorkQueue();
 }
 
-// 在调用线程上执行工作队列中的待处理任务, 直到队列为空或需要优化时退出循环, 执行优化
+// 在调用线程上执行工作队列中的待处理任务, 直到队列为空或需要优化时退出循环
 void PoseGraph2D::DrainWorkQueue() {
   bool process_work_queue = true;
   size_t work_queue_size;
 
-  // 循环一直执行, 直到需要进行优化时结束循环
+  // 循环一直执行, 直到队列为空或需要优化时退出循环
   while (process_work_queue) {
     std::function<WorkItem::Result()> work_item;
     {
       absl::MutexLock locker(&work_queue_mutex_);
-      // 如果任务队列空了, 就释放指针资源
+      // 退出条件1 如果任务队列空了, 就将work_queue_的指针删除
       if (work_queue_->empty()) {
         work_queue_.reset();
         return;
       }
       // 取出第一个任务
       work_item = work_queue_->front().task;
+      // 将取出的任务从任务队列中删掉
       work_queue_->pop_front();
       work_queue_size = work_queue_->size();
       kWorkQueueSizeMetric->Set(work_queue_size);
     }
-    // 执行任务后的结果 如果是需要优化, process_work_queue 就会为false, 退出循环
+    // 执行任务
+    // 退出条件2 执行任务后的结果是需要优化, process_work_queue为false退出循环
     process_work_queue = work_item() == WorkItem::Result::kDoNotRunOptimization;
   }
   
   LOG(INFO) << "Remaining work items in queue: " << work_queue_size;
   // We have to optimize again.
-  // 退出循环了, 首先等待计算约束中的任务执行完, 再进行优化 
+  // 退出循环后, 首先等待计算约束中的任务执行完, 再执行HandleWorkQueue,进行优化
   constraint_builder_.WhenDone(
       [this](const constraints::ConstraintBuilder2D::Result& result) {
         HandleWorkQueue(result);
