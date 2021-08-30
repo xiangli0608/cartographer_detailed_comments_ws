@@ -95,7 +95,7 @@ GridType ProbabilityGrid::GetGridType() const {
 }
 
 // Returns the probability of the cell with 'cell_index'.
-// 获取 索引 处单元格的概率
+// 获取 索引 处单元格的占用概率
 float ProbabilityGrid::GetProbability(const Eigen::Array2i& cell_index) const {
   if (!limits().Contains(cell_index)) return kMinProbability;
   return CorrespondenceCostToProbability(ValueToCorrespondenceCost(
@@ -161,7 +161,7 @@ bool ProbabilityGrid::DrawToSubmapTexture(
     // 如果它是负数，我们将 'value' 设置为零，并使用 'alpha' 进行减法。 这仅在像素当前为白色时才正确，因此墙壁看起来太灰。 
     // 但是，这对于用户来说应该很难在视觉上检测到。
     
-    // tag: 这里需要确认一下
+    // delta处于[-127, 127]
     const int delta =
         128 - ProbabilityToLogOddsInteger(GetProbability(xy_index + offset));
     const uint8 alpha = delta > 0 ? 0 : -delta;
