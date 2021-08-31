@@ -70,10 +70,10 @@ struct TrajectoryNode {
 
   // This must be a shared_ptr. If the data is used for visualization while the
   // node is being trimmed, it must survive until all use finishes.
-  std::shared_ptr<const Data> constant_data;
+  std::shared_ptr<const Data> constant_data; // 不会被后端优化修改的数据, 所以是constant
 
   // The node pose in the global SLAM frame.
-  transform::Rigid3d global_pose;
+  transform::Rigid3d global_pose; // 后端优化后, global_pose会发生改变
 };
 
 proto::TrajectoryNodeData ToProto(const TrajectoryNode::Data& constant_data);

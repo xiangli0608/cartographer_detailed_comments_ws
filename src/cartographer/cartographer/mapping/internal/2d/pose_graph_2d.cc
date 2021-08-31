@@ -548,10 +548,9 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
 
   absl::MutexLock locker(&mutex_);
   ++num_nodes_since_last_loop_closure_;
-  // 插入的节点数大于optimize_every_n_nodes时执行一次优化
-  if (options_.optimize_every_n_nodes() > 0 &&
+  // Step: 插入的节点数大于optimize_every_n_nodes时执行一次优化
+  if (options_.optimize_every_n_nodes() > 0 && // param: optimize_every_n_nodes
       num_nodes_since_last_loop_closure_ > options_.optimize_every_n_nodes()) {
-    // Step: 加入的节点数大于阈值时需要执行全局优化
     return WorkItem::Result::kRunOptimization;
   }
   return WorkItem::Result::kDoNotRunOptimization;
@@ -576,6 +575,7 @@ common::Time PoseGraph2D::GetLatestNodeTime(const NodeId& node_id,
   return time;
 }
 
+// 根据优化后的约束更新子图轨迹id与节点轨迹id的连接关系
 void PoseGraph2D::UpdateTrajectoryConnectivity(const Constraint& constraint) {
   CHECK_EQ(constraint.tag, Constraint::INTER_SUBMAP);
   const common::Time time =
@@ -585,7 +585,7 @@ void PoseGraph2D::UpdateTrajectoryConnectivity(const Constraint& constraint) {
       time);
 }
 
-// 
+// 根据轨迹状态删除轨迹
 void PoseGraph2D::DeleteTrajectoriesIfNeeded() {
   TrimmingHandle trimming_handle(this);
   for (auto& it : data_.trajectories_state) {
@@ -608,15 +608,15 @@ void PoseGraph2D::HandleWorkQueue(
     const constraints::ConstraintBuilder2D::Result& result) {
   {
     absl::MutexLock locker(&mutex_);
-    // 把计算出的约束信息 添加到 constraints_向量的末尾处
+    // Step: 把新计算出的约束信息添加到data_.constraints向量的末尾处
     data_.constraints.insert(data_.constraints.end(), result.begin(),
                              result.end());
   }
 
-  // 执行优化
+  // Step: 执行优化
   RunOptimization();
 
-  // 如果已经设置了全局优化的回调函数.进行一些参数设置后调用该函数.
+  // Step: 如果已经设置了全局优化的回调函数, 将数据传入回调函数
   if (global_slam_optimization_callback_) {
     std::map<int, NodeId> trajectory_id_to_last_optimized_node_id;
     std::map<int, SubmapId> trajectory_id_to_last_optimized_submap_id;
@@ -629,6 +629,7 @@ void PoseGraph2D::HandleWorkQueue(
             submap_data.SizeOfTrajectoryOrZero(trajectory_id) == 0) {
           continue;
         }
+        // 计算约束后的最后一个节点与submap的id
         trajectory_id_to_last_optimized_node_id.emplace(
             trajectory_id,
             std::prev(node_data.EndOfTrajectory(trajectory_id))->id);
@@ -637,7 +638,7 @@ void PoseGraph2D::HandleWorkQueue(
             std::prev(submap_data.EndOfTrajectory(trajectory_id))->id);
       }
     }
-    // 将优化后的submap id 与 节点id 传入回调函数进行处理
+    // 将优化后最后一个节点的submap id 与 节点id 传入回调函数进行处理
     global_slam_optimization_callback_(
         trajectory_id_to_last_optimized_submap_id,
         trajectory_id_to_last_optimized_node_id);
@@ -645,30 +646,33 @@ void PoseGraph2D::HandleWorkQueue(
 
   {
     absl::MutexLock locker(&mutex_);
-    // 更新trajectory之间的connectivity信息
+    // 根据优化后的约束更新子图轨迹id与节点轨迹id的连接关系
     for (const Constraint& constraint : result) {
       UpdateTrajectoryConnectivity(constraint);
     }
 
-    // 
+    // 根据轨迹状态删除轨迹
     DeleteTrajectoriesIfNeeded();
     
     TrimmingHandle trimming_handle(this);
+    // 进行子图的裁剪, 如果没有裁剪器就不裁剪
     for (auto& trimmer : trimmers_) {
-      trimmer->Trim(&trimming_handle);
+      trimmer->Trim(&trimming_handle); // PureLocalizationTrimmer::Trim()
     }
+    // 如果裁剪器处于完成状态, 就把裁剪器删除掉
     trimmers_.erase(
+        // c++11: std::remove_if 如果回调函数函数返回真,则将当前所指向的参数移到尾部,返回值是被移动区域的首个元素
         std::remove_if(trimmers_.begin(), trimmers_.end(),
                        [](std::unique_ptr<PoseGraphTrimmer>& trimmer) {
-                         return trimmer->IsFinished();
+                         return trimmer->IsFinished(); // 调用PureLocalizationTrimmer::IsFinished()
                        }),
         trimmers_.end());
 
-    // 重新把 “上次Loop Closure之后新加入的节点数” 置为0
+    // 把这个变量置为0
     num_nodes_since_last_loop_closure_ = 0;
 
     // Update the gauges that count the current number of constraints.
-    // 更新下 相同轨迹下与不同轨迹下 inter_constraints 的数量
+    // 计算相同轨迹下与不同轨迹下 inter_constraints 的数量, 放入Metric中
     double inter_constraints_same_trajectory = 0;
     double inter_constraints_different_trajectory = 0;
     for (const auto& constraint : data_.constraints) {
@@ -689,7 +693,7 @@ void PoseGraph2D::HandleWorkQueue(
 
   } // end {}
 
-  // 优化执行结束了, 继续处理任务队列中的其他任务
+  // Step: 优化执行结束了, 继续处理任务队列中的其他任务
   DrainWorkQueue();
 }
 
@@ -838,6 +842,7 @@ void PoseGraph2D::FinishTrajectory(const int trajectory_id) {
   });
 }
 
+// 判断轨迹是否是完成状态
 bool PoseGraph2D::IsTrajectoryFinished(const int trajectory_id) const {
   return data_.trajectories_state.count(trajectory_id) != 0 &&
          data_.trajectories_state.at(trajectory_id).state ==
@@ -848,6 +853,7 @@ bool PoseGraph2D::IsTrajectoryFinished(const int trajectory_id) const {
 void PoseGraph2D::FreezeTrajectory(const int trajectory_id) {
   {
     absl::MutexLock locker(&mutex_);
+    // 与自己做连接即标记为连接关系的尽头
     data_.trajectory_connectivity_state.Add(trajectory_id);
   }
   AddWorkItem([this, trajectory_id]() LOCKS_EXCLUDED(mutex_) {
@@ -1028,6 +1034,7 @@ void PoseGraph2D::AddSerializedConstraints(
   });
 }
 
+// map_builder.cc中调用, 纯定位时添加PureLocalizationTrimmer
 void PoseGraph2D::AddTrimmer(std::unique_ptr<PoseGraphTrimmer> trimmer) {
   // C++11 does not allow us to move a unique_ptr into a lambda.
   PoseGraphTrimmer* const trimmer_ptr = trimmer.release();
@@ -1082,24 +1089,24 @@ void PoseGraph2D::RunOptimization() {
   absl::MutexLock locker(&mutex_);
 
   // 获取优化后的结果
-  // submap_data的类型是 
-  // MapById<SubmapId, optimization::SubmapSpec2D> global_submap_poses_2d
+  // submap_data的类型是 MapById<SubmapId, optimization::SubmapSpec2D> 
   const auto& submap_data = optimization_problem_->submap_data();
 
-  // node_data的类型是 MapById<NodeId, NodeSpec2D> node_data_
+  // node_data的类型是 MapById<NodeId, NodeSpec2D>
   // node_data是优化后的所有节点的新位姿
   const auto& node_data = optimization_problem_->node_data();
 
   // 更新轨迹内的节点位置
   for (const int trajectory_id : node_data.trajectory_ids()) {
 
-    // note: 根据优化后的结果对data_.trajectory_nodes的global_pose进行更新
+    // Step: 根据优化后的结果对data_.trajectory_nodes的global_pose进行更新
     for (const auto& node : node_data.trajectory(trajectory_id)) {
       // node 是 IdDataReference 类型
       // mutable_trajectory_node是TrajectoryNode类型
       auto& mutable_trajectory_node = data_.trajectory_nodes.at(node.id);
+      // 将优化后的二维节点位姿旋转到机器人的姿态上得到global_pose
       mutable_trajectory_node.global_pose =
-          transform::Embed3D(node.data.global_pose_2d) *
+          transform::Embed3D(node.data.global_pose_2d) * 
           transform::Rigid3d::Rotation(
               mutable_trajectory_node.constant_data->gravity_alignment);
     }
@@ -1108,10 +1115,10 @@ void PoseGraph2D::RunOptimization() {
     // 'optimization_problem_' yet.
     // 推断尚未包含在“optimization_problem_”中的所有点云姿势
 
-    // 获取优化后的 local坐标系到global坐标系间的坐标变换, 因为global坐标系改变了
+    // 根据submap_data最后一个被优化的位姿, 计算global坐标系指向local坐标系的坐标变换
     const auto local_to_new_global =
         ComputeLocalToGlobalTransform(submap_data, trajectory_id);
-    // 优化前的 local坐标系到global坐标系间的坐标变换
+    // 优化前的 global坐标系指向local坐标系的坐标变换
     const auto local_to_old_global = ComputeLocalToGlobalTransform(
         data_.global_submap_poses_2d, trajectory_id);
     // 优化产生的改变量
@@ -1120,11 +1127,11 @@ void PoseGraph2D::RunOptimization() {
     // 这一次优化的node的最后一个id
     const NodeId last_optimized_node_id =
         std::prev(node_data.EndOfTrajectory(trajectory_id))->id;
-    // 指向下一个没有优化过的节点
+    // 指向下一个没有优化的节点
     auto node_it =
         std::next(data_.trajectory_nodes.find(last_optimized_node_id));
 
-    // 根据之前的位姿改变量, 对没有优化过的位姿进行校正
+    // Step: 根据之前的位姿改变量, 对没有优化过的位姿进行校正
     for (; node_it != data_.trajectory_nodes.EndOfTrajectory(trajectory_id);
          ++node_it) {
       auto& mutable_trajectory_node = data_.trajectory_nodes.at(node_it->id);
@@ -1139,7 +1146,7 @@ void PoseGraph2D::RunOptimization() {
     data_.landmark_nodes[landmark.first].global_landmark_pose = landmark.second;
   }
 
-  // 更新所有submap的位姿
+  // ?: 更新所有submap的位姿
   data_.global_submap_poses_2d = submap_data;
 }
 
@@ -1302,6 +1309,7 @@ void PoseGraph2D::SetInitialTrajectoryPose(const int from_trajectory_id,
       InitialTrajectoryPose{to_trajectory_id, pose, time};
 }
 
+// 线性插值计算指定时间的global_pose
 transform::Rigid3d PoseGraph2D::GetInterpolatedGlobalTrajectoryPose(
     const int trajectory_id, const common::Time time) const {
   CHECK_GT(data_.trajectory_nodes.SizeOfTrajectoryOrZero(trajectory_id), 0);
@@ -1314,6 +1322,7 @@ transform::Rigid3d PoseGraph2D::GetInterpolatedGlobalTrajectoryPose(
     return std::prev(data_.trajectory_nodes.EndOfTrajectory(trajectory_id))
         ->data.global_pose;
   }
+  // 线性插值计算指定时间的global_pose
   return transform::Interpolate(
              transform::TimestampedTransform{std::prev(it)->data.time(),
                                              std::prev(it)->data.global_pose},
@@ -1331,6 +1340,7 @@ transform::Rigid3d PoseGraph2D::GetLocalToGlobalTransform(
                                        trajectory_id);
 }
 
+// 获取链接关系中的轨迹ID的列表
 std::vector<std::vector<int>> PoseGraph2D::GetConnectedTrajectories() const {
   absl::MutexLock locker(&mutex_);
   return data_.trajectory_connectivity_state.Components();
@@ -1389,7 +1399,7 @@ transform::Rigid3d PoseGraph2D::ComputeLocalToGlobalTransform(
   // 找到了就获取优化后的最后一个子图的id
   const SubmapId last_optimized_submap_id = std::prev(end_it)->id;
   // Accessing 'local_pose' in Submap is okay, since the member is const.
-  // 通过 global_pose * local_pose().inverse() 获取 global_pose->local_pose的坐标变换
+  // 通过最后一个优化后的 global_pose * local_pose().inverse() 获取 global_pose->local_pose的坐标变换
   return transform::Embed3D(
              global_submap_poses.at(last_optimized_submap_id).global_pose) *
          data_.submap_data.at(last_optimized_submap_id)
@@ -1445,6 +1455,7 @@ PoseGraph2D::TrimmingHandle::GetOptimizedSubmapData() const {
   return submaps;
 }
 
+// 获取所有的SubmapId
 std::vector<SubmapId> PoseGraph2D::TrimmingHandle::GetSubmapIds(
     int trajectory_id) const {
   std::vector<SubmapId> submap_ids;
@@ -1465,6 +1476,7 @@ PoseGraph2D::TrimmingHandle::GetConstraints() const {
   return parent_->data_.constraints;
 }
 
+// 轨迹结束了, 裁剪器就结束
 bool PoseGraph2D::TrimmingHandle::IsFinished(const int trajectory_id) const {
   return parent_->IsTrajectoryFinished(trajectory_id);
 }
@@ -1474,9 +1486,11 @@ void PoseGraph2D::TrimmingHandle::SetTrajectoryState(int trajectory_id,
   parent_->data_.trajectories_state[trajectory_id].state = state;
 }
 
+// 删除指定id的子图, 并删除相关的约束,匹配器,与节点
 void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
   // TODO(hrapp): We have to make sure that the trajectory has been finished
   // if we want to delete the last submaps.
+  // 只有kFinished状态的子图才能够裁剪
   CHECK(parent_->data_.submap_data.at(submap_id).state ==
         SubmapState::kFinished);
 
@@ -1484,6 +1498,7 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
   // once the submap with 'submap_id' is gone.
   // We need to use node_ids instead of constraints here to be also compatible
   // with frozen trajectories that don't have intra-constraints.
+  // 获取除submap_id外的所有子图的所有节点的id
   std::set<NodeId> nodes_to_retain;
   for (const auto& submap_data : parent_->data_.submap_data) {
     if (submap_data.id != submap_id) {
@@ -1493,7 +1508,9 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
   }
 
   // Remove all nodes that are exlusively associated to 'submap_id'.
+  // 找到在submap_id的子图内部同时不在别的子图内的节点, 这些节点需要删除
   std::set<NodeId> nodes_to_remove;
+  // c++11: std::set_difference 求set的差集, 在first_set中出现, 在second_set中不出现的元素
   std::set_difference(parent_->data_.submap_data.at(submap_id).node_ids.begin(),
                       parent_->data_.submap_data.at(submap_id).node_ids.end(),
                       nodes_to_retain.begin(), nodes_to_retain.end(),
@@ -1501,6 +1518,7 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
 
   // Remove all 'data_.constraints' related to 'submap_id'.
   {
+    // Step: 1 删除submap_id相关的约束
     std::vector<Constraint> constraints;
     for (const Constraint& constraint : parent_->data_.constraints) {
       if (constraint.submap_id != submap_id) {
@@ -1516,6 +1534,7 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
   {
     std::vector<Constraint> constraints;
     std::set<SubmapId> other_submap_ids_losing_constraints;
+    // Step: 2 删除与nodes_to_remove中节点相关联的约束, 并对submap_id进行标记
     for (const Constraint& constraint : parent_->data_.constraints) {
       if (nodes_to_remove.count(constraint.node_id) == 0) {
         constraints.push_back(constraint);
@@ -1527,10 +1546,14 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
     parent_->data_.constraints = std::move(constraints);
     // Go through the remaining constraints to ensure we only delete scan
     // matchers of other submaps that have no inter-submap constraints left.
+    // 检查剩余的约束以确保我们只删除没有子图间约束的其他子图的扫描匹配器
     for (const Constraint& constraint : parent_->data_.constraints) {
       if (constraint.tag == Constraint::Tag::INTRA_SUBMAP) {
         continue;
-      } else if (other_submap_ids_losing_constraints.count(
+      } 
+      // 只要other_submap_ids_losing_constraints内submap_id还存在其他的子图间约束
+      // 就把这个子图id从other_submap_ids_losing_constraints中删除, 可以留着
+      else if (other_submap_ids_losing_constraints.count(
                      constraint.submap_id)) {
         // This submap still has inter-submap constraints - ignore it.
         other_submap_ids_losing_constraints.erase(constraint.submap_id);
@@ -1540,6 +1563,7 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
     // TODO(wohe): An improvement to this implementation would be to add the
     // caching logic at the constraint builder which could keep around only
     // recently used scan matchers.
+    // Step: 3 删除这些子图id的匹配器
     for (const SubmapId& submap_id : other_submap_ids_losing_constraints) {
       parent_->constraint_builder_.DeleteScanMatcher(submap_id);
     }
@@ -1548,8 +1572,11 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
   // Mark the submap with 'submap_id' as trimmed and remove its data.
   CHECK(parent_->data_.submap_data.at(submap_id).state ==
         SubmapState::kFinished);
+  // Step: 4 删除这个子图的指针
   parent_->data_.submap_data.Trim(submap_id);
+  // Step: 5 删除这个子图的匹配器, 与多分辨率地图
   parent_->constraint_builder_.DeleteScanMatcher(submap_id);
+  // Step: 6 删除optimization_problem_中的这个子图
   parent_->optimization_problem_->TrimSubmap(submap_id);
 
   // We have one submap less, update the gauge metrics.
@@ -1562,6 +1589,7 @@ void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
 
   // Remove the 'nodes_to_remove' from the pose graph and the optimization
   // problem.
+  // Step: 7 删除节点
   for (const NodeId& node_id : nodes_to_remove) {
     parent_->data_.trajectory_nodes.Trim(node_id);
     parent_->optimization_problem_->TrimTrajectoryNode(node_id);

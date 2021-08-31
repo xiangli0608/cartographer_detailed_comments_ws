@@ -27,16 +27,21 @@ PureLocalizationTrimmer::PureLocalizationTrimmer(const int trajectory_id,
   CHECK_GE(num_submaps_to_keep, 2) << "Cannot trim with less than 2 submaps";
 }
 
+// 进行子图的裁剪
 void PureLocalizationTrimmer::Trim(Trimmable* const pose_graph) {
+  // 如果轨迹处于完成状态, 就将num_submaps_to_keep_设置为0
   if (pose_graph->IsFinished(trajectory_id_)) {
     num_submaps_to_keep_ = 0;
   }
 
+  // 获取所有的SubmapId
   auto submap_ids = pose_graph->GetSubmapIds(trajectory_id_);
+  // 从序号0开始裁剪submap, 并删除相关的约束与节点
   for (std::size_t i = 0; i + num_submaps_to_keep_ < submap_ids.size(); ++i) {
     pose_graph->TrimSubmap(submap_ids.at(i));
   }
 
+  // 设置轨迹状态为 DELETED
   if (num_submaps_to_keep_ == 0) {
     finished_ = true;
     pose_graph->SetTrajectoryState(
@@ -44,6 +49,7 @@ void PureLocalizationTrimmer::Trim(Trimmable* const pose_graph) {
   }
 }
 
+// 获取裁剪器的状态
 bool PureLocalizationTrimmer::IsFinished() { return finished_; }
 
 }  // namespace mapping
