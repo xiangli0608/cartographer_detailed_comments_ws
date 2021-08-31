@@ -65,7 +65,7 @@ class Grid2D : public GridInterface {
   float GetMaxCorrespondenceCost() const { return max_correspondence_cost_; }
 
   // Returns true if the probability at the specified index is known.
-  // 如果指定索引处的概率已知, 则返回 true
+  // 指定的栅格是否被更新过
   bool IsKnown(const Eigen::Array2i& cell_index) const {
     return limits_.Contains(cell_index) &&
            correspondence_cost_cells_[ToFlatIndex(cell_index)] !=

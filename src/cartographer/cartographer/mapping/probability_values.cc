@@ -76,7 +76,7 @@ std::unique_ptr<std::vector<float>> PrecomputeValueToCorrespondenceCost() {
 const std::vector<float>* const kValueToProbability =
     PrecomputeValueToProbability().release();
 
-// ValueToCorrespondenceCost转换表
+// [0, 1~32767] 映射成 [0.9, 0.1~0.9]转换表
 const std::vector<float>* const kValueToCorrespondenceCost =
     PrecomputeValueToCorrespondenceCost().release();
 
