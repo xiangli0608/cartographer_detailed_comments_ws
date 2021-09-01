@@ -64,7 +64,7 @@ PoseGraph2D::PoseGraph2D(
       optimization_problem_(std::move(optimization_problem)),
       constraint_builder_(options_.constraint_builder_options(), thread_pool),
       thread_pool_(thread_pool) {
-  // overlapping_submaps_trimmer_2d 在配置文件中被注释掉了
+  // overlapping_submaps_trimmer_2d 在配置文件中被注释掉了, 没有使用
   if (options.has_overlapping_submaps_trimmer_2d()) {
     const auto& trimmer_options = options.overlapping_submaps_trimmer_2d();
     AddTrimmer(absl::make_unique<OverlappingSubmapsTrimmer2D>(
@@ -355,7 +355,7 @@ void PoseGraph2D::AddLandmarkData(int trajectory_id,
 }
 
 /**
- * @brief 进行约束计算,计算节点和子图之间的约束, 按照条件决定是否进行回环检测
+ * @brief 进行约束计算, 也可以说成是回环检测
  * 
  * @param[in] node_id 节点的id
  * @param[in] submap_id submap的id
@@ -383,8 +383,8 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
         data_.trajectory_connectivity_state.LastConnectionTime(
             node_id.trajectory_id, submap_id.trajectory_id);
 
-    // 如果节点和子图属于同一轨迹, 或者如果最近有一个全局约束将该节点的轨迹与子图的轨迹联系起来
-    // 则只需进行 局部搜索窗口 的约束计算
+    // 如果节点和子图属于同一轨迹, 或者时间小于阈值
+    // 则只需进行 局部搜索窗口 的约束计算(对局部子图进行回环检测)
     if (node_id.trajectory_id == submap_id.trajectory_id ||
         node_time <
             last_connection_time +
@@ -397,7 +397,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
       maybe_add_local_constraint = true;
     }
     // 如果节点与子图不属于同一条轨迹 并且 间隔了一段时间, 同时采样器为true
-    // 才进行 全局搜索窗口 的约束计算
+    // 才进行 全局搜索窗口 的约束计算(对整体子图进行回环检测)
     else if (global_localization_samplers_[node_id.trajectory_id]->Pulse()) {
       maybe_add_global_constraint = true;
     }
@@ -409,19 +409,19 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
   } // end {}
 
   if (maybe_add_local_constraint) {
-    // 计算约束的估计值
+    // 计算约束的先验估计值
     // submap原点在global坐标系下的坐标的逆 * 节点在global坐标系下的坐标 = submap原点指向节点的坐标变换
     const transform::Rigid2d initial_relative_pose =
         optimization_problem_->submap_data()
             .at(submap_id)
             .global_pose.inverse() *
         optimization_problem_->node_data().at(node_id).global_pose_2d;
-    // 进行局部搜索窗口 的约束计算
+    // 进行局部搜索窗口 的约束计算 (对局部子图进行回环检测)
     constraint_builder_.MaybeAddConstraint(
         submap_id, submap, node_id, constant_data, initial_relative_pose);
   } 
   else if (maybe_add_global_constraint) {
-    // 全局搜索窗口 的约束计算
+    // 全局搜索窗口 的约束计算 (对整体子图进行回环检测)
     constraint_builder_.MaybeAddGlobalConstraint(submap_id, submap, node_id,
                                                  constant_data);
   }
@@ -442,6 +442,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
   std::vector<SubmapId> submap_ids;                 // 活跃状态下的子图的id
   std::vector<SubmapId> finished_submap_ids;        // 处于完成状态的子图id的集合
   std::set<NodeId> newly_finished_submap_node_ids;  // 刚刚完成的子图对应的节点id
+  // 保存节点与计算子图内约束
   {
     absl::MutexLock locker(&mutex_);
     // 获取节点信息数据
@@ -487,7 +488,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
       const transform::Rigid2d constraint_transform =
           constraints::ComputeSubmapPose(*insertion_submaps[i]).inverse() *
           local_pose_2d;
-      // 新生成的约束放入容器中
+      // 新生成的 子图内约束 放入容器中
       data_.constraints.push_back(
           Constraint{submap_id,
                      node_id,
@@ -744,6 +745,7 @@ void PoseGraph2D::WaitForAllComputations() {
   const int num_finished_nodes_at_start =
       constraint_builder_.GetNumFinishedNodes();
 
+  // 报告节点计算的进度
   auto report_progress = [this, num_trajectory_nodes,
                           num_finished_nodes_at_start]() {
     // Log progress on nodes only when we are actually processing nodes.
@@ -767,9 +769,10 @@ void PoseGraph2D::WaitForAllComputations() {
                                  return work_queue_ == nullptr;
                                };
     absl::MutexLock locker(&work_queue_mutex_);
+    // 等待工作队列为空
     while (!work_queue_mutex_.AwaitWithTimeout(
         absl::Condition(&predicate),
-        absl::FromChrono(common::FromSeconds(1.)))) {
+        absl::FromChrono(common::FromSeconds(1.)))) { // 1秒打印一次进度
       report_progress();
     }
   }
@@ -783,6 +786,7 @@ void PoseGraph2D::WaitForAllComputations() {
        &notification](const constraints::ConstraintBuilder2D::Result& result)
           LOCKS_EXCLUDED(mutex_) {
             absl::MutexLock locker(&mutex_);
+            // 保存新计算的约束
             data_.constraints.insert(data_.constraints.end(), result.begin(),
                                      result.end());
             notification = true;
@@ -792,6 +796,7 @@ void PoseGraph2D::WaitForAllComputations() {
     return notification;
   };
 
+  // 等待直到notification为true
   while (!mutex_.AwaitWithTimeout(absl::Condition(&predicate),
                                   absl::FromChrono(common::FromSeconds(1.)))) {
     report_progress();

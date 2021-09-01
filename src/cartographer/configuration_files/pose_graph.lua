@@ -18,10 +18,10 @@ POSE_GRAPH = {
 
   -- 约束构建的相关参数
   constraint_builder = {
-    sampling_ratio = 0.3,                 -- 约束的生成频率,如果添加的约束与潜在约束的比例低于此比例,则将添加约束
-    max_constraint_distance = 15.,        -- 能成为约束的节点间最大的距离
-    min_score = 0.55,                     -- 普通约束(子图内约束)的最低分数阈值
-    global_localization_min_score = 0.6,  -- 回环约束(子图外约束)的最低分数阈值
+    sampling_ratio = 0.3,                 -- 对局部子图进行回环检测时的计算频率, 数值越大, 计算次数越多
+    max_constraint_distance = 15.,        -- 对局部子图进行回环检测时能成为约束的最大距离
+    min_score = 0.55,                     -- 对局部子图进行回环检测时的最低分数阈值
+    global_localization_min_score = 0.6,  -- 对整体子图进行回环检测时的最低分数阈值
     loop_closure_translation_weight = 1.1e4,
     loop_closure_rotation_weight = 1e5,
     log_matches = true,                   -- 打印约束计算的log

@@ -53,6 +53,7 @@ class PrecomputationGrid2D {
 
   // Returns a value between 0 and 255 to represent probabilities between
   // min_score and max_score.
+  // 获取栅格值
   int GetValue(const Eigen::Array2i& xy_index) const {
     const Eigen::Array2i local_xy_index = xy_index - offset_;
     // The static_cast<unsigned> is for performance to check with 2 comparisons
@@ -89,7 +90,7 @@ class PrecomputationGrid2D {
   const float max_score_;
 
   // Probabilites mapped to 0 to 255.
-  std::vector<uint8> cells_;
+  std::vector<uint8> cells_; // 不同分辨率的栅格地图
 };
 
 class PrecomputationGridStack2D {
@@ -98,6 +99,7 @@ class PrecomputationGridStack2D {
       const Grid2D& grid,
       const proto::FastCorrelativeScanMatcherOptions2D& options);
 
+  // 获取指定层的地图
   const PrecomputationGrid2D& Get(int index) {
     return precomputation_grids_[index];
   }

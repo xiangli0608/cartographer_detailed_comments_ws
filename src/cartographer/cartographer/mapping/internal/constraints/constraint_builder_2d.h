@@ -158,6 +158,7 @@ class ConstraintBuilder2D {
   // Constraints currently being computed in the background. A deque is used to
   // keep pointers valid when adding more entries. Constraint search results
   // with below-threshold scores are also 'nullptr'.
+  // 正在计算的约束的队列
   std::deque<std::unique_ptr<Constraint>> constraints_ GUARDED_BY(mutex_);
 
   // Map of dispatched or constructed scan matchers by 'submap_id'.
