@@ -27,18 +27,20 @@ namespace optimization {
 
 // 计算残差：
 // relative_pose = T1.inverse() * T2
-// [R1.inverse * R2  R1.inverse * (t2 -t1)]
-// [0                1                    ]
+// [R1.inverse * R2,  R1.inverse * (t2 -t1)]
+// [0              ,  1                    ]
 
+// 2d 根据SPA论文里的公式求残差
 template <typename T>
 static std::array<T, 3> ComputeUnscaledError(
     const transform::Rigid2d& relative_pose, const T* const start,
     const T* const end) {
+  // 旋转矩阵R
   const T cos_theta_i = cos(start[2]);
   const T sin_theta_i = sin(start[2]);
-  const T delta_x = end[0] - start[0];
+  const T delta_x = end[0] - start[0]; // t2 -t1
   const T delta_y = end[1] - start[1];
-  const T h[3] = {cos_theta_i * delta_x + sin_theta_i * delta_y,
+  const T h[3] = {cos_theta_i * delta_x + sin_theta_i * delta_y, // R.inverse * (t2 -t1)
                   -sin_theta_i * delta_x + cos_theta_i * delta_y,
                   end[2] - start[2]};
   return {{T(relative_pose.translation().x()) - h[0],
@@ -47,8 +49,7 @@ static std::array<T, 3> ComputeUnscaledError(
                T(relative_pose.rotation().angle()) - h[2])}};
 }
 
-
-// 残差加上尺度
+// 2d 为残差中的xy与theta分别乘上不同的权重
 template <typename T>
 std::array<T, 3> ScaleError(const std::array<T, 3>& error,
                             double translation_weight, double rotation_weight) {
@@ -61,6 +62,7 @@ std::array<T, 3> ScaleError(const std::array<T, 3>& error,
   // clang-format on
 }
 
+// 根据SPA论文里的公式求6维度的残差
 template <typename T>
 static std::array<T, 6> ComputeUnscaledError(
     const transform::Rigid3d& relative_pose, const T* const start_rotation,
@@ -88,10 +90,12 @@ static std::array<T, 6> ComputeUnscaledError(
   return {{T(relative_pose.translation().x()) - h_translation[0],
            T(relative_pose.translation().y()) - h_translation[1],
            T(relative_pose.translation().z()) - h_translation[2],
-           angle_axis_difference[0], angle_axis_difference[1],
+           angle_axis_difference[0], 
+           angle_axis_difference[1],
            angle_axis_difference[2]}};
 }
 
+// 3d 为残差添加权重
 template <typename T>
 std::array<T, 6> ScaleError(const std::array<T, 6>& error,
                             double translation_weight, double rotation_weight) {
@@ -109,6 +113,7 @@ std::array<T, 6> ScaleError(const std::array<T, 6>& error,
 
 //  Eigen implementation of slerp is not compatible with Ceres on all supported
 //  platforms. Our own implementation is used instead.
+// slerp 的Eigen实现与所有支持平台上的 Ceres 不兼容, 所以自己实现
 template <typename T>
 std::array<T, 4> SlerpQuaternions(const T* const start, const T* const end,
                                   double factor) {
@@ -159,6 +164,7 @@ InterpolateNodes3D(const T* const prev_node_rotation,
                    (next_node_translation[2] - prev_node_translation[2])}});
 }
 
+// 2d 根据landmark数据求出的2个节点间的坐标变换
 template <typename T>
 std::tuple<std::array<T, 4> /* rotation */, std::array<T, 3> /* translation */>
 InterpolateNodes2D(const T* const prev_node_pose,

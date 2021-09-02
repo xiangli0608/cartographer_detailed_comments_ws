@@ -33,6 +33,7 @@ CeresPose::CeresPose(
     std::unique_ptr<ceres::LocalParameterization> rotation_parametrization,
     ceres::Problem* problem)
     : data_(std::make_shared<CeresPose::Data>(FromPose(pose))) {
+  // 将平移与旋转当做优化变量加入到problem中
   problem->AddParameterBlock(data_->translation.data(), 3,
                              translation_parametrization.release());
   problem->AddParameterBlock(data_->rotation.data(), 4,

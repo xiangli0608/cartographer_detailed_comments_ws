@@ -77,8 +77,8 @@ POSE_GRAPH = {
   -- 优化残差方程的相关参数
   optimization_problem = {
     huber_scale = 1e1,                -- 值越大,（潜在）异常值的影响就越大
-    acceleration_weight = 1.1e2,      -- IMU加速度的权重
-    rotation_weight = 1.6e4,          -- IMU旋转项的权重
+    acceleration_weight = 1.1e2,      -- 3d里imu的线加速度的权重
+    rotation_weight = 1.6e4,          -- 3d里imu的旋转的权重
     
     -- 前端结果残差的权重
     local_slam_pose_translation_weight = 1e5,

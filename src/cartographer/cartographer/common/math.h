@@ -58,6 +58,7 @@ constexpr double DegToRad(double deg) { return M_PI * deg / 180.; }
 constexpr double RadToDeg(double rad) { return 180. * rad / M_PI; }
 
 // Bring the 'difference' between two angles into [-pi; pi].
+// 角度归一化到[-pi; pi]范围内
 template <typename T>
 T NormalizeAngleDifference(T difference) {
   const T kPi = T(M_PI);

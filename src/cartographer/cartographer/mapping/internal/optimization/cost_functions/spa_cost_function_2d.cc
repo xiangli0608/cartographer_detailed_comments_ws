@@ -47,16 +47,17 @@ class SpaCostFunction2D {
                        start_pose, end_pose),
                    observed_relative_pose_.translation_weight,
                    observed_relative_pose_.rotation_weight);
-    // c++11: std::copy
+    // c++11: std::copy 拷贝元素到e中
     std::copy(std::begin(error), std::end(error), e);
     return true;
   }
 
  private:
-  // 边
+  // 约束, 图结构的边
   const PoseGraphInterface::Constraint::Pose observed_relative_pose_;
 };
 
+// 单元测试用例, 与上边的自动求导基本是一样的
 class AnalyticalSpaCostFunction2D
     : public ceres::SizedCostFunction<3 /* number of residuals */,
                                       3 /* size of start pose */,
@@ -100,6 +101,8 @@ class AnalyticalSpaCostFunction2D
 
     // Jacobians in Ceres are ordered by the parameter blocks:
     // jacobian[i] = [(dr_0 / dx_i)^T, ..., (dr_n / dx_i)^T].
+
+    // jacobians 是一个大小为 CostFunction::parameter_block_sizes_.size() 的数组
     if (jacobians[0] != NULL) {
       jacobians[0][0] = weighted_cos_start_rotation;
       jacobians[0][1] = weighted_sin_start_rotation;
@@ -135,7 +138,7 @@ class AnalyticalSpaCostFunction2D
 
 }  // namespace
 
-// 残差为x/y/theta
+// 创建utoDiffSpaCostFunction
 ceres::CostFunction* CreateAutoDiffSpaCostFunction(
     const PoseGraphInterface::Constraint::Pose& observed_relative_pose) {
   return new ceres::AutoDiffCostFunction<SpaCostFunction2D, 3 /* residuals */,

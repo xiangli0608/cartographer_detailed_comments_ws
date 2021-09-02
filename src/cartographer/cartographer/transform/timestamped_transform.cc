@@ -22,6 +22,7 @@ namespace cartographer {
 namespace transform {
 
 // 线性插值
+// tag: 画图说明一下
 TimestampedTransform Interpolate(const TimestampedTransform& start,
                                  const TimestampedTransform& end,
                                  const common::Time time) {

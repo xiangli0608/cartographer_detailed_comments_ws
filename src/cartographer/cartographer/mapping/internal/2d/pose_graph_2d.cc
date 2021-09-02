@@ -576,7 +576,7 @@ common::Time PoseGraph2D::GetLatestNodeTime(const NodeId& node_id,
   return time;
 }
 
-// 根据优化后的约束更新子图轨迹id与节点轨迹id的连接关系
+// 根据新计算出的约束更新子图轨迹id与节点轨迹id的连接关系
 void PoseGraph2D::UpdateTrajectoryConnectivity(const Constraint& constraint) {
   CHECK_EQ(constraint.tag, Constraint::INTER_SUBMAP);
   const common::Time time =
@@ -1075,7 +1075,7 @@ void PoseGraph2D::RunFinalOptimization() {
   WaitForAllComputations();
 }
 
-// 进行优化处理, 并将优化结果进行更新
+// 进行优化处理, 并使用优化结果对保存的数据进行更新
 void PoseGraph2D::RunOptimization() {
   // 如果submap为空直接退出
   if (optimization_problem_->submap_data().empty()) {
@@ -1151,7 +1151,7 @@ void PoseGraph2D::RunOptimization() {
     data_.landmark_nodes[landmark.first].global_landmark_pose = landmark.second;
   }
 
-  // ?: 更新所有submap的位姿
+  // 更新所有submap的位姿
   data_.global_submap_poses_2d = submap_data;
 }
 
