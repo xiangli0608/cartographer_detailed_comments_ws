@@ -42,7 +42,7 @@ endif()
 # which causes linking problems on windows due to shared/static Thread clashing.
 # PCL also finds Boost. Work around by moving before find_package(cartographer).
 find_package(Boost REQUIRED COMPONENTS system iostreams)
-find_package(PCL REQUIRED COMPONENTS common)
+find_package(PCL REQUIRED COMPONENTS common io)
 
 find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")

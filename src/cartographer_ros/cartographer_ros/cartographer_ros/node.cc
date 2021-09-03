@@ -19,6 +19,7 @@
 #include <chrono>
 #include <string>
 #include <vector>
+#include <cstdlib>
 
 #include "Eigen/Core"
 #include "absl/memory/memory.h"
@@ -48,6 +49,15 @@
 #include "tf2_eigen/tf2_eigen.h"
 #include "visualization_msgs/MarkerArray.h"
 
+// lx add
+#include "cartographer/mapping/id.h"
+#include "cartographer/mapping/trajectory_node.h"
+#include "cartographer/sensor/point_cloud.h"
+#include "pcl/point_cloud.h"
+#include "pcl/point_types.h"
+#include "pcl_conversions/pcl_conversions.h"
+#include <pcl/io/pcd_io.h>
+
 namespace cartographer_ros {
 
 namespace carto = ::cartographer;
@@ -55,6 +65,12 @@ namespace carto = ::cartographer;
 using carto::transform::Rigid3d;
 using TrajectoryState =
     ::cartographer::mapping::PoseGraphInterface::TrajectoryState;
+
+// lx add
+using ::cartographer::mapping::NodeId;
+using ::cartographer::mapping::MapById;
+using ::cartographer::mapping::TrajectoryNode;
+using ::cartographer::sensor::RangefinderPoint;
 
 namespace {
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
@@ -157,7 +173,7 @@ Node::Node(
   if (node_options_.map_builder_options.use_trajectory_builder_3d()) {
     point_cloud_map_publisher_ =
         node_handle_.advertise<sensor_msgs::PointCloud2>(
-            kPointCloudMapTopic, kLatestOnlyPublisherQueueSize);
+            kPointCloudMapTopic, kLatestOnlyPublisherQueueSize, true);
   }
 
   // Step: 2 声明发布对应名字的ROS服务, 并将服务的发布器放入到vector容器中
@@ -204,7 +220,7 @@ Node::Node(
   // lx add
   if (node_options_.map_builder_options.use_trajectory_builder_3d()) {
     wall_timers_.push_back(node_handle_.createWallTimer(
-        ::ros::WallDuration(kPointCloudMapPublishPeriodSec),  // 5s
+        ::ros::WallDuration(kPointCloudMapPublishPeriodSec),  // 10s
         &Node::PublishPointCloudMap, this));
   }
 }
@@ -995,17 +1011,34 @@ bool Node::HandleFinishTrajectory(
 bool Node::HandleWriteState(
     ::cartographer_ros_msgs::WriteState::Request& request,
     ::cartographer_ros_msgs::WriteState::Response& response) {
-  absl::MutexLock lock(&mutex_);
-  // 直接调用cartographer的map_builder_的SerializeStateToFile()函数进行文件的保存
-  if (map_builder_bridge_.SerializeState(request.filename,
-                                         request.include_unfinished_submaps)) {
-    response.status.code = cartographer_ros_msgs::StatusCode::OK;
-    response.status.message =
-        absl::StrCat("State written to '", request.filename, "'.");
-  } else {
-    response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
-    response.status.message =
-        absl::StrCat("Failed to write '", request.filename, "'.");
+  {
+    absl::MutexLock lock(&mutex_);
+    // 直接调用cartographer的map_builder_的SerializeStateToFile()函数进行文件的保存
+    if (map_builder_bridge_.SerializeState(request.filename,
+                                          request.include_unfinished_submaps)) {
+      response.status.code = cartographer_ros_msgs::StatusCode::OK;
+      response.status.message =
+          absl::StrCat("State written to '", request.filename, "'.");
+    } else {
+      response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
+      response.status.message =
+          absl::StrCat("Failed to write '", request.filename, "'.");
+    }
+  }
+  // lx add
+  constexpr bool save_pcd = false;
+  if (node_options_.map_builder_options.use_trajectory_builder_3d() &&
+      save_pcd) {
+    absl::MutexLock lock(&point_cloud_map_mutex_);
+    const std::string suffix = ".pbstream";
+    std::string prefix =
+        request.filename.substr(0, request.filename.size() - suffix.size());
+    
+    LOG(INFO) << "Saving map to pcd files ...";
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_point_cloud_map(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::fromROSMsg(ros_point_cloud_map_, *pcl_point_cloud_map);
+    pcl::io::savePCDFileASCII(prefix + ".pcd", *pcl_point_cloud_map);
+    LOG(INFO) << "Pcd written to " << prefix << ".pcd";
   }
   return true;
 }
@@ -1197,6 +1230,7 @@ void Node::LoadState(const std::string& state_filename,
                      const bool load_frozen_state) {
   absl::MutexLock lock(&mutex_);
   map_builder_bridge_.LoadState(state_filename, load_frozen_state);
+  load_state_ = true;
 }
 
 // 检查设置的topic名字是否在ros中存在, 不存在则报错
@@ -1243,16 +1277,58 @@ void Node::MaybeWarnAboutTopicMismatch(
 }
 
 void Node::PublishPointCloudMap(const ::ros::WallTimerEvent& timer_event) {
-  // if (point_cloud_map_publisher_.getNumSubscribers() == 0) {
-  //   return;
-  // }
+  // 纯定位时不发布点云地图
+  if (load_state_ || point_cloud_map_publisher_.getNumSubscribers() == 0) {
+    return;
+  }
+
+  // 只发布轨迹id 0 的点云地图
+  constexpr int trajectory_id = 0;
+
+  // 获取优化后的节点位姿与节点的点云数据
+  std::shared_ptr<MapById<NodeId, TrajectoryNode>> trajectory_nodes =
+      map_builder_bridge_.GetTrajectoryNodes();
+
+  // 如果个数没变就不进行地图发布
+  size_t trajectory_nodes_size = trajectory_nodes->SizeOfTrajectoryOrZero(trajectory_id);
+  if (last_trajectory_nodes_size_ == trajectory_nodes_size)
+    return;
+  last_trajectory_nodes_size_ = trajectory_nodes_size;
+
+  absl::MutexLock lock(&point_cloud_map_mutex_);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud_map(new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr node_point_cloud(new pcl::PointCloud<pcl::PointXYZ>());
   
-  // {
-  //   absl::MutexLock lock(&mutex_);
-  //   map_builder_bridge_.GetTrajectoryNodes()
-  //   point_cloud_map_publisher_.publish();
-  // }
-  
+  // 遍历轨迹0的所有优化后的节点
+  auto node_it = trajectory_nodes->BeginOfTrajectory(trajectory_id);
+  auto end_it = trajectory_nodes->EndOfTrajectory(trajectory_id);
+  for (; node_it != end_it; ++node_it) {
+    auto& trajectory_node = trajectory_nodes->at(node_it->id);
+    auto& high_resolution_point_cloud = trajectory_node.constant_data->high_resolution_point_cloud;
+    auto& global_pose = trajectory_node.global_pose;
+
+    if (trajectory_node.constant_data != nullptr) {
+      node_point_cloud->clear();
+      node_point_cloud->resize(high_resolution_point_cloud.size());
+      // 遍历点云的每一个点, 进行坐标变换
+      for (const RangefinderPoint& point :
+           high_resolution_point_cloud.points()) {
+        RangefinderPoint range_finder_point = global_pose.cast<float>() * point;
+        node_point_cloud->push_back(pcl::PointXYZ(
+            range_finder_point.position.x(), range_finder_point.position.y(),
+            range_finder_point.position.z()));
+      }
+      // 将每个节点的点云组合在一起
+      *point_cloud_map += *node_point_cloud;
+    }
+  } // end for
+
+  ros_point_cloud_map_.data.clear();
+  pcl::toROSMsg(*point_cloud_map, ros_point_cloud_map_);
+  ros_point_cloud_map_.header.stamp = ros::Time::now();
+  ros_point_cloud_map_.header.frame_id = node_options_.map_frame;
+  LOG(INFO) << "publish point cloud map";
+  point_cloud_map_publisher_.publish(ros_point_cloud_map_);
 }
 
 }  // namespace cartographer_ros

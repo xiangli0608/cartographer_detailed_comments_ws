@@ -205,9 +205,6 @@ class Node {
   // These ros::ServiceServers need to live for the lifetime of the node.
   std::vector<::ros::ServiceServer> service_servers_;
   ::ros::Publisher scan_matched_point_cloud_publisher_;
-
-  // lx add
-  ::ros::Publisher point_cloud_map_publisher_;
   
   // 控制各个传感器数据的采样频率
   struct TrajectorySensorSamplers {
@@ -250,6 +247,13 @@ class Node {
   // simulation time is standing still. This prevents overflowing the transform
   // listener buffer by publishing the same transforms over and over again.
   ::ros::Timer publish_local_trajectory_data_timer_;
+
+  // lx add
+  ::ros::Publisher point_cloud_map_publisher_;
+  absl::Mutex point_cloud_map_mutex_;
+  bool load_state_ = false;
+  size_t last_trajectory_nodes_size_ = 0;
+  sensor_msgs::PointCloud2 ros_point_cloud_map_;
 };
 
 }  // namespace cartographer_ros

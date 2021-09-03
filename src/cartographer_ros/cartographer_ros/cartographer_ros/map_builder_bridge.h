@@ -27,6 +27,8 @@
 #include "cartographer/mapping/pose_graph_interface.h"
 #include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
 #include "cartographer/mapping/trajectory_builder_interface.h"
+#include "cartographer/mapping/id.h"
+#include "cartographer/mapping/trajectory_node.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/sensor_bridge.h"
 #include "cartographer_ros/tf_bridge.h"
@@ -47,18 +49,23 @@
 
 namespace cartographer_ros {
 
+// lx add
+using ::cartographer::mapping::NodeId;
+using ::cartographer::mapping::MapById;
+using ::cartographer::mapping::TrajectoryNode;
+
 class MapBuilderBridge {
  public:
 
 /**
- * note: local map frame 与 global map frame
- * carographer中存在两个地图坐标系, 分别为global map frame与local map frame
+ * note: local frame 与 global frame
+ * carographer中存在两个地图坐标系, 分别为global frame与local frame
  * 
- * local map frame
+ * local frame
  * 是表达local slam结果的坐标系, 是固定的坐标系, 不会被回环检测与位姿图优化所更改, 
  * 其每一帧位姿间的坐标变换不会改变
  * 
- * global map frame
+ * global frame
  * 是表达被回环检测与位姿图优化所更改后的坐标系, 当有新的优化结果可用时, 此坐标系与任何其他坐标系之间的转换都会跳变.
  * 它的z轴指向上方, 即重力加速度矢量指向-z方向, 即由加速度计测得的重力分量沿+z方向.
  */
@@ -123,7 +130,7 @@ class MapBuilderBridge {
   visualization_msgs::MarkerArray GetConstraintList();
 
   // lx add
-  void GetTrajectoryNodes();
+  std::shared_ptr<MapById<NodeId, TrajectoryNode>> GetTrajectoryNodes();
 
   SensorBridge* sensor_bridge(int trajectory_id);
 
