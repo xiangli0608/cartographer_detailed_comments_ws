@@ -36,6 +36,7 @@ std::vector<Eigen::Array2i> RayToPixelMask(const Eigen::Array2i& scaled_begin,
                                            int subpixel_scale) {
   // For simplicity, we order 'scaled_begin' and 'scaled_end' by their x
   // coordinate.
+  // 保持起始点的x小于终止点的x
   if (scaled_begin.x() > scaled_end.x()) {
     return RayToPixelMask(scaled_end, scaled_begin, subpixel_scale);
   }
@@ -48,12 +49,15 @@ std::vector<Eigen::Array2i> RayToPixelMask(const Eigen::Array2i& scaled_begin,
   // 'scaled_begin' and 'scaled_end' have the same full pixel x coordinate.
   // x相等, 斜率不存在的情况
   if (scaled_begin.x() / subpixel_scale == scaled_end.x() / subpixel_scale) {
+    // y坐标小的位置是起始点
     Eigen::Array2i current(
         scaled_begin.x() / subpixel_scale,
         std::min(scaled_begin.y(), scaled_end.y()) / subpixel_scale);
     pixel_mask.push_back(current);
+    // y坐标大的位置是终止点
     const int end_y =
         std::max(scaled_begin.y(), scaled_end.y()) / subpixel_scale;
+    // y坐标进行+1的操作
     for (; current.y() <= end_y; ++current.y()) {
       if (!isEqual(pixel_mask.back(), current)) pixel_mask.push_back(current);
     }
