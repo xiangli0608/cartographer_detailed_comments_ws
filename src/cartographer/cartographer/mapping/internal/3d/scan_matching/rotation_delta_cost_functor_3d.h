@@ -47,6 +47,7 @@ class RotationDeltaCostFunctor3D {
                               delta.data());
     // Will compute the squared norm of the imaginary component of the delta
     // quaternion which is sin(phi/2)^2.
+    // 将计算 delta 四元数的虚部的平方范数，即 sin(phi/2)^2
     residual[0] = scaling_factor_ * delta[1];
     residual[1] = scaling_factor_ * delta[2];
     residual[2] = scaling_factor_ * delta[3];

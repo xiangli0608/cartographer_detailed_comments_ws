@@ -277,15 +277,19 @@ void Submap3D::InsertData(const sensor::RangeData& range_data_in_local,
   // Transform range data into submap frame.
   const sensor::RangeData transformed_range_data = sensor::TransformRangeData(
       range_data_in_local, local_pose().inverse().cast<float>());
+  // 将点云插入到高分辨率地图
   range_data_inserter.Insert(
+      // 最大值的过滤
       FilterRangeDataByMaxRange(transformed_range_data,
                                 high_resolution_max_range),
       high_resolution_hybrid_grid_.get(),
       high_resolution_intensity_hybrid_grid_.get());
+  // 将点云插入到低分辨率地图
   range_data_inserter.Insert(transformed_range_data,
                              low_resolution_hybrid_grid_.get(),
                              /*intensity_hybrid_grid=*/nullptr);
   set_num_range_data(num_range_data() + 1);
+  // 根据地图的姿态的逆对直方图进行旋转
   const float yaw_in_submap_from_gravity = transform::GetYaw(
       local_pose().inverse().rotation() * local_from_gravity_aligned);
   rotational_scan_matcher_histogram_ +=

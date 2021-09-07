@@ -106,6 +106,7 @@ void RangeDataInserter3D::Insert(
   // (i.e. no hits will be ignored because of a miss in the same cell).
   InsertMissesIntoGrid(miss_table_, range_data.origin, range_data.returns,
                        hybrid_grid, options_.num_free_space_voxels());
+  
   if (intensity_hybrid_grid != nullptr) {
     InsertIntensitiesIntoGrid(range_data.returns, intensity_hybrid_grid,
                               options_.intensity_threshold());

@@ -424,6 +424,7 @@ LocalTrajectoryBuilder3D::InsertIntoSubmap(
   if (motion_filter_.IsSimilar(time, pose_estimate)) {
     return nullptr;
   }
+  // 计算根据重力方向校正后点云的直方图
   const Eigen::VectorXf rotational_scan_matcher_histogram_in_gravity =
       scan_matching::RotationalScanMatcher::ComputeHistogram(
           sensor::TransformPointCloud(

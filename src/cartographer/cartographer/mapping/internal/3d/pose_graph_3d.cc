@@ -320,6 +320,7 @@ WorkItem::Result PoseGraph3D::ComputeConstraintsForNode(
         node_id.trajectory_id, constant_data->time, insertion_submaps);
     CHECK_EQ(submap_ids.size(), insertion_submaps.size());
     const SubmapId matching_id = submap_ids.front();
+    // 直接获取local_pose, 不用进行旋转变换了
     const transform::Rigid3d& local_pose = constant_data->local_pose;
     const transform::Rigid3d global_pose =
         optimization_problem_->submap_data().at(matching_id).global_pose *
@@ -933,6 +934,7 @@ bool PoseGraph3D::CanAddWorkItemModifying(int trajectory_id) {
   return true;
 }
 
+// 获取所有的节点的信息, 包括local pose与global pose, 点云数据
 MapById<NodeId, TrajectoryNode> PoseGraph3D::GetTrajectoryNodes() const {
   absl::MutexLock locker(&mutex_);
   return data_.trajectory_nodes;

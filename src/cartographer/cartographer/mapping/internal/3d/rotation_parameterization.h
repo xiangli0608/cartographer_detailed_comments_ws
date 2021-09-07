@@ -24,6 +24,7 @@
 namespace cartographer {
 namespace mapping {
 
+// 只对yaw角进行增加
 struct YawOnlyQuaternionPlus {
   template <typename T>
   bool operator()(const T* x, const T* delta, T* x_plus_delta) const {

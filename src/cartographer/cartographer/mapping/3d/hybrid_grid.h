@@ -37,6 +37,7 @@ namespace mapping {
 
 // Converts an 'index' with each dimension from 0 to 2^'bits' - 1 to a flat
 // z-major index.
+// 三维坐标转一维
 inline int ToFlatIndex(const Eigen::Array3i& index, const int bits) {
   DCHECK((index >= 0).all() && (index < (1 << bits)).all()) << index;
   return (((index.z() << bits) + index.y()) << bits) + index.x();
@@ -44,6 +45,7 @@ inline int ToFlatIndex(const Eigen::Array3i& index, const int bits) {
 
 // Converts a flat z-major 'index' to a 3-dimensional index with each dimension
 // from 0 to 2^'bits' - 1.
+// 一维转三维坐标
 inline Eigen::Array3i To3DIndex(const int index, const int bits) {
   DCHECK_LT(index, 1 << (3 * bits));
   const int mask = (1 << bits) - 1;
@@ -65,10 +67,11 @@ bool IsDefaultValue(const std::vector<TElementType>& v) {
 
 // A flat grid of '2^kBits' x '2^kBits' x '2^kBits' voxels storing values of
 // type 'ValueType' in contiguous memory. Indices in each dimension are 0-based.
+// 一维网格
 template <typename TValueType, int kBits>
 class FlatGrid {
  public:
-  using ValueType = TValueType;
+  using ValueType = TValueType; // TValueType = uint16, kBits = 3
 
   // Creates a new flat grid with all values being default constructed.
   FlatGrid() {
@@ -134,12 +137,13 @@ class FlatGrid {
   };
 
  private:
-  std::array<ValueType, 1 << (3 * kBits)> cells_;
+  std::array<ValueType, 1 << (3 * kBits)> cells_; // 1 << (3 * kBits) = 512
 };
 
 // A grid consisting of '2^kBits' x '2^kBits' x '2^kBits' grids of type
 // 'WrappedGrid'. Wrapped grids are constructed on first access via
 // 'mutable_value()'.
+// 二维网格
 template <typename WrappedGrid, int kBits>
 class NestedGrid {
  public:
@@ -247,6 +251,7 @@ class NestedGrid {
 // grids are constructed on first access via 'mutable_value()'. If necessary,
 // the grid grows to twice the size in each dimension. The range of indices is
 // (almost) symmetric around the origin, i.e. negative indices are allowed.
+// 三维网格
 template <typename WrappedGrid>
 class DynamicGrid {
  public:
@@ -382,6 +387,7 @@ class DynamicGrid {
   }
 
   // Grows this grid by a factor of 2 in each of the 3 dimensions.
+  // 每个方向2倍扩展
   void Grow() {
     const int new_bits = bits_ + 1;
     CHECK_LE(new_bits, 8);
@@ -465,6 +471,7 @@ class HybridGridBase : public GridBase<ValueType> {
 // require the grid to grow dynamically. For centimeter resolution, points
 // can only be tens of meters from the origin.
 // The hard limit of cell indexes is +/- 8192 around the origin.
+// 相当于ProbabilityGrid
 class HybridGrid : public HybridGridBase<uint16> {
  public:
   explicit HybridGrid(const float resolution)
@@ -504,6 +511,7 @@ class HybridGrid : public HybridGridBase<uint16> {
   //
   // If this is the first call to ApplyOdds() for the specified cell, its value
   // will be set to probability corresponding to 'odds'.
+  // 查表更新odd，不是costodd和2D不一样
   bool ApplyLookupTable(const Eigen::Array3i& index,
                         const std::vector<uint16>& table) {
     DCHECK_EQ(table.size(), kUpdateMarker);
