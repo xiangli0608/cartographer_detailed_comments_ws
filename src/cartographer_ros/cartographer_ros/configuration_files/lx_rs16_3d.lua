@@ -63,6 +63,7 @@ TRAJECTORY_BUILDER_3D.motion_filter.max_distance_meters = 0.5
 TRAJECTORY_BUILDER_3D.motion_filter.max_angle_radians = 0.1
 
 TRAJECTORY_BUILDER_3D.submaps.num_range_data = 120.
+TRAJECTORY_BUILDER_3D.submaps.high_resolution_max_range = 60.
 
 POSE_GRAPH.optimize_every_n_nodes = 100.
 POSE_GRAPH.constraint_builder.sampling_ratio = 0.3
