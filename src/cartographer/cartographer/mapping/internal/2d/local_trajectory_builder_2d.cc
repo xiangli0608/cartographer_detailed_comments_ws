@@ -219,7 +219,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
         range_data_poses[i] *
         synchronized_data.origins.at(synchronized_data.ranges[i].origin_index);
     
-    // Step: 3 运动畸变的去除, 将hit坐标根据转到 local slam 坐标系下
+    // Step: 3 运动畸变的去除, 将相对于tracking_frame的hit坐标 转成 local坐标系下的坐标
     sensor::RangefinderPoint hit_in_local =
         range_data_poses[i] * sensor::ToRangefinderPoint(hit);
     
@@ -270,8 +270,8 @@ LocalTrajectoryBuilder2D::AddRangeData(
     
     return AddAccumulatedRangeData(
         time,
+        // 将点云变换到local原点处, 且姿态为0
         TransformToGravityAlignedFrameAndFilter(
-            // 将点云变换到原点处, 且姿态为0
             gravity_alignment.cast<float>() * range_data_poses.back().inverse(),
             accumulated_range_data_),
         gravity_alignment, sensor_duration);
