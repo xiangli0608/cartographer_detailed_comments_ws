@@ -68,7 +68,7 @@ float ComputeCandidateScore(const ProbabilityGrid& probability_grid,
     // 对每个点都加上像素坐标的offset, 相当于对点云进行平移
     const Eigen::Array2i proposed_xy_index(xy_index.x() + x_index_offset,
                                            xy_index.y() + y_index_offset);
-    // 获取概率
+    // 获取占用的概率
     const float probability =
         probability_grid.GetProbability(proposed_xy_index);
     // 以概率为得分
