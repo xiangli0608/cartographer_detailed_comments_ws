@@ -203,8 +203,9 @@ NodeId PoseGraph2D::AppendNode(
     const SubmapId submap_id =
         data_.submap_data.Append(trajectory_id, InternalSubmapData());
     
-    // tag: 这里只存后边的地图, 没存前边的地图
-    // 将后边的地图的指针赋值过去
+    // 保存后边的地图, 将后边的地图的指针赋值过去
+    // 地图是刚生成的, 但是地图会在前端部分通过插入点云数据进行更新, 这里只保存指针
+    // tag: 画图说明一下
     data_.submap_data.at(submap_id).submap = insertion_submaps.back();
     LOG(INFO) << "Inserted submap " << submap_id << ".";
     kActiveSubmapsMetric->Increment();

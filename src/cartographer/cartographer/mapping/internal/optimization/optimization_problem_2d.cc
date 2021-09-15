@@ -165,7 +165,7 @@ void AddLandmarkCostFunctions(
               C_landmarks->at(landmark_id).rotation());
         }
       }
-      // Step: 第二种残差 landmark数据插值出来的节点相对位姿 与 landmark数据 的差值作为残差项
+      // Step: 第二种残差 landmark数据与节点位姿间的相对坐标变换 与 landmark观测 的差值作为残差项
       problem->AddResidualBlock(
           LandmarkCostFunction2D::CreateAutoDiffCostFunction(
               observation, prev->data, next->data),
@@ -334,7 +334,7 @@ void OptimizationProblem2D::Solve(
     }
   }
   
-  // Step: 第一种残差 将节点与子图间global_pose的坐标变换与约束的差值作为残差项 加入到优化问题中
+  // Step: 第一种残差 将节点与子图原点在global坐标系下的相对位姿 与 约束 的差值作为残差项
   // Add cost functions for intra- and inter-submap constraints.
   for (const Constraint& constraint : constraints) {
     problem.AddResidualBlock(
@@ -350,7 +350,7 @@ void OptimizationProblem2D::Solve(
   }
   
   // Add cost functions for landmarks.
-  // Step: 第二种残差 landmark数据插值出来的节点相对位姿 与 landmark数据 的差值作为残差项
+  // Step: 第二种残差 landmark的 与 landmark数据插值出来的节点相对位姿 的差值作为残差项
   AddLandmarkCostFunctions(landmark_nodes, node_data_, &C_nodes, &C_landmarks,
                            &problem, options_.huber_scale());
   
@@ -390,8 +390,8 @@ void OptimizationProblem2D::Solve(
       std::unique_ptr<transform::Rigid3d> relative_odometry =
           CalculateOdometryBetweenNodes(trajectory_id, first_node_data,
                                         second_node_data);
-      // Step: 第三种残差 如果存在里程计则可增加一个残差
-      // 节点与子图间global_pose的坐标变换 与 通过里程计计算出节点间的坐标变换 的差值作为残差项
+      // Step: 第三种残差 节点与节点间在global坐标系下的相对坐标变换 与 通过里程计数据插值出的相对坐标变换 的差值作为残差项
+      // 如果存在里程计则可增加一个残差
       if (relative_odometry != nullptr) {
         problem.AddResidualBlock(
             CreateAutoDiffSpaCostFunction(Constraint::Pose{
@@ -407,7 +407,7 @@ void OptimizationProblem2D::Solve(
       const transform::Rigid3d relative_local_slam_pose =
           transform::Embed3D(first_node_data.local_pose_2d.inverse() *
                              second_node_data.local_pose_2d);
-      // Step: 第四种残差 以节点与子图间global_pose的坐标变换 与 相邻2个节点在local坐标系下的坐标变换 的差值作为残差项
+      // Step: 第四种残差 节点与节点间在global坐标系下的相对坐标变换 与 相邻2个节点在local坐标系下的相对坐标变换 的差值作为残差项
       problem.AddResidualBlock(
           CreateAutoDiffSpaCostFunction(
               Constraint::Pose{relative_local_slam_pose,
@@ -471,7 +471,7 @@ void OptimizationProblem2D::Solve(
         fixed_frame_pose_initialized = true;
       }
 
-      // Step: 第五种残差 节点与gps坐标系原点在global坐标系间的坐标变换 与 gps数据 的差值作为残差项
+      // Step: 第五种残差 节点与gps坐标系原点在global坐标系下的相对坐标变换 与 通过gps数据进行插值得到的相对坐标变换 的差值作为残差项
       problem.AddResidualBlock(
           CreateAutoDiffSpaCostFunction(constraint_pose),
           options_.fixed_frame_pose_use_tolerant_loss()
