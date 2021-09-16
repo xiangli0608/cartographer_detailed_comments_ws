@@ -52,6 +52,7 @@ struct InternalTrajectoryState {
   DeletionState deletion_state = DeletionState::NORMAL;
 };
 
+// 保存的子图的指针与属于这张子图的节点的id
 struct InternalSubmapData {
   std::shared_ptr<const Submap> submap;
   SubmapState state = SubmapState::kNoConstraintSearch;

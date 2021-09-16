@@ -551,6 +551,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
   absl::MutexLock locker(&mutex_);
   ++num_nodes_since_last_loop_closure_;
   // Step: 插入的节点数大于optimize_every_n_nodes时执行一次优化
+  // optimize_every_n_nodes = 0 时不进行优化, 这样就可以单独分析前端的效果
   if (options_.optimize_every_n_nodes() > 0 && // param: optimize_every_n_nodes
       num_nodes_since_last_loop_closure_ > options_.optimize_every_n_nodes()) {
     return WorkItem::Result::kRunOptimization;
@@ -1341,6 +1342,7 @@ transform::Rigid3d PoseGraph2D::GetInterpolatedGlobalTrajectoryPose(
 // 计算 global frame 指向 local frame 的坐标变换
 transform::Rigid3d PoseGraph2D::GetLocalToGlobalTransform(
     const int trajectory_id) const {
+  // 可能同时间有多个线程调用这同一个函数, 所以要加锁
   absl::MutexLock locker(&mutex_);
   return ComputeLocalToGlobalTransform(data_.global_submap_poses_2d,
                                        trajectory_id);
@@ -1396,7 +1398,7 @@ transform::Rigid3d PoseGraph2D::ComputeLocalToGlobalTransform(
                                                  it->second.time) *
              it->second.relative_pose;
     }
-    // 没设置初始位姿就将返回(0,0,0)的平移和旋转
+    // note: 没设置初始位姿就将返回(0,0,0)的平移和旋转
     else {
       return transform::Rigid3d::Identity();
     }
@@ -1406,6 +1408,7 @@ transform::Rigid3d PoseGraph2D::ComputeLocalToGlobalTransform(
   const SubmapId last_optimized_submap_id = std::prev(end_it)->id;
   // Accessing 'local_pose' in Submap is okay, since the member is const.
   // 通过最后一个优化后的 global_pose * local_pose().inverse() 获取 global_pose->local_pose的坐标变换
+  // tag: 画图说明一下
   return transform::Embed3D(
              global_submap_poses.at(last_optimized_submap_id).global_pose) *
          data_.submap_data.at(last_optimized_submap_id)
