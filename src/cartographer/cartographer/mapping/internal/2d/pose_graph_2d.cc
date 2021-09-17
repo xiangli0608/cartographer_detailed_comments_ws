@@ -127,6 +127,7 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
   CHECK(submap_data.BeginOfTrajectory(trajectory_id) != end_it);
 
   // end_it是最后一个元素的下一个位置, 所以它之前的一个submap的id就是submap_data中的最后一个元素
+  // 注意, 这里的last_submap_id 是 optimization_problem_->submap_data() 中的
   const SubmapId last_submap_id = std::prev(end_it)->id;
 
   // 如果是等于第一个子图, 说明insertion_submaps的第二个子图还没有加入到optimization_problem_中
@@ -356,7 +357,7 @@ void PoseGraph2D::AddLandmarkData(int trajectory_id,
 }
 
 /**
- * @brief 进行约束计算, 也可以说成是回环检测
+ * @brief 进行子图间约束计算, 也可以说成是回环检测
  * 
  * @param[in] node_id 节点的id
  * @param[in] submap_id submap的id
@@ -395,6 +396,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
       // has been a recent global constraint that ties that node's trajectory to
       // the submap's trajectory, it suffices to do a match constrained to a
       // local search window.
+
       maybe_add_local_constraint = true;
     }
     // 如果节点与子图不属于同一条轨迹 并且 间隔了一段时间, 同时采样器为true
@@ -409,6 +411,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
         data_.submap_data.at(submap_id).submap.get());
   } // end {}
 
+  // 建图时只会执行这块, 通过局部搜索进行回环检测
   if (maybe_add_local_constraint) {
     // 计算约束的先验估计值
     // submap原点在global坐标系下的坐标的逆 * 节点在global坐标系下的坐标 = submap原点指向节点的坐标变换
@@ -421,6 +424,7 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
     constraint_builder_.MaybeAddConstraint(
         submap_id, submap, node_id, constant_data, initial_relative_pose);
   } 
+  // 定位时才有可能执行这块
   else if (maybe_add_global_constraint) {
     // 全局搜索窗口 的约束计算 (对整体子图进行回环检测)
     constraint_builder_.MaybeAddGlobalConstraint(submap_id, submap, node_id,
@@ -459,7 +463,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     const SubmapId matching_id = submap_ids.front();
     // 计算该Node投影到平面后的位姿 gravity_alignment是机器人的姿态
     const transform::Rigid2d local_pose_2d =
-        transform::Project2D(constant_data->local_pose *
+        transform::Project2D(constant_data->local_pose * // 三维转平面
                              transform::Rigid3d::Rotation(
                                  constant_data->gravity_alignment.inverse()));
     // 计算该Node在global坐标系下的二维位姿
@@ -485,7 +489,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
             SubmapState::kNoConstraintSearch);
       // 将node_id放到子图保存的node_ids的set中
       data_.submap_data.at(submap_id).node_ids.emplace(node_id);
-      // 计算 子图原点 指向 node坐标 间的坐标变换
+      // 计算 子图原点 指向 node坐标 间的坐标变换(子图内约束)
       const transform::Rigid2d constraint_transform =
           constraints::ComputeSubmapPose(*insertion_submaps[i]).inverse() *
           local_pose_2d;
@@ -520,6 +524,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
       CHECK(finished_submap_data.state == SubmapState::kNoConstraintSearch);
       // 把它设置成kFinished
       finished_submap_data.state = SubmapState::kFinished;
+      // 刚结束的这个子图里包含的所有节点
       newly_finished_submap_node_ids = finished_submap_data.node_ids;
     }
   } // end {}
@@ -537,7 +542,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     // old nodes.
     for (const auto& node_id_data : optimization_problem_->node_data()) {
       const NodeId& node_id = node_id_data.id;
-      // 子图内部的节点 不再与这个子图进行约束的计算
+      // 刚结束的子图内部的节点, 不再与这个子图进行约束的计算
       if (newly_finished_submap_node_ids.count(node_id) == 0) {
         // 计算新的submap和旧的节点间的约束
         ComputeConstraint(node_id, newly_finished_submap_id);
@@ -554,6 +559,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
   // optimize_every_n_nodes = 0 时不进行优化, 这样就可以单独分析前端的效果
   if (options_.optimize_every_n_nodes() > 0 && // param: optimize_every_n_nodes
       num_nodes_since_last_loop_closure_ > options_.optimize_every_n_nodes()) {
+    // 正在建图时只有这一块会返回 执行优化
     return WorkItem::Result::kRunOptimization;
   }
   return WorkItem::Result::kDoNotRunOptimization;

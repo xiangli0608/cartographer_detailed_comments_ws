@@ -26,8 +26,8 @@ namespace mapping {
 
 struct WorkItem {
   enum class Result {
-    kDoNotRunOptimization,
-    kRunOptimization,
+    kDoNotRunOptimization, // 执行任务结束后不需要执行优化
+    kRunOptimization,      // 执行任务结束后需要执行优化
   };
 
   std::chrono::steady_clock::time_point time;

@@ -32,7 +32,8 @@ Task::State Task::GetState() {
   return state_;
 }
 
-// 设置本Task需要执行的任务 （函数）
+// 设置本Task需要执行的任务 （函数） 
+// 状态: NEW
 void Task::SetWorkItem(const WorkItem& work_item) {
   absl::MutexLock locker(&mutex_);
   CHECK_EQ(state_, NEW);
@@ -65,6 +66,7 @@ void Task::AddDependency(std::weak_ptr<Task> dependency) {
 }
 
 // 将线程池与本任务连接起来, 如果没有未完成的依赖, 则告诉线程池可以将本任务放入到执行队列中
+// 状态: NEW -> DISPATCHED || NEW -> DISPATCHED -> DEPENDENCIES_COMPLETED
 void Task::SetThreadPool(ThreadPoolInterface* thread_pool) {
   absl::MutexLock locker(&mutex_);
   CHECK_EQ(state_, NEW);
@@ -98,6 +100,7 @@ void Task::AddDependentTask(Task* dependent_task) {
 }
 
 // 本任务依赖的任务完成了, 可以将本任务加入到线程池的待处理列表中了
+// 状态: DISPATCHED -> DEPENDENCIES_COMPLETED
 void Task::OnDependenyCompleted() {
   absl::MutexLock locker(&mutex_);
   CHECK(state_ == NEW || state_ == DISPATCHED);
@@ -111,6 +114,7 @@ void Task::OnDependenyCompleted() {
 }
 
 // 执行本任务, 也就是传入的函数work_item_
+// 状态: DEPENDENCIES_COMPLETED -> RUNNING -> COMPLETED
 void Task::Execute() {
   {
     absl::MutexLock locker(&mutex_);

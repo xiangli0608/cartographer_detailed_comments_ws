@@ -72,10 +72,14 @@ class Task {
   // 'DEPENDENCIES_COMPLETED'.
   void OnDependenyCompleted();
 
+  // 需要执行的任务
   WorkItem work_item_ GUARDED_BY(mutex_);
   ThreadPoolInterface* thread_pool_to_notify_ GUARDED_BY(mutex_) = nullptr;
+  // 初始状态为NEW
   State state_ GUARDED_BY(mutex_) = NEW;
+  // 本任务依赖的任务的个数
   unsigned int uncompleted_dependencies_ GUARDED_BY(mutex_) = 0;
+  // 依赖本任务的其他任务
   std::set<Task*> dependent_tasks_ GUARDED_BY(mutex_);
 
   absl::Mutex mutex_;
