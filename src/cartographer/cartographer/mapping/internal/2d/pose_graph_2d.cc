@@ -131,6 +131,7 @@ std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
   const SubmapId last_submap_id = std::prev(end_it)->id;
 
   // 如果是等于第一个子图, 说明insertion_submaps的第二个子图还没有加入到optimization_problem_中
+  // 拿着optimization_problem_中子图的索引, 根据这个索引在data_.submap_data中获取地图的指针
   if (data_.submap_data.at(last_submap_id).submap ==
       insertion_submaps.front()) {
     // In this case, 'last_submap_id' is the ID of

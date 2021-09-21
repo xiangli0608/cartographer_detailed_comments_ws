@@ -99,7 +99,6 @@ void ConstraintBuilder2D::MaybeAddConstraint(
       options_.max_constraint_distance()) { // param: max_constraint_distance
     return;
   }
-  // tag: 这里可以演示一下
   // 根据参数配置添加约束的频率
   if (!per_submap_sampler_
            .emplace(std::piecewise_construct, std::forward_as_tuple(submap_id),
