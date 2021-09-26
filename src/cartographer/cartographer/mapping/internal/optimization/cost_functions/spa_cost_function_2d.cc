@@ -138,7 +138,7 @@ class AnalyticalSpaCostFunction2D
 
 }  // namespace
 
-// 创建utoDiffSpaCostFunction
+// 创建AutoDiffSpaCostFunction
 ceres::CostFunction* CreateAutoDiffSpaCostFunction(
     const PoseGraphInterface::Constraint::Pose& observed_relative_pose) {
   return new ceres::AutoDiffCostFunction<SpaCostFunction2D, 3 /* residuals */,

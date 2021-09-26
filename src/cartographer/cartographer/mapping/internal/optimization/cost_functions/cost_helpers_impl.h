@@ -184,7 +184,7 @@ InterpolateNodes3D(const T* const prev_node_rotation,
 }
 
 /**
- * @brief 2d 根据landmark数据求出的2个节点间的坐标变换
+ * @brief 2d 根据landmark数据的时间在2个节点位姿中插值出来的位姿
  * 
  * @param[in] prev_node_pose 
  * @param[in] prev_node_gravity_alignment 

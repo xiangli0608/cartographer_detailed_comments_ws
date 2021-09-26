@@ -110,7 +110,7 @@ transform::Rigid3d GetInitialLandmarkPose(
          observation.landmark_to_tracking_transform;
 }
 
-// landmark数据插值出来的节点相对位姿 与 landmark数据 的差值作为残差项
+// landmark数据 与 通过2个节点位姿插值出来的相对位姿 的差值作为残差项
 void AddLandmarkCostFunctions(
     const std::map<std::string, LandmarkNode>& landmark_nodes,
     const MapById<NodeId, NodeSpec2D>& node_data,
@@ -352,7 +352,7 @@ void OptimizationProblem2D::Solve(
   }
   
   // Add cost functions for landmarks.
-  // Step: 第二种残差 landmark的 与 landmark数据插值出来的节点相对位姿 的差值作为残差项
+  // Step: landmark数据 与 通过2个节点位姿插值出来的相对位姿 的差值作为残差项
   AddLandmarkCostFunctions(landmark_nodes, node_data_, &C_nodes, &C_landmarks,
                            &problem, options_.huber_scale());
   
