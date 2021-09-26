@@ -25,12 +25,19 @@ namespace cartographer {
 namespace mapping {
 namespace optimization {
 
-// 计算残差：
-// relative_pose = T1.inverse() * T2
-// [R1.inverse * R2,  R1.inverse * (t2 -t1)]
-// [0              ,  1                    ]
-
-// 2d 根据SPA论文里的公式求残差
+/**
+ * @brief 2d 根据SPA论文里的公式求残差
+ * 
+ * 计算残差：
+ * T12 = T1.inverse() * T2
+ * [R1.inverse * R2,  R1.inverse * (t2 -t1)]
+ * [0              ,  1                    ]
+ * 
+ * @param[in] relative_pose 
+ * @param[in] start 
+ * @param[in] end 
+ * @return std::array<T, 3> 
+ */
 template <typename T>
 static std::array<T, 3> ComputeUnscaledError(
     const transform::Rigid2d& relative_pose, const T* const start,
@@ -62,7 +69,16 @@ std::array<T, 3> ScaleError(const std::array<T, 3>& error,
   // clang-format on
 }
 
-// 根据SPA论文里的公式求6维度的残差
+/**
+ * @brief 根据SPA论文里的公式求6维度的残差
+ * 
+ * @param[in] relative_pose 
+ * @param[in] start_rotation 
+ * @param[in] start_translation 
+ * @param[in] end_rotation 
+ * @param[in] end_translation 
+ * @return std::array<T, 6> 
+ */
 template <typename T>
 static std::array<T, 6> ComputeUnscaledError(
     const transform::Rigid3d& relative_pose, const T* const start_rotation,
@@ -75,14 +91,17 @@ static std::array<T, 6> ComputeUnscaledError(
   const Eigen::Matrix<T, 3, 1> delta(end_translation[0] - start_translation[0],
                                      end_translation[1] - start_translation[1],
                                      end_translation[2] - start_translation[2]);
+  // start到end的平移
   const Eigen::Matrix<T, 3, 1> h_translation = R_i_inverse * delta;
 
+  // start到end的旋转 四元数的转置就是逆
   const Eigen::Quaternion<T> h_rotation_inverse =
       Eigen::Quaternion<T>(end_rotation[0], -end_rotation[1], -end_rotation[2],
                            -end_rotation[3]) *
       Eigen::Quaternion<T>(start_rotation[0], start_rotation[1],
                            start_rotation[2], start_rotation[3]);
 
+  // 计算2个旋转间的差值
   const Eigen::Matrix<T, 3, 1> angle_axis_difference =
       transform::RotationQuaternionToAngleAxisVector(
           h_rotation_inverse * relative_pose.rotation().cast<T>());
@@ -164,7 +183,16 @@ InterpolateNodes3D(const T* const prev_node_rotation,
                    (next_node_translation[2] - prev_node_translation[2])}});
 }
 
-// 2d 根据landmark数据求出的2个节点间的坐标变换
+/**
+ * @brief 2d 根据landmark数据求出的2个节点间的坐标变换
+ * 
+ * @param[in] prev_node_pose 
+ * @param[in] prev_node_gravity_alignment 
+ * @param[in] next_node_pose 
+ * @param[in] next_node_gravity_alignment 
+ * @param[in] interpolation_parameter 
+ * @return std::tuple<std::array<T, 4> /* rotation , std::array<T, 3> /* translation > 
+ */
 template <typename T>
 std::tuple<std::array<T, 4> /* rotation */, std::array<T, 3> /* translation */>
 InterpolateNodes2D(const T* const prev_node_pose,

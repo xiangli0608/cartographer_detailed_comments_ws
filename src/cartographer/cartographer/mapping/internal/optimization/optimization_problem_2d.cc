@@ -128,7 +128,7 @@ void AddLandmarkCostFunctions(
         continue;
       }
       // Find the trajectory nodes before and after the landmark observation.
-      // 找到landmark观测前后的节点
+      // 找到landmark观测时间后的第一个节点
       auto next =
           node_data.lower_bound(observation.trajectory_id, observation.time);
       // The landmark observation was made, but the next trajectory node has
@@ -139,6 +139,7 @@ void AddLandmarkCostFunctions(
       if (next == begin_of_trajectory) {
         next = std::next(next);
       }
+      // 找到landmark观测时间前一个节点
       auto prev = std::prev(next);
       // Add parameter blocks for the landmark ID if they were not added before.
       std::array<double, 3>* prev_node_pose = &C_nodes->at(prev->id);
@@ -295,6 +296,7 @@ void OptimizationProblem2D::Solve(
 
   // Set the starting point.
   // TODO(hrapp): Move ceres data into SubmapSpec.
+  // ceres需要double的指针, std::array能转成原始指针的形式
   MapById<SubmapId, std::array<double, 3>> C_submaps;
   MapById<NodeId, std::array<double, 3>> C_nodes;
   std::map<std::string, CeresPose> C_landmarks;
@@ -452,7 +454,7 @@ void OptimizationProblem2D::Solve(
       // 计算gps坐标系原点在global坐标系下的坐标
       if (!fixed_frame_pose_initialized) {
         transform::Rigid2d fixed_frame_pose_in_map;
-
+        // 如果设置了gps数据的原点
         if (trajectory_data.fixed_frame_origin_in_map.has_value()) {
           fixed_frame_pose_in_map = transform::Project2D(
               trajectory_data.fixed_frame_origin_in_map.value());
