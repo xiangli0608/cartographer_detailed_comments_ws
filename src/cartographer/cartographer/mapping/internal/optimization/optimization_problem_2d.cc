@@ -158,7 +158,8 @@ void AddLandmarkCostFunctions(
         C_landmarks->emplace(
             landmark_id,
             // 将landmark数据对应的节点的平移与旋转作为优化变量加入到problem中
-            CeresPose(starting_point, nullptr /* translation_parametrization */,
+            CeresPose(starting_point, 
+                      nullptr /* translation_parametrization */,
                       absl::make_unique<ceres::QuaternionParameterization>(),
                       problem));
         // Set landmark constant if it is frozen.
@@ -484,7 +485,7 @@ void OptimizationProblem2D::Solve(
                     options_.fixed_frame_pose_tolerant_loss_param_a(),
                     options_.fixed_frame_pose_tolerant_loss_param_b())
               : nullptr,
-          C_fixed_frames.at(trajectory_id).data(), 
+          C_fixed_frames.at(trajectory_id).data(), // 会自动调用AddParameterBlock
           C_nodes.at(node_id).data());
     }
   }

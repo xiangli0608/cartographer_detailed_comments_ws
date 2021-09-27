@@ -43,7 +43,8 @@ class LandmarkCostFunction2D {
       const LandmarkObservation& observation, const NodeSpec2D& prev_node,
       const NodeSpec2D& next_node) {
     return new ceres::AutoDiffCostFunction<
-        LandmarkCostFunction2D, 6 /* residuals */,
+        LandmarkCostFunction2D, 
+        6 /* residuals */,
         3 /* previous node pose variables */, 
         3 /* next node pose variables */,
         4 /* landmark rotation variables */,
@@ -55,10 +56,12 @@ class LandmarkCostFunction2D {
   bool operator()(const T* const prev_node_pose, const T* const next_node_pose,
                   const T* const landmark_rotation,
                   const T* const landmark_translation, T* const e) const {
+    // 根据landmark数据的时间对2个节点位姿进行插值, 得到这个时刻的tracking_frame在global坐标系下的位姿
     const std::tuple<std::array<T, 4>, std::array<T, 3>>
         interpolated_rotation_and_translation = InterpolateNodes2D(
             prev_node_pose, prev_node_gravity_alignment_, next_node_pose,
             next_node_gravity_alignment_, interpolation_parameter_);
+    // 计算加权残差
     const std::array<T, 6> error = ScaleError(
         ComputeUnscaledError(
             landmark_to_tracking_transform_,
