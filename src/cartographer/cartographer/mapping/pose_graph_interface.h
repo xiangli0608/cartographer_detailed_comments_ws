@@ -55,6 +55,7 @@ class PoseGraphInterface {
   };
 
   struct LandmarkNode {
+    // landmark数据是相对于tracking_frame的相对坐标变换
     struct LandmarkObservation {
       int trajectory_id;
       common::Time time;
@@ -62,7 +63,9 @@ class PoseGraphInterface {
       double translation_weight;
       double rotation_weight;
     };
+    // 同一时刻可能会观测到多个landmark数据
     std::vector<LandmarkObservation> landmark_observations;
+    // 这帧数据对应的tracking_frame在global坐标系下的位姿
     absl::optional<transform::Rigid3d> global_landmark_pose;
     bool frozen = false;
   };

@@ -130,8 +130,8 @@ std::array<T, 6> ScaleError(const std::array<T, 6>& error,
   // clang-format on
 }
 
-//  Eigen implementation of slerp is not compatible with Ceres on all supported
-//  platforms. Our own implementation is used instead.
+// Eigen implementation of slerp is not compatible with Ceres on all supported
+// platforms. Our own implementation is used instead.
 // slerp 的Eigen实现与所有支持平台上的 Ceres 不兼容, 所以自己实现
 template <typename T>
 std::array<T, 4> SlerpQuaternions(const T* const start, const T* const end,
@@ -206,6 +206,7 @@ InterpolateNodes2D(const T* const prev_node_pose,
       (Eigen::AngleAxis<T>(prev_node_pose[2], Eigen::Matrix<T, 3, 1>::UnitZ()) *
        prev_node_gravity_alignment.cast<T>())
           .normalized());
+  // 转成std::array
   const std::array<T, 4> prev_node_rotation = {
       {prev_quaternion.w(), prev_quaternion.x(), prev_quaternion.y(),
        prev_quaternion.z()}};
@@ -223,6 +224,7 @@ InterpolateNodes2D(const T* const prev_node_pose,
   return std::make_tuple(
       SlerpQuaternions(prev_node_rotation.data(), next_node_rotation.data(),
                        interpolation_parameter),
+      // 通过插值公式计算出这个时刻的glboal位姿
       std::array<T, 3>{
           {prev_node_pose[0] + interpolation_parameter *
                                    (next_node_pose[0] - prev_node_pose[0]),
