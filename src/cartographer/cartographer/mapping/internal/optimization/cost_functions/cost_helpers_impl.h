@@ -191,7 +191,7 @@ InterpolateNodes3D(const T* const prev_node_rotation,
  * @param[in] next_node_pose 
  * @param[in] next_node_gravity_alignment 
  * @param[in] interpolation_parameter 
- * @return std::tuple<std::array<T, 4> /* rotation , std::array<T, 3> /* translation > 
+ * @return std::tuple<std::array<T, 4> 
  */
 template <typename T>
 std::tuple<std::array<T, 4> /* rotation */, std::array<T, 3> /* translation */>

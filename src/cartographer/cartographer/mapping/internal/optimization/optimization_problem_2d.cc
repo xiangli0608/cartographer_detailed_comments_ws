@@ -90,7 +90,8 @@ transform::Rigid2d ToPose(const std::array<double, 3>& values) {
 
 // Selects a trajectory node closest in time to the landmark observation and
 // applies a relative transform from it.
-// 由node的时间对landmark数据进行插值得到初始位姿
+// 由node的时间对进行插值得到初始位姿
+// 根据landmark数据的时间对2个节点位姿进行插值, 得到这个时刻的global坐标系下的位姿
 transform::Rigid3d GetInitialLandmarkPose(
     const LandmarkNode::LandmarkObservation& observation,
     const NodeSpec2D& prev_node, const NodeSpec2D& next_node,
@@ -99,7 +100,7 @@ transform::Rigid3d GetInitialLandmarkPose(
   const double interpolation_parameter =
       common::ToSeconds(observation.time - prev_node.time) /
       common::ToSeconds(next_node.time - prev_node.time);
-
+  // 根据landmark数据的时间对2个节点位姿进行插值, 得到这个时刻的global坐标系下的位姿
   const std::tuple<std::array<double, 4>, std::array<double, 3>>
       rotation_and_translation =
           InterpolateNodes2D(prev_node_pose.data(), prev_node.gravity_alignment,
@@ -144,6 +145,7 @@ void AddLandmarkCostFunctions(
       // Add parameter blocks for the landmark ID if they were not added before.
       std::array<double, 3>* prev_node_pose = &C_nodes->at(prev->id);
       std::array<double, 3>* next_node_pose = &C_nodes->at(next->id);
+      // 如果landmark_id对应的数据没放入到C_landmarks中, 在这添加进去
       if (!C_landmarks->count(landmark_id)) {
         // 如果有优化后的位姿就用优化后的位姿, 没有就根据时间插值算出来一个位姿
         const transform::Rigid3d starting_point =
