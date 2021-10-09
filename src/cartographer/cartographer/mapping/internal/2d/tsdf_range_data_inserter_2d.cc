@@ -164,6 +164,7 @@ void TSDFRangeDataInserter2D::Insert(const sensor::RangeData& range_data,
   tsdf->FinishUpdate();
 }
 
+// 对TSDF地图进行更新hit
 void TSDFRangeDataInserter2D::InsertHit(
     const proto::TSDFRangeDataInserterOptions2D& options,
     const Eigen::Vector2f& hit, const Eigen::Vector2f& origin, float normal,
@@ -224,10 +225,12 @@ void TSDFRangeDataInserter2D::InsertHit(
   }
 }
 
+// TSDF地图栅格的更新, 分别更新tsd值与权重值
 void TSDFRangeDataInserter2D::UpdateCell(const Eigen::Array2i& cell,
                                          float update_sdf, float update_weight,
                                          TSDF2D* tsdf) const {
   if (update_weight == 0.f) return;
+  // 获取TSD值与权重值
   const std::pair<float, float> tsd_and_weight = tsdf->GetTSDAndWeight(cell);
   float updated_weight = tsd_and_weight.second + update_weight;
   float updated_sdf = (tsd_and_weight.first * tsd_and_weight.second +

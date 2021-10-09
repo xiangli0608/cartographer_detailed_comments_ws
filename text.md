@@ -1,61 +1,29 @@
 
-## cartographer 3d 相对与 2d 的不同点
 
-### 三维网格地图
-ActiveSubmaps3D
-Submap3D
-HybridGrid
+## 第六章 代码总结与3D建图
 
-### 前端
+### 6.1 代码的全面总结
 
-#### LocalTrajectoryBuilder3D
+### 6.2 Cartographer的优缺点分析
 
-#### RealTimeCorrelativeScanMatcher3D
+#### 6.2.1 优点
 
-#### CeresScanMatcher3D
+代码架构十分优美
+各个模块独立性很强, 可以很方便的进行修改, 或则是单独拿出来做其他应用
+代码鲁棒性非常高, 很少出现莫名崩掉的情况, 错误提示很好
+代码命名非常规范, 能够清楚的根据变量名与函数名判断其代表的含义
 
-### 后端
+总之, cartographer的代码十分值得学习与借鉴.
 
-#### PoseGraph3D
+#### 6.2.2 缺点
 
-基本一样, 
+**点云的预处理**
+发生的拷贝次数太多
+自适应体素滤波如果参数不好时计算量太大
 
-第一个子图只优化yaw角
-是否优化z坐标
+**位姿推测器**
 
-直接获取local_pose, 不用进行旋转变换了
-
-#### ConstraintBuilder3D
-基本一样,
-
-调用的3d的 FastCorrelativeScanMatcher3D 与 CeresScanMatcher3D
-
-#### FastCorrelativeScanMatcher3D
-
-
-
-
-
-
-
-
-
-
-
-## 第六章 代码总结与3D建图???
-
-### 6.1 优缺点分析
-
-### 点云的预处理这里
-
-- 处理点云时发生拷贝的次数太多
-- 自适应体素滤波的计算量太大
-
-
-
-### 6.2 位姿推测器
-
-#### 可能有问题的点
+可能有问题的点
 
 - 计算pose的线速度与角速度时, 是采用的数据队列开始和末尾的2个数据计算的
 - 计算里程计的线速度与角速度时, 是采用的数据队列开始和末尾的2个数据计算的
@@ -64,40 +32,191 @@ HybridGrid
 - **添加位姿时, 没有用pose的姿态对imu_tracker_进行校准, 也没有对整体位姿预测器进行校准, 只计算了pose的线速度与角速度**
 - 从代码上看, cartographer认为位姿推测器推测出来的位姿与姿态是准确的
 
-#### 6.2.2 可能的改进建议
+可能的改进建议
 
-  - pose的距离越小, 匀速模型越能代替机器人的线速度与角速度, 计算pose的线速度与角速度时, 可以考虑使用最近的2个数据进行计算
+- pose的距离越小, 匀速模型越能代替机器人的线速度与角速度, 计算pose的线速度与角速度时, 可以考虑使用最近的2个数据进行计算
 
-  - 里程计距离越短数据越准, 计算里程计的线速度与角速度时, 可以考虑使用最近的2个数据进行计算
+- 里程计距离越短数据越准, 计算里程计的线速度与角速度时, 可以考虑使用最近的2个数据进行计算
 
-  - 使用里程计, 不使用imu时, 计算里程计的线速度方向时, 可以考虑使用里程计的角度进行计算
+- 使用里程计, 不使用imu时, 计算里程计的线速度方向时, 可以考虑使用里程计的角度进行计算
 
-  - 使用里程计, 不使用imu时, 进行姿态的预测时, 可以考虑使用里程计的角度进行预测
+- 使用里程计, 不使用imu时, 进行姿态的预测时, 可以考虑使用里程计的角度进行预测
 
-  - 不使用里程计, 不使用imu时, 可以考虑用最近的2个pose计算线速度与角速度
+- 不使用里程计, 不使用imu时, 可以考虑用最近的2个pose计算线速度与角速度
 
-  - 使用pose对imu_tracker_的航向角进行校准
+- 使用pose对imu_tracker_的航向角进行校准
 
-###  6.3 基于Ceres的扫描匹配
+**基于Ceres的扫描匹配**
 
-#### 6.3.1 可能有问题的点
+可能有问题的点
 
 - 平移和旋转的残差项是逼近于先验位姿的, 当先验位姿不准确时会产生问题
 
-#### 6.3.2 可能的改进建议
+可能的改进建议
 
 - 先将地图的权重调大, 平移旋转的权重调小, 如 1000, 1, 1, 或者 100, 1, 1
 - 调参没有作用的时候可以将平移和旋转的残差项注释掉
 
+**后端优化**
 
+优化时的计算量太大, 可以根据自己需求调整参数, 或者增加计算前的过滤.
+
+在计算子图间约束的时候, 目前cartographer是根据节点个数来做的, 定位时又根据时间来决定是否进行全子图的匹配, 这部分计算的判断可以根据自己的需求增加一些, 以减少计算量.
+
+### 6.3 TSDF地图
+
+#### TSDF地图与ProbabilityGrid地图的区别
+
+TSDF2D类继承了Grid2D类
+
+具体的栅格值保存在Grid2D里的correspondence_cost_cells_中, 只不过这里保存的不再是空闲的概率了. 而是tsd值转成的value.
+
+```c++
+ProbabilityGrid::ProbabilityGrid(const MapLimits& limits,
+                                 ValueConversionTables* conversion_tables)
+    : Grid2D(limits, kMinCorrespondenceCost, kMaxCorrespondenceCost,
+             conversion_tables),
+      conversion_tables_(conversion_tables) {}
+
+/**
+ * @brief 构造函数
+ * 
+ * @param[in] limits 地图坐标信息
+ * @param[in] truncation_distance 0.3
+ * @param[in] max_weight 10.0
+ * @param[in] conversion_tables 转换表
+ */
+TSDF2D::TSDF2D(const MapLimits& limits, float truncation_distance,
+               float max_weight, ValueConversionTables* conversion_tables)
+    : Grid2D(limits, -truncation_distance, truncation_distance,
+             conversion_tables),
+      conversion_tables_(conversion_tables),
+      value_converter_(absl::make_unique<TSDValueConverter>(
+          truncation_distance, max_weight, conversion_tables_)),
+      weight_cells_(
+          limits.cell_limits().num_x_cells * limits.cell_limits().num_y_cells,
+          value_converter_->getUnknownWeightValue()) {}
+```
+
+可以看到, ProbabilityGrid地图的栅格值的最大最小分别是 0.9 与 0.1, 而 TSDF地图的上遏制的最大最小分别是 0.3 与 -0.3.
+
+TSDF地图保存tsd值的同时还保存了权重值, 权重值保存在TSDF2D类的weight_cells_中.
+
+获取TSDF地图栅格值是通过TSDF2D::GetTSDAndWeight获取栅格值的, 同时获取到TSD值与权重值.
+
+#### 栅格值更新的方式
+
+新的权重 = 之前的weight + 新的weight
+新的tsd值 = (之前的tsd值 * 之前的weight + 新的tsd值 * 新的weight) / (新的权重)
+
+```c++
+// TSDF地图栅格的更新, 分别更新tsd值与权重值
+void TSDFRangeDataInserter2D::UpdateCell(const Eigen::Array2i& cell,
+                                         float update_sdf, float update_weight,
+                                         TSDF2D* tsdf) const {
+  if (update_weight == 0.f) return;
+  // 获取TSD值与权重值
+  const std::pair<float, float> tsd_and_weight = tsdf->GetTSDAndWeight(cell);
+  float updated_weight = tsd_and_weight.second + update_weight;
+  float updated_sdf = (tsd_and_weight.first * tsd_and_weight.second +
+                       update_sdf * update_weight) /
+                      updated_weight;
+  updated_weight =
+      std::min(updated_weight, static_cast<float>(options_.maximum_weight()));
+  tsdf->SetCell(cell, updated_sdf, updated_weight);
+}
+```
+
+#### 相关性扫描匹配时使用TSDF计算得分
+
+#### TSDF地图的扫描匹配
+InterpolatedTSDF2D
+CreateTSDFMatchCostFunction2D
+
+### 6.4 3D网格地图
+
+ActiveSubmaps3D
+Submap3D
+HybridGrid
+
+就是用三维网格替换了二维网格, 其余是差不多的.
+
+和2D不同的是, 地图里保存的是odd, 而不是costodd, 即是占用的概率, 而不是miss的概率.
+
+
+### 6.5 3D扫描匹配
+
+#### LocalTrajectoryBuilder3D
+
+#### RealTimeCorrelativeScanMatcher3D
+首先分别对 xyz 与 绕xyz的旋转 这6个维度进行遍历, 生成所有的可能解
+对所有的可能解进行打分, 选出最高分的解
+
+#### CeresScanMatcher3D
+
+基本上与2D是一样的, 只是地图这的残差变了.
+
+OccupiedSpaceCostFunction3D
+地图变成2个了, 一个高分辨率地图, 一个低分辨率地图.
+
+地图残差的计算基本也是一样的, 就是拿点云对应的栅格值当做残差, 只不过作为残差的是(1. - probability).
+
+InterpolatedGrid
+手动实现了双三次插值
+
+#### 将点云插入到三维网格地图里
+
+旋转直方图
+
+推荐2个文章
+
+cartographer 3D scan matching 理解
+[https://www.cnblogs.com/mafuqiang/p/10885616.html](https://www.cnblogs.com/mafuqiang/p/10885616.html)
+
+Cartographer源码阅读3D-Submap创建 
+[https://blog.csdn.net/yeluohanchan/article/details/109462508?spm=1001.2014.3001.5501](https://blog.csdn.net/yeluohanchan/article/details/109462508?spm=1001.2014.3001.5501)
+
+
+插入器 RangeDataInserter3D
+
+插入的时候, 不是调用的RayCasting方法, 更简单粗暴, 直接计算光线的向量, 沿着向量搜索经过的网格, 并更新经过的网格的概率
+
+### 6.6 3D后端优化
+
+#### PoseGraph3D
+
+基本一样, 只不过位姿是6维的了, 不需要再去与重力对齐向量相乘了, 直接获取local_pose, 不用进行旋转变换了.
+
+#### ConstraintBuilder3D
+基本一样, 只不过调用的是FastCorrelativeScanMatcher3D.
+
+#### FastCorrelativeScanMatcher3D
+
+将高分辨率地图弄成多分辨率地图
+保存低分辨率地图
+
+#### OptimizationProblem3D
+
+根据参数选择是否对节点与子图的pose的z坐标进行优化
+
+优化时第一个子图固定了xyz, 旋转固定了yaw, 只优化绕xy的旋转, 因为绕xy的旋转可以通过重力的方向进行约束.
+
+由于旋转是通过四元数表示, 所以在ceres中添加了QuaternionParameterization, 以对四元数进行更新.
+
+多了根据imu计算的残差, 分为加速度的残差与旋转的残差
+
+其余的残差基本一样.
 
 ## 第七章 地图保存与纯定位模式
 
-### 7.1 地图格式的转换
+### 7.1 Submap与ROS格式地图间的格式转换
 
-### 7.2 地图的发布
+### 7.2 ROS地图的发布
 
 ### 7.3 纯定位模式
+
+---
+
 
 
 
@@ -164,7 +283,7 @@ HybridGrid
 
 
 
-###  8.2 工程化建议
+### 8.2 工程化建议
 
 #### 8.2.1 工程化的目的
 
@@ -263,109 +382,7 @@ cartographer_ros里使用ros的地方比较少, 只有在node.cc, sensor_bridge�
 
 
 
-## 课程大纲
-
-### 第一章 编译运行及调参指导
-1. Cartorgapher论文带读
-2. 代码的编译与运行
-3. 配置文件参数详解与调试
-4. 代码基础介绍
-  a. Cartographer中使用的c++11新标准的语法
-  b. 关键概念与关键数据结构
-
-### 第二章 cartographer_ros代码阅读
-1. 入口函数分析
-  a. gflags简介
-  b. glog简介
-  c. 自定义log的格式
-  d. 配置文件的加载
-2. ROS接口
-  a. SLAM的启动, 停止, 数据的保存与加载
-  b. 话题的订阅与发布
-  c. 传感器数据的走向与处理
-  d. 服务的处理
-  e. 可视化信息的设置与发布
-  f. ROS中的数据类型与cartorgrapher中的数据类型的转换
-
-### 第三章 传感器数据的处理过程分析
-1. 传感器数据的传递过程分析
-  a. Cartographer_ros中的传感器数据的传递过程分析
-  b. Cartographer中的传感器数据的传递过程分析
-2. 2D情况下的激光雷达数据的预处理
-  a. 多个激光雷达数据的时间同步与融合
-  b. 激光雷达数据运动畸变的校正与无效点的处理
-  c. 将点云据根据重力的方向做旋转变换
-  d. 对变换后的点云进行z方向的过滤
-  e. 对过滤后的点云做体素滤波
-3. 3D情况下的激光雷达数据的预处理
-  a. 多个激光雷达数据的时间同步与融合
-  b. 对融合后的点云进行第一次体素滤波
-  c. 激光雷达数据运动畸变的校正与无效点的处理
-  d. 分别对点云的hit点与miss点进行第二次体素滤波
-  e. 将点云根据预测出来的先验位姿做旋转平移变换
-
-### 第四章 2D扫描匹配
-1. 扫描匹配理论过程分析
-2. 生成2D局部地图
-  a. 查找表的实现
-  b. 概率地图的实现与地图坐标系的定义
-  c. 概率地图的更新方式
-  d. 如何将点云插入到概率地图中
-3. 基于局部地图的扫描匹配
-  a. 基于IMU与里程计的先验位姿估计
-  b. 根据机器人当前姿态将预测出来的6维先验位姿投影成水平面下的3维位姿
-  c. 对之前预处理后的点云进行自适应体素滤波
-  d. 使用实时的相关性扫描匹配进行粗匹配
-  e. Ceres的简介与编程练习
-  f. 进行基于图优化的扫描匹配实现精匹配
-4. 扫描匹配的结果的处理
-  a. 将匹配的结果与生成的局部地图加入到后端的位姿图结构中
-  b. 调用传入的回调函数进行扫描匹配结果与局部地图的保存
-
-### 第五章 2D后端优化
-1. 后端优化的概念与理论过程分析
-2. 向位姿图中添加顶点
-3. 任务队列与线程池
-4. 为顶点进行子图内与子图间约束的计算
-5. 2D情况下的回环检测
-  a. 使用滑动窗口算法生成指定分辨率的栅格地图
-  b. 多分辨率栅格地图的生成
-  c. 分支定界算法简介
-  d. 基于多分辨率地图的分支定界粗匹配
-6. 2D情况下的优化问题的构建与求解
-  a. 几种计算相对位姿的方式总结
-  b. 优化问题残差的构建思路
-  c. 5种残差项的构建
-  d. 使用Ceres进行全局优化
-7. 优化后的分析
-
-### 第六章 代码总结与3D建图
-1. 代码的全面总结
-2. Cartographer的优缺点分析
-3. TSDF地图
-4. 3D网格地图
-5. 3D扫描匹配
-6. 3D后端优化
-
-### 第七章 地图保存与纯定位
-1. Submap与ROS格式地图间的格式转换
-2. ROS地图的发布
-3. 纯定位模式
-
-### 第八章 调参总结与工程化建议
-1. 调参总结
-  a. 降低延迟与减小计算量
-  b. 降低内存
-  c. 常调的参数
-2. 工程化建议
-  a. 工程化的目的
-  b. 提升建图质量
-  c. 降低计算量与内存
-  d. 纯定位的改进建议
-  e. 去ros的参考思路
-
----
-
+##
 4.4 生成3D局部地图
   a. 查找表的实现
   b. 3D网格地图的实现

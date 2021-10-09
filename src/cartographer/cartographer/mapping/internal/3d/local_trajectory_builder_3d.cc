@@ -71,6 +71,7 @@ std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch(
       active_submaps_.submaps().front();
   transform::Rigid3d initial_ceres_pose =
       matching_submap->local_pose().inverse() * pose_prediction;
+  // 粗匹配
   if (options_.use_online_correlative_scan_matching()) {
     // We take a copy since we use 'initial_ceres_pose' as an output argument.
     const transform::Rigid3d initial_pose = initial_ceres_pose;
@@ -95,6 +96,7 @@ std::unique_ptr<transform::Rigid3d> LocalTrajectoryBuilder3D::ScanMatch(
                             &matching_submap->low_resolution_hybrid_grid(),
                             /*intensity_hybrid_grid=*/nullptr}},
       &pose_observation_in_submap, &summary);
+  
   kCeresScanMatcherCostMetric->Observe(summary.final_cost);
   const double residual_distance = (pose_observation_in_submap.translation() -
                                     initial_ceres_pose.translation())
@@ -424,13 +426,14 @@ LocalTrajectoryBuilder3D::InsertIntoSubmap(
   if (motion_filter_.IsSimilar(time, pose_estimate)) {
     return nullptr;
   }
+
   // 计算根据重力方向校正后点云的直方图
   const Eigen::VectorXf rotational_scan_matcher_histogram_in_gravity =
       scan_matching::RotationalScanMatcher::ComputeHistogram(
           sensor::TransformPointCloud(
               filtered_range_data_in_tracking.returns,
               transform::Rigid3f::Rotation(gravity_alignment.cast<float>())),
-          options_.rotational_histogram_size());
+          options_.rotational_histogram_size()); // rotational_histogram_size=120
 
   const Eigen::Quaterniond local_from_gravity_aligned =
       pose_estimate.rotation() * gravity_alignment.inverse();
@@ -438,6 +441,7 @@ LocalTrajectoryBuilder3D::InsertIntoSubmap(
       active_submaps_.InsertData(filtered_range_data_in_local,
                                  local_from_gravity_aligned,
                                  rotational_scan_matcher_histogram_in_gravity);
+  
   return absl::make_unique<InsertionResult>(
       InsertionResult{std::make_shared<const mapping::TrajectoryNode::Data>(
                           mapping::TrajectoryNode::Data{
