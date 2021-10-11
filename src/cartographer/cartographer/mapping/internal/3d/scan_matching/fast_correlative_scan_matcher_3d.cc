@@ -177,6 +177,7 @@ FastCorrelativeScanMatcher3D::MatchWithSearchParameters(
     const sensor::PointCloud& point_cloud,
     const Eigen::VectorXf& rotational_scan_matcher_histogram,
     const Eigen::Quaterniond& gravity_alignment, const float min_score) const {
+  // 离散化点云，这里通过直方图匹配滤掉了一部分候选scan
   const std::vector<DiscreteScan3D> discrete_scans = GenerateDiscreteScans(
       search_parameters, point_cloud, rotational_scan_matcher_histogram,
       gravity_alignment, global_node_pose, global_submap_pose);
@@ -270,12 +271,14 @@ std::vector<DiscreteScan3D> FastCorrelativeScanMatcher3D::GenerateDiscreteScans(
   }
   const transform::Rigid3f node_to_submap =
       global_submap_pose.inverse() * global_node_pose;
+  // 旋转直方图匹配
   const std::vector<float> scores = rotational_scan_matcher_.Match(
       rotational_scan_matcher_histogram,
       transform::GetYaw(node_to_submap.rotation() *
                         gravity_alignment.inverse().cast<float>()),
       angles);
   for (size_t i = 0; i != angles.size(); ++i) {
+    // 通过阈值过滤掉一些角度
     if (scores[i] < options_.min_rotational_score()) {
       continue;
     }
@@ -288,6 +291,7 @@ std::vector<DiscreteScan3D> FastCorrelativeScanMatcher3D::GenerateDiscreteScans(
         global_submap_pose.rotation().inverse() *
             transform::AngleAxisVectorToRotationQuaternion(angle_axis) *
             global_node_pose.rotation());
+    // 保存不同角度的点云离散后的坐标
     result.push_back(
         DiscretizeScan(search_parameters, point_cloud, pose, scores[i]));
   }

@@ -65,6 +65,13 @@
 
 ### 6.3 TSDF地图
 
+#### TSDF地图
+TSDF算法简述
+[https://zhuanlan.zhihu.com/p/390276710](https://zhuanlan.zhihu.com/p/390276710)
+
+TSDF算法学习
+[https://blog.csdn.net/zfjBIT/article/details/104648505](https://blog.csdn.net/zfjBIT/article/details/104648505)
+
 #### TSDF地图与ProbabilityGrid地图的区别
 
 TSDF2D类继承了Grid2D类
@@ -128,6 +135,32 @@ void TSDFRangeDataInserter2D::UpdateCell(const Eigen::Array2i& cell,
 ```
 
 #### 相关性扫描匹配时使用TSDF计算得分
+```c++
+// 计算点云在指定像素坐标位置下与TSDF2D地图匹配的得分
+float ComputeCandidateScore(const TSDF2D& tsdf,
+                            const DiscreteScan2D& discrete_scan,
+                            int x_index_offset, int y_index_offset) {
+  float candidate_score = 0.f;
+  float summed_weight = 0.f;
+  for (const Eigen::Array2i& xy_index : discrete_scan) {
+    const Eigen::Array2i proposed_xy_index(xy_index.x() + x_index_offset,
+                                           xy_index.y() + y_index_offset);
+    const std::pair<float, float> tsd_and_weight =
+        tsdf.GetTSDAndWeight(proposed_xy_index);
+    const float normalized_tsd_score =
+        (tsdf.GetMaxCorrespondenceCost() - std::abs(tsd_and_weight.first)) /
+        tsdf.GetMaxCorrespondenceCost();
+    const float weight = tsd_and_weight.second;
+    candidate_score += normalized_tsd_score * weight;
+    summed_weight += weight;
+  }
+  if (summed_weight == 0.f) return 0.f;
+  candidate_score /= summed_weight;
+  CHECK_GE(candidate_score, 0.f);
+  return candidate_score;
+}
+```
+
 
 #### TSDF地图的扫描匹配
 InterpolatedTSDF2D
@@ -135,18 +168,18 @@ CreateTSDFMatchCostFunction2D
 
 ### 6.4 3D网格地图
 
-ActiveSubmaps3D
-Submap3D
-HybridGrid
+HybridGridBase相当于Grid2D
+
+HybridGrid相当于ProbabilityGrid
 
 就是用三维网格替换了二维网格, 其余是差不多的.
 
 和2D不同的是, 地图里保存的是odd, 而不是costodd, 即是占用的概率, 而不是miss的概率.
 
-
 ### 6.5 3D扫描匹配
 
 #### LocalTrajectoryBuilder3D
+点云的处理之前讲过了, 位姿预测器是一样的. 大部分是一样的, 不一样的点在下边.
 
 #### RealTimeCorrelativeScanMatcher3D
 首先分别对 xyz 与 绕xyz的旋转 这6个维度进行遍历, 生成所有的可能解
@@ -167,19 +200,21 @@ InterpolatedGrid
 #### 将点云插入到三维网格地图里
 
 旋转直方图
+首先计算了点云的旋转直方图, 子图的旋转直方图就是点云的旋转直方图的累加.
 
-推荐2个文章
+表征点云与地图的角度特征.
 
-cartographer 3D scan matching 理解
+**推荐2篇文章**
+- cartographer 3D scan matching 理解
 [https://www.cnblogs.com/mafuqiang/p/10885616.html](https://www.cnblogs.com/mafuqiang/p/10885616.html)
 
-Cartographer源码阅读3D-Submap创建 
+- Cartographer源码阅读3D-Submap创建 
 [https://blog.csdn.net/yeluohanchan/article/details/109462508?spm=1001.2014.3001.5501](https://blog.csdn.net/yeluohanchan/article/details/109462508?spm=1001.2014.3001.5501)
 
 
 插入器 RangeDataInserter3D
 
-插入的时候, 不是调用的RayCasting方法, 更简单粗暴, 直接计算光线的向量, 沿着向量搜索经过的网格, 并更新经过的网格的概率
+将点云分别插入到低分辨率地图与高分辨率地图中.
 
 ### 6.6 3D后端优化
 
@@ -191,9 +226,17 @@ Cartographer源码阅读3D-Submap创建
 基本一样, 只不过调用的是FastCorrelativeScanMatcher3D.
 
 #### FastCorrelativeScanMatcher3D
+**构造**
+构造的时候需要传入高分辨率地图与低分辨率地图, 以及地图对应的旋转直方图. 
+之后将高分辨率地图弄成多分辨率地图, 保存低分辨率地图与旋转直方图.
+构造时生成了一个低分辨率地图的匹配器.
 
-将高分辨率地图弄成多分辨率地图
-保存低分辨率地图
+**匹配**
+在离散点云的时候通过旋转直方图匹配滤掉了一部分候选scan.
+
+**分枝定界算法**
+每一个候选解生成8个候选解, 3个方向.
+第0层的时候将叶节点与低分辨率地图再进行匹配一下, 得分大于阈值才能返回.
 
 #### OptimizationProblem3D
 
@@ -215,169 +258,87 @@ Cartographer源码阅读3D-Submap创建
 
 ### 7.3 纯定位模式
 
----
 
+```c++
+// node_main.cc
+if (!FLAGS_load_state_filename.empty()) {
+  node.LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
+}
 
+// node.cc
+void Node::LoadState(const std::string& state_filename,
+                     const bool load_frozen_state) {
+  absl::MutexLock lock(&mutex_);
+  map_builder_bridge_.LoadState(state_filename, load_frozen_state);
+  load_state_ = true;
+}
 
+// map_builder_bridge.cc
+void MapBuilderBridge::LoadState(const std::string& state_filename, bool load_frozen_state) {
+  // Check if suffix of the state file is ".pbstream".
+  const std::string suffix = ".pbstream";
+  // 检查后缀是否是.pbstream
+  CHECK_EQ(state_filename.substr(
+               std::max<int>(state_filename.size() - suffix.size(), 0)),
+           suffix)
+      << "The file containing the state to be loaded must be a "
+         ".pbstream file.";
+  LOG(INFO) << "Loading saved state '" << state_filename << "'...";
+  // 加载文件内容
+  cartographer::io::ProtoStreamReader stream(state_filename);
+  // 解析数据
+  map_builder_->LoadState(&stream, load_frozen_state);
+}
 
-## 第八章 调参总结与工程化建议
+// map_builder.cc
+// 构造时候初始化pose_graph_, 之后在重定位时候才能向pose_graph_中添加数据
+std::map<int, int> MapBuilder::LoadState(
+    io::ProtoStreamReaderInterface* const reader, bool load_frozen_state) {
+  // 从文件中添加轨迹
+  // 更新约束中节点与子图的轨迹id
+  // 从获取到的位姿图中生成submap_poses
+  // 从获取到的位姿图中生成node_poses
+  // 将landmark_poses添加到位姿图中
+  // 向pose_graph_中添加信息
+  // 添加子图的附属的节点
+}
 
-### 8.1 调参总结
+// node.cc
+if (FLAGS_start_trajectory_with_default_topics) {
+  node.StartTrajectoryWithDefaultTopics(trajectory_options);
+}
 
-#### 8.1.1 降低延迟与减小计算量
+// pose_graph_2d.cc 优化之后进行子图的裁剪
+{
+  TrimmingHandle trimming_handle(this);
+  // 进行子图的裁剪, 如果没有裁剪器就不裁剪
+  for (auto& trimmer : trimmers_) {
+    trimmer->Trim(&trimming_handle); // PureLocalizationTrimmer::Trim()
+  }
+  // 如果裁剪器处于完成状态, 就把裁剪器删除掉
+  trimmers_.erase(
+      // c++11: std::remove_if 如果回调函数函数返回真,则将当前所指向的参数移到尾部,返回值是被移动区域的首个元素
+      std::remove_if(trimmers_.begin(), trimmers_.end(),
+                      [](std::unique_ptr<PoseGraphTrimmer>& trimmer) {
+                        return trimmer->IsFinished(); // 调用PureLocalizationTrimmer::IsFinished()
+                      }),
+      trimmers_.end());
+}
 
-**前端部分**
-
-- 减小 max_range, 减小了需要处理的点数, 在雷达数据远距离的点不准时一定要减小这个值
-
-- 增大 voxel_filter_size, 相当于减小了需要处理的点数
-
-- 增大 submaps.resolution, 相当于减小了匹配时的搜索量
-
-- 对于自适应体素滤波 减小 min_num_points与max_range, 增大 max_length, 相当于减小了需要处理的点数
-
-
-**后端部分**
-
-- 减小 optimize_every_n_nodes, 降低优化频率, 减小了计算量
-
-- 增大 MAP_BUILDER.num_background_threads, 增加计算速度
-
-- 减小 global_sampling_ratio, 减小计算全局约束的频率
-
-- 减小 constraint_builder.sampling_ratio, 减少了约束的数量
-
-- 增大 constraint_builder.min_score, 减少了约束的数量
-
-- 减小分枝定界搜索窗的大小, 包括linear_xy_search_window,inear_z_search_window, angular_search_window
-
-- 增大 global_constraint_search_after_n_seconds, 减小计算全局约束的频率
-
-- 减小 max_num_iterations, 减小迭代次数
-
-#### 8.1.2 降低内存
-
-增大子图的分辨率 submaps.resolution
-
-#### 8.1.3 常调的参数
-
-```lua
- TRAJECTORY_BUILDER_2D.min_range = 0.3
- TRAJECTORY_BUILDER_2D.max_range = 100.
- TRAJECTORY_BUILDER_2D.min_z = 0.2 -- / -0.8
- TRAJECTORY_BUILDER_2D.voxel_filter_size = 0.02
-
- TRAJECTORY_BUILDER_2D.ceres_scan_matcher.occupied_space_weight = 10.
- TRAJECTORY_BUILDER_2D.ceres_scan_matcher.translation_weight = 1.
- TRAJECTORY_BUILDER_2D.ceres_scan_matcher.rotation_weight = 1.
-
- TRAJECTORY_BUILDER_2D.submaps.num_range_data = 80.
- TRAJECTORY_BUILDER_2D.submaps.grid_options_2d.resolution = 0.1 -- / 0.02
-
- POSE_GRAPH.optimize_every_n_nodes = 160. -- 2倍的num_range_data以上
- POSE_GRAPH.constraint_builder.sampling_ratio = 0.3
- POSE_GRAPH.constraint_builder.max_constraint_distance = 15.
- POSE_GRAPH.constraint_builder.min_score = 0.48
- POSE_GRAPH.constraint_builder.global_localization_min_score = 0.60
+// 裁剪子图与节点, 及相关的约束
+void PoseGraph2D::TrimmingHandle::TrimSubmap(const SubmapId& submap_id) {
+  // 获取除submap_id外的所有子图的所有节点的id(nodes_to_retain), 这些节点是需要保留的
+  // 找到在submap_id的子图内部同时不在别的子图内的节点(nodes_to_remove), 这些节点需要删除
+  // 删除submap_id相关的约束
+  // 删除与nodes_to_remove中节点相关联的约束, 并对对应的submap_id进行标记
+  // 对标记的submap_id进行检查, 看是否还存在其他子图间约束
+  // 删除没有子图间约束的标记的子图的扫描匹配器
+  // 删除submap_id这个子图的指针
+  // 删除submap_id这个子图的匹配器, 与多分辨率地图
+  // 删除optimization_problem_中的submap_id这个子图
+  // 删除nodes_to_remove中的节点
+}
 ```
-
-
-
-### 8.2 工程化建议
-
-#### 8.2.1 工程化的目的
-
-根据机器人的**传感器硬件**, 最终能够实现**稳定地**构建一张**不叠图**的二维栅格地图.
-
-由于cartographer代码十分的优秀, 所以cartographer的稳定性目前已经很好了, 比目前的大部分slam的代码都稳定, 很少会出现崩掉的情况, 最多就是会由于某些原因提示错误.
-
-#### 8.2.2 如何提升建图质量
-
-最简单的一种方式, 选择好的传感器. 选择频率高(25hz以上), 精度高的雷达, 精度高的imu, 这样的传感器配置下很难有建不好的地图.
-
-##### 如果只能用频率低的雷达呢
-
-
-由于频率低时的叠图基本都是在旋转时产生的, 所以推荐使用一个好的imu, 然后建图的时候让机器人的**移动与旋转速度慢一点**(建图轨迹与建图速度十分影响建图效果), 这时候再看建图效果.
-
-如果效果还不行, 调ceres的匹配权重, 将地图权重调大, 平移旋转权重调小. 
-
-如果效果还不行, 可以将代码中平移和旋转的残差注释掉.
-
-如果效果还不行, 那就得改代码了, 去改位姿推测器那部分的代码, 让预测的准一点.
-
-##### 里程计
-
-为什么一直没有说里程计, 就是由于cartographer中对里程计的使用不太好.
-
-cartographer中对里程计的使用有2部分, 一个是前端的位姿推测器, 一个是后端根据里程计数据计算残差. 后端部分的使用是没有问题的.
-
-如果想要在cartographer中使用里程计达到比较好的效果, 前端的位姿推测器这部分需要自己重写. 
-
-可以将karto与gmapping的使用里程计进行预测的部分拿过来进行使用, 改完了之后就能够达到比较好的位姿预测效果了.
-
-##### 粗匹配
-
-cartographer的扫描匹配中的粗匹配是一种暴力匹配的方法, 目的是对位姿预测出的位姿进行校准, 但是这个扫描匹配的计算量太大了, 导致不太好用.
-
-这块可以进行改进, 可以将karto的扫描匹配的粗匹配放过来, karto的扫描匹配的计算量很小, 当做粗匹配很不错.
-
-##### 地图
-
-有时前端部分生成的地图出现了叠图, 而前端建的地图在后端是不会被修改的, 后端优化只会优化节点位姿与子图位姿.
-
-同时cartographer_ros最终生成的地图是将所有地图叠加起来的, 就会导致这个叠图始终都存在, 又或者是后边的地图的空白部分将前边的地图的边给覆盖住了, 导致墙的黑边消失了.
-
-后端优化会将节点与子图的位姿进行优化, 但是不会改动地图, 所以可以在最终生成地图的时候使用后端优化后的节点重新生成一次地图, 这样生成的地图的效果会比前端地图的叠加要好很多.
-
-这块的实现可以参考一下我写的实时生成三维点云地图部分的代码.
-
-##### 更极致的修改
-
-后端优化后的节点与子图位姿是不会对前端产生影响的, 这块可以进行优化一下, 就是前端匹配的时候, 不再使用前端生成的地图进行匹配, 而是使用后端生成的地图进行匹配, 这样就可以将后端优化后的效果带给前端. 但是这要对代码进行大改, 比较费劲.
-
-
-#### 8.2.3 降低计算量与内存
-
-- 体素滤波与自适应体素滤波的计算量(不是很大)
-
-- 后端进行子图间约束时的计算量很大
-
-- 分支定界算法的计算量很大
-- 降低内存, 内存的占用基本就是多分辨率地图这, 每个子图的多分辨率地图都进行保存是否有必要
-
-#### 8.2.4 纯定位的改进建议
-
-目前cartographer的纯定位和正常的建图是一样的, 只是仅保存3个子图, 依然要进行后端优化.
-
-
-这就导致了几个问题:
-
-第一个: 前端的扫描匹配, 是当前的雷达点云与当前轨迹的地图进行匹配, 而不是和之前的地图进行匹配, 这就导致了定位时机器人当前的点云与之前的地图不一定能匹配很好, 就是因为当前的点云是匹配当前轨迹的地图的, 不是与之前的地图进行匹配.
-
-第二个: 纯定位其实就是建图, 所以依然会进行回环检测与后端优化, 而后端优化的计算在定位这是没有必要的, 带来了额外的计算量.
-
-第三个: 纯定位依然会进行回环检测, 回环检测有可能导致机器人的位姿发生跳变.
-
-
-
-**改进思路**
-
-将纯定位模式与建图拆分开, 改成读取之前轨迹的地图进行匹配.
-
-新的轨迹只进行位姿预测, 拿到预测后的位姿与之前轨迹的地图进行匹配, 新的轨迹不再进行地图的生成与保存. 同时将整个后端的功能去掉.
-
-去掉了后端优化之后, 会导致没有重定位功能, 这时候可以将cartographer的回环检测(子图间约束的计算)部分单独拿出来, 做成一个重定位功能. 通过服务来调用这个重定位功能, 根据当前点云确定机器人在之前地图的位姿.
-
-这样才是一个比较好的定位功能的思路.
-
-#### 8.2.5 去ros的参考思路
-
-有一些公司不用ros, 所以就要进行去ros的开发.
-
-咱讲过数据是怎么通过cartographer_ros传到cartographer里去的, 只要仿照着cartographer_ros里的操作, 获取到传感器数据, 将数据转到tracking_frame坐标系下并进行格式转换, 再传入到cartographer里就行了.
-
-cartographer_ros里使用ros的地方比较少, 只有在node.cc, sensor_bridge等几个类中进行使用, 只需要改这个类接受数据的方式以及将ros相关的格式修改一下就行了.
 
 
 
