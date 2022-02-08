@@ -14,7 +14,7 @@
 <launch>
 
   <!-- bag的地址与名称 -->
-  <arg name="bag_filename" default="/home/lx/bagfiles/landmarks_demo_uncalibrated.bag"/>
+  <arg name="bag_filename" default="$(env HOME)/bagfiles/landmarks_demo_uncalibrated.bag"/>
 
   <!-- 使用bag的时间戳 -->
   <param name="/use_sim_time" value="true" />

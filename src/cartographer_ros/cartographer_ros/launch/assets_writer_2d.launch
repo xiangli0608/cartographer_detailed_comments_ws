@@ -20,9 +20,9 @@
 
 <launch>
   <arg name="urdf_filename" default="$(find cartographer_ros)/urdf/scout.urdf"/>
-  <arg name="bag_filenames" default="/home/lx/bagfiles/rslidar-outdoor-gps-notf.bag"/>
-  <arg name="pose_graph_filename" default="/home/lx/carto_ws/map/2d-1.pbstream"/>
-  <arg name="output_file_prefix" default="/home/lx/carto_ws/map/"/>
+  <arg name="bag_filenames" default="$(env HOME)/bagfiles/rslidar-outdoor-gps-notf.bag"/>
+  <arg name="pose_graph_filename" default="$(env HOME)/carto_ws/map/2d-1.pbstream"/>
+  <arg name="output_file_prefix" default="$(env HOME)/carto_ws/map/"/>
 
   <node name="cartographer_assets_writer" pkg="cartographer_ros" required="true"
       type="cartographer_assets_writer" args="

@@ -16,9 +16,9 @@
 
 <launch>
   <!-- bag的地址与名称 -->
-  <arg name="bag_filename" default="/home/lx/bagfiles/rslidar-outdoor-gps-notf.bag"/>
+  <arg name="bag_filename" default="$(env HOME)/bagfiles/rslidar-outdoor-gps-notf.bag"/>
   <!-- pbstream的地址与名称 -->
-  <arg name="load_state_filename" default="/home/lx/carto_ws/map/2d-1.pbstream"/>
+  <arg name="load_state_filename" default="$(env HOME)/carto_ws/map/2d-1.pbstream"/>
 
   <!-- 使用bag的时间戳 -->
   <param name="/use_sim_time" value="true" />
@@ -39,7 +39,7 @@
   <!-- 启动map_server -->
   <!-- 
   <node name="map_server" pkg="map_server" type="map_server"
-      args="/home/lx/carto_ws/map/2d-1.yaml" /> 
+      args="$(env HOME)/carto_ws/map/2d-1.yaml" /> 
   -->
 
   <!-- 启动rviz -->
