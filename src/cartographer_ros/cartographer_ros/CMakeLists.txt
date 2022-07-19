@@ -48,7 +48,7 @@ find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
 option(BUILD_GRPC "build features that require Cartographer gRPC support" false)
 google_initialize_cartographer_project()
-google_enable_testing()
+# google_enable_testing()
 set(CARTOGRAPHER_GMOCK_LIBRARIES ${GMOCK_LIBRARIES})
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
@@ -153,27 +153,27 @@ set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${GOOG_CXX_FLAGS}")
 set_target_properties(${PROJECT_NAME} PROPERTIES
   COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
 
-if (CATKIN_ENABLE_TESTING)
-  foreach(TEST_SOURCE_FILENAME ${ALL_TESTS})
-    get_filename_component(TEST_NAME ${TEST_SOURCE_FILENAME} NAME_WE)
-    catkin_add_gtest(${TEST_NAME} ${TEST_SOURCE_FILENAME})
-    # catkin_add_gtest uses a plain (i.e. no PUBLIC/PRIVATE/INTERFACE) call to
-    # target_link_libraries. That forces us to do the same.
-    target_link_libraries(${TEST_NAME} ${GMOCK_LIBRARIES} ${GTEST_MAIN_LIBRARIES})
-    target_include_directories(${TEST_NAME} SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
-    target_link_libraries(${TEST_NAME} ${LUA_LIBRARIES})
-    target_include_directories(${TEST_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-    target_link_libraries(${TEST_NAME} ${catkin_LIBRARIES})
-    add_dependencies(${TEST_NAME} ${catkin_EXPORTED_TARGETS})
-    target_link_libraries(${TEST_NAME} cartographer)
-    target_link_libraries(${TEST_NAME} ${PROJECT_NAME})
-    set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
-    # Needed for dynamically linked GTest on Windows.
-    if (WIN32)
-      target_compile_definitions(${TEST_NAME} PUBLIC -DGTEST_LINKED_AS_SHARED_LIBRARY)
-    endif()
-  endforeach()
-endif()
+# if (CATKIN_ENABLE_TESTING)
+#   foreach(TEST_SOURCE_FILENAME ${ALL_TESTS})
+#     get_filename_component(TEST_NAME ${TEST_SOURCE_FILENAME} NAME_WE)
+#     catkin_add_gtest(${TEST_NAME} ${TEST_SOURCE_FILENAME})
+#     # catkin_add_gtest uses a plain (i.e. no PUBLIC/PRIVATE/INTERFACE) call to
+#     # target_link_libraries. That forces us to do the same.
+#     target_link_libraries(${TEST_NAME} ${GMOCK_LIBRARIES} ${GTEST_MAIN_LIBRARIES})
+#     target_include_directories(${TEST_NAME} SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
+#     target_link_libraries(${TEST_NAME} ${LUA_LIBRARIES})
+#     target_include_directories(${TEST_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+#     target_link_libraries(${TEST_NAME} ${catkin_LIBRARIES})
+#     add_dependencies(${TEST_NAME} ${catkin_EXPORTED_TARGETS})
+#     target_link_libraries(${TEST_NAME} cartographer)
+#     target_link_libraries(${TEST_NAME} ${PROJECT_NAME})
+#     set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
+#     # Needed for dynamically linked GTest on Windows.
+#     if (WIN32)
+#       target_compile_definitions(${TEST_NAME} PUBLIC -DGTEST_LINKED_AS_SHARED_LIBRARY)
+#     endif()
+#   endforeach()
+# endif()
 
 install(DIRECTORY launch urdf configuration_files
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
